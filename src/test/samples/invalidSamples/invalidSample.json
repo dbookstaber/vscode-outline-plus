@@ -1,0 +1,26 @@
+{
+  "property1": "value1",
+  //#region FirstRegion
+  "property2": "value2",
+  "property3": "value3",
+  //#endregion
+  // #endregion Invalid end boundary
+  // #region Invalid start boundary
+  "property4": "value4",
+  //   #region       Second Region
+  "property5": "value5",
+  "property6": {
+    "property7": "value7",
+    "property8": "value8",
+    // #region InnerRegion
+    "property9": "value9",
+    "property10": "value10",
+    // #endregion  ends InnerRegion
+    "property11": "value11",
+    //  #region
+    "property12": "value12",
+    "property13": "value13"
+    //#endregion
+  }
+  // #endregion
+}

@@ -1,0 +1,22 @@
+#region FirstRegion
+type User {
+  id: ID!
+  name: String!
+}
+#endregion
+
+  # endregion Invalid end boundary
+  # region Invalid start boundary
+
+#  region Second Region
+type Query {
+  users: [User!]!
+  #  region     InnerRegion  
+  user(id: ID!): User
+  #   endregion   ends InnerRegion
+  allPosts: [Post!]!
+  #region
+  getSettings: Settings
+       #     endregion
+}
+# endregion

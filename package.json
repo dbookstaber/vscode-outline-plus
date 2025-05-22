@@ -1,0 +1,556 @@
+{
+  "private": true,
+  "author": {
+    "name": "Aly Thobani",
+    "email": "athobani9@gmail.com"
+  },
+  "publisher": "AlyThobani",
+  "name": "region-helper",
+  "displayName": "Region Helper",
+  "description": "Keyboard navigation, interactive tree views, fuzzy search, diagnostics, and other useful tools for code regions.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alythobani/vscode-region-helper.git"
+  },
+  "galleryBanner": {
+    "color": "#00002e",
+    "theme": "dark"
+  },
+  "icon": "./assets/icon.png",
+  "license": "GPL-3.0-only",
+  "version": "1.5.0",
+  "engines": {
+    "vscode": "^1.94.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "activationEvents": [
+    "onLanguage"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "regionHelper.goToRegionBoundary",
+        "title": "Region Helper: Go to Region Boundary"
+      },
+      {
+        "command": "regionHelper.selectCurrentRegion",
+        "title": "Region Helper: Select Current Region"
+      },
+      {
+        "command": "regionHelper.goToRegionFromQuickPick",
+        "title": "Region Helper: Go to Region..."
+      },
+      {
+        "command": "regionHelper.goToNextRegion",
+        "title": "Region Helper: Go to Next Region"
+      },
+      {
+        "command": "regionHelper.goToPreviousRegion",
+        "title": "Region Helper: Go to Previous Region"
+      },
+      {
+        "command": "regionHelper.regionsView.hide",
+        "title": "Region Helper: Hide Regions View",
+        "when": "config.regionHelper.regionsView.isVisible"
+      },
+      {
+        "command": "regionHelper.regionsView.show",
+        "title": "Region Helper: Show Regions View",
+        "when": "!config.regionHelper.regionsView.isVisible"
+      },
+      {
+        "command": "regionHelper.fullOutlineView.hide",
+        "title": "Region Helper: Hide Full Outline View",
+        "when": "config.regionHelper.fullOutlineView.isVisible"
+      },
+      {
+        "command": "regionHelper.fullOutlineView.show",
+        "title": "Region Helper: Show Full Outline View",
+        "when": "!config.regionHelper.fullOutlineView.isVisible"
+      },
+      {
+        "command": "regionHelper.regionsView.stopAutoHighlightingActiveRegion",
+        "title": "Region Helper: Regions View: Stop Auto-Highlighting Active Region",
+        "when": "config.regionHelper.regionsView.shouldAutoHighlightActiveRegion",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "regionHelper.regionsView.startAutoHighlightingActiveRegion",
+        "title": "Region Helper: Regions View: Start Auto-Highlighting Active Region",
+        "when": "!config.regionHelper.regionsView.shouldAutoHighlightActiveRegion",
+        "icon": "$(sync-ignored)"
+      },
+      {
+        "command": "regionHelper.fullOutlineView.stopAutoHighlightingActiveItem",
+        "title": "Region Helper: Full Outline View: Stop Auto-Highlighting Active Item",
+        "when": "config.regionHelper.fullOutlineView.shouldAutoHighlightActiveItem",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "regionHelper.fullOutlineView.startAutoHighlightingActiveItem",
+        "title": "Region Helper: Full Outline View: Start Auto-Highlighting Active Item",
+        "when": "!config.regionHelper.fullOutlineView.shouldAutoHighlightActiveItem",
+        "icon": "$(sync-ignored)"
+      },
+      {
+        "command": "regionHelper.regionsView.expandAll",
+        "title": "Region Helper: Regions View: Expand All",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "regionHelper.fullOutlineView.expandAll",
+        "title": "Region Helper: Full Outline View: Expand All",
+        "icon": "$(expand-all)"
+      }
+    ],
+    "configuration": [
+      {
+        "title": "Region Helper",
+        "order": 0,
+        "properties": {
+          "regionHelper.regionBoundaryPatternByLanguageId": {
+            "type": "object",
+            "description": "Regular expression strings to match region boundaries for different languages.",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "startRegex": {
+                  "description": "JS-format regular expression string (or array of regex strings) to match the start of a region. Should ideally include a capturing group for the region name.",
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ]
+                },
+                "endRegex": {
+                  "description": "JS-format regular expression string (or array of regex strings) to match the end of a region.",
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "startRegex",
+                "endRegex"
+              ]
+            },
+            "default": {
+              "c": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "clojure": {
+                "startRegex": "^\\s*;+\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*;+\\s*#endregion(?:\\s.*)?$"
+              },
+              "cpp": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "csharp": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "css": {
+                "startRegex": "^\\s*\\/\\*+\\s*#region(?:\\s+(.*?)\\s*)?\\*+\\/",
+                "endRegex": "^\\s*\\/\\*+\\s*#endregion(?:\\s.*)?\\*+\\/"
+              },
+              "dart": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "dockercompose": {
+                "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+              },
+              "dockerfile": {
+                "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+              },
+              "elixir": {
+                "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+              },
+              "erlang": {
+                "startRegex": "^\\s*%+\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*%+\\s*#endregion(?:\\s.*)?$"
+              },
+              "fsharp": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "go": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "graphql": {
+                "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+              },
+              "haskell": {
+                "startRegex": "^\\s*--\\s+#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*--\\s+#endregion(?:\\s.*)?$"
+              },
+              "html": {
+                "startRegex": "^\\s*<!--\\s*#region(?:\\s+(.*?)\\s*)?-->",
+                "endRegex": "^\\s*<!--\\s*#endregion(?:\\s.*)?-->"
+              },
+              "java": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "javascript": {
+                "startRegex": [
+                  "^\\s*\\/\\*+\\s*#region(?:\\s+(.*?)\\s*)?\\*+\\/",
+                  "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$"
+                ],
+                "endRegex": [
+                  "^\\s*\\/\\*+\\s*#endregion(?:\\s.*)?\\*+\\/",
+                  "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+                ]
+              },
+              "javascriptreact": {
+                "startRegex": [
+                  "^\\s*\\/\\*+\\s*#region(?:\\s+(.*?)\\s*)?\\*+\\/",
+                  "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$"
+                ],
+                "endRegex": [
+                  "^\\s*\\/\\*+\\s*#endregion(?:\\s.*)?\\*+\\/",
+                  "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+                ]
+              },
+              "json": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "jsonc": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "julia": {
+                "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+              },
+              "kotlin": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "less": {
+                "startRegex": [
+                  "^\\s*\\/\\*+\\s*#region(?:\\s+(.*?)\\s*)?\\*+\\/",
+                  "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$"
+                ],
+                "endRegex": [
+                  "^\\s*\\/\\*+\\s*#endregion(?:\\s.*)?\\*+\\/",
+                  "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+                ]
+              },
+              "lua": {
+                "startRegex": "^\\s*--\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*--\\s*#endregion(?:\\s.*)?$"
+              },
+              "makefile": {
+                "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+              },
+              "markdown": {
+                "startRegex": "^\\s*<!--\\s*#region(?:\\s+(.*?)\\s*)?-->",
+                "endRegex": "^\\s*<!--\\s*#endregion(?:\\s.*)?-->"
+              },
+              "objective-c": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "objective-cpp": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "ocaml": {
+                "startRegex": "^\\s*\\(\\*\\s*#region(?:\\s+(.*?)\\s*)?\\*\\)",
+                "endRegex": "^\\s*\\(\\*\\s*#endregion(?:\\s.*)?\\*\\)"
+              },
+              "pascal": {
+                "startRegex": [
+                  "^\\s*\\(\\*\\s*#region(?:\\s+(.*?)\\s*)?\\*\\)",
+                  "^\\s*\\{\\s*#region(?:\\s+(.*?)\\s*)?\\}",
+                  "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$"
+                ],
+                "endRegex": [
+                  "^\\s*\\(\\*\\s*#endregion(?:\\s.*)?\\*\\)",
+                  "^\\s*\\{\\s*#endregion(?:\\s.*)?\\}",
+                  "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+                ]
+              },
+              "perl": {
+                "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+              },
+              "php": {
+                "startRegex": [
+                  "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                  "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$"
+                ],
+                "endRegex": [
+                  "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$",
+                  "^\\s*#\\s*endregion(?:\\s.*)?"
+                ]
+              },
+              "postcss": {
+                "startRegex": "^\\s*\\/\\*+\\s*#region(?:\\s+(.*?)\\s*)?\\*+\\/",
+                "endRegex": "^\\s*\\/\\*+\\s*#endregion(?:\\s.*)?\\*+\\/"
+              },
+              "python": {
+                "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+              },
+              "r": {
+                "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+              },
+              "ruby": {
+                "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+              },
+              "rust": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "scss": {
+                "startRegex": [
+                  "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                  "^\\s*\\/\\*+\\s*#region(?:\\s+(.*?)\\s*)?\\*+\\/"
+                ],
+                "endRegex": [
+                  "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$",
+                  "^\\s*\\/\\*+\\s*#endregion(?:\\s.*)?\\*+\\/"
+                ]
+              },
+              "shellscript": {
+                "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+              },
+              "sql": {
+                "startRegex": "^\\s*--\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*--\\s*#endregion(?:\\s.*)?$"
+              },
+              "stylus": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "svelte": {
+                "startRegex": "^\\s*<!--\\s*#region(?:\\s+(.*?)\\s*)?-->",
+                "endRegex": "^\\s*<!--\\s*#endregion(?:\\s.*)?-->"
+              },
+              "swift": {
+                "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+              },
+              "toml": {
+                "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+              },
+              "typescript": {
+                "startRegex": [
+                  "^\\s*\\/\\*+\\s*#region(?:\\s+(.*?)\\s*)?\\*+\\/",
+                  "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$"
+                ],
+                "endRegex": [
+                  "^\\s*\\/\\*+\\s*#endregion(?:\\s.*)?\\*+\\/",
+                  "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+                ]
+              },
+              "typescriptreact": {
+                "startRegex": [
+                  "^\\s*\\/\\*+\\s*#region(?:\\s+(.*?)\\s*)?\\*+\\/",
+                  "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$"
+                ],
+                "endRegex": [
+                  "^\\s*\\/\\*+\\s*#endregion(?:\\s.*)?\\*+\\/",
+                  "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+                ]
+              },
+              "vue": {
+                "startRegex": [
+                  "^\\s*\\/\\*+\\s*#region(?:\\s+(.*?)\\s*)?\\*+\\/",
+                  "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
+                  "^\\s*<!--\\s*#region(?:\\s+(.*?)\\s*)?-->"
+                ],
+                "endRegex": [
+                  "^\\s*\\/\\*+\\s*#endregion(?:\\s.*)?\\*+\\/",
+                  "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$",
+                  "^\\s*<!--\\s*#endregion(?:\\s.*)?-->"
+                ]
+              },
+              "xml": {
+                "startRegex": "^\\s*<!--\\s*#region(?:\\s+(.*?)\\s*)?-->",
+                "endRegex": "^\\s*<!--\\s*#endregion(?:\\s.*)?-->"
+              },
+              "yaml": {
+                "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+              }
+            }
+          }
+        }
+      },
+      {
+        "title": "Regions View",
+        "order": 1,
+        "properties": {
+          "regionHelper.regionsView.isVisible": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show the Regions view."
+          },
+          "regionHelper.regionsView.shouldAutoHighlightActiveRegion": {
+            "type": "boolean",
+            "default": true,
+            "description": "Automatically reveal and highlight the cursor's active region in the Regions view."
+          }
+        }
+      },
+      {
+        "title": "Full Outline View",
+        "order": 2,
+        "properties": {
+          "regionHelper.fullOutlineView.isVisible": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show the Full Outline view."
+          },
+          "regionHelper.fullOutlineView.shouldAutoHighlightActiveItem": {
+            "type": "boolean",
+            "default": true,
+            "description": "Automatically reveal and highlight the cursor's active region/symbol in the Full Outline view."
+          }
+        }
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "regionHelper.goToRegionBoundary",
+        "key": "alt+m",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "regionHelper.selectCurrentRegion",
+        "key": "alt+shift+m",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "regionHelper.goToRegionFromQuickPick",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "regionHelper.goToNextRegion",
+        "key": "ctrl+alt+n",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "regionHelper.goToPreviousRegion",
+        "key": "ctrl+alt+p",
+        "when": "editorTextFocus"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "regionHelper.regionsView.stopAutoHighlightingActiveRegion",
+          "when": "view == regionHelperRegionsView && config.regionHelper.regionsView.shouldAutoHighlightActiveRegion",
+          "group": "navigation@1"
+        },
+        {
+          "command": "regionHelper.regionsView.startAutoHighlightingActiveRegion",
+          "when": "view == regionHelperRegionsView && !config.regionHelper.regionsView.shouldAutoHighlightActiveRegion",
+          "group": "navigation@1"
+        },
+        {
+          "command": "regionHelper.fullOutlineView.stopAutoHighlightingActiveItem",
+          "when": "view == regionHelperFullTreeView && config.regionHelper.fullOutlineView.shouldAutoHighlightActiveItem",
+          "group": "navigation@1"
+        },
+        {
+          "command": "regionHelper.fullOutlineView.startAutoHighlightingActiveItem",
+          "when": "view == regionHelperFullTreeView && !config.regionHelper.fullOutlineView.shouldAutoHighlightActiveItem",
+          "group": "navigation@1"
+        },
+        {
+          "command": "regionHelper.regionsView.expandAll",
+          "when": "view == regionHelperRegionsView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "regionHelper.fullOutlineView.expandAll",
+          "when": "view == regionHelperFullTreeView",
+          "group": "navigation@2"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "regionHelperRegionsView",
+          "name": "Regions",
+          "contextualTitle": "Regions",
+          "when": "config.regionHelper.regionsView.isVisible",
+          "icon": "./assets/regions-view-icon.svg"
+        },
+        {
+          "id": "regionHelperFullTreeView",
+          "name": "Full Outline",
+          "contextualTitle": "Full Outline",
+          "when": "config.regionHelper.fullOutlineView.isVisible",
+          "icon": "./assets/full-outline-view-icon.svg"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile && npm run lint",
+    "compile": "webpack --config webpack.config.ts",
+    "watch": "webpack --config webpack.config.ts --watch",
+    "compile-tests": "rm -rf dist-tests && webpack --config webpack.test.config.ts",
+    "watch-tests": "webpack --config webpack.test.config.ts --watch",
+    "package": "vsce package",
+    "pretest": "npm run compile-tests && npm run lint",
+    "lint": "eslint src",
+    "test": "rm -rf .vscode-test/user-data && vscode-test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.94.0",
+    "@types/webpack": "^5.28.5",
+    "@vscode/test-cli": "^0.0.8",
+    "@vscode/test-electron": "^2.3.9",
+    "copy-webpack-plugin": "^12.0.2",
+    "eslint": "^9.20.1",
+    "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.24.0",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4"
+  }
+}
