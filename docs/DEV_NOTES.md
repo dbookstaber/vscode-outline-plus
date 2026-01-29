@@ -35,8 +35,8 @@ This guide explains how to build and install the Region Helper extension from th
 ## Quick Start
 
 ```bash
-# 1. Clone the repository (if you haven't already)
-git clone https://github.com/alythobani/vscode-region-helper.git
+# 1. Clone the repository
+git clone https://github.com/dbookstaber/vscode-region-helper.git
 cd vscode-region-helper
 
 # 2. Install dependencies
@@ -146,7 +146,7 @@ Then press `F5` to launch the Extension Development Host. After making changes, 
 To uninstall the locally installed extension:
 
 ```bash
-code --uninstall-extension AlyThobani.region-helper
+code --uninstall-extension Bookstaber.region-helper
 ```
 
 Or via the VS Code UI:

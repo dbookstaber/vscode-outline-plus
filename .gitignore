@@ -5,3 +5,5 @@ node_modules
 .vscode-test/
 *.vsix
 .aider*
+.vscode/
+archive/*

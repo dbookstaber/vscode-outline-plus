@@ -28,7 +28,7 @@ suite("Performance Benchmarks", () => {
 
   // Ensure extension is activated before tests
   suiteSetup(async () => {
-    const ext = vscode.extensions.getExtension("alythobani.region-helper");
+    const ext = vscode.extensions.getExtension("bookstaber.region-helper");
     if (!ext) {
       throw new Error("Region Helper extension not found!");
     }

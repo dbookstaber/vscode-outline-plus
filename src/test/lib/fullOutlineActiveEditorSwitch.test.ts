@@ -21,7 +21,7 @@ suite("Full Outline Active Editor Switch", function() {
   let regionHelperAPI: RegionHelperAPI;
 
   suiteSetup(async () => {
-    const regionHelperExtension = vscode.extensions.getExtension("alythobani.region-helper");
+    const regionHelperExtension = vscode.extensions.getExtension("bookstaber.region-helper");
     if (!regionHelperExtension) {
       throw new Error("Region Helper extension not found!");
     }

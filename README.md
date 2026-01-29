@@ -2,9 +2,7 @@
 
 # Region Helper
 
-[![Current version](https://img.shields.io/visual-studio-marketplace/v/AlyThobani.region-helper)](https://marketplace.visualstudio.com/items?itemName=AlyThobani.region-helper) [![Number of installs](https://img.shields.io/visual-studio-marketplace/i/AlyThobani.region-helper)](https://marketplace.visualstudio.com/items?itemName=AlyThobani.region-helper)
-
-A [Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=AlyThobani.region-helper) extension for **navigating, visualizing, and managing code regions**.
+A Visual Studio Code extension for **navigating, visualizing, and managing code regions**.  This fork features higher performance and fewer bugs than the original!
 
 <h2 id="-features">⚡️ Features</h2>
 
@@ -32,9 +30,7 @@ A [Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=AlyTh
    2. [🔄 Toggling Auto-Highlighting in Views](#-toggling-auto-highlighting-in-views)
    3. [🔧 Custom Region Patterns](#-custom-region-patterns)
 5. [📡 Extension API](#-extension-api)
-6. [🚀 Installation](#-installation)
-7. [🚧 Known Limitations](#-known-limitations)
-8. [❤️ Contributing & Feedback](#-contributing--feedback)
+6. [🚧 Known Limitations](#-known-limitations)
 
 <h2 id="-detailed-features">🔬 Detailed Features</h2>
 
@@ -129,27 +125,8 @@ Region Helper provides an API for accessing **parsed code regions** and **full o
 
 **See the full [API documentation](./docs/API.md) for details and examples.**
 
-<h2 id="-installation">🚀 Installation</h2>
-
-1. **[Install Region Helper](https://marketplace.visualstudio.com/items?itemName=AlyThobani.region-helper)** from the VSCode Marketplace.
-2. ???
-3. **Profit!**
-
-(Really, things should work out of the box. [Let me know](https://github.com/alythobani/vscode-region-helper/issues/new/choose) if they don't!)
 
 <h2 id="-known-limitations">🚧 Known Limitations</h2>
 
 - 🔍 **Go to Region...** only supports **camelCase matching** (not full fuzzy search) due to a [VSCode API limitation](https://github.com/microsoft/vscode/issues/34088#issuecomment-328734452).
 - The 📁 **Regions** and 🏛 **Full Outline** tree views **always highlight the cursor's last active item**, even when outside any region/symbol ([another VSCode API limitation](https://github.com/microsoft/vscode/issues/48754)).
-
-<h2 id="-contributing--feedback">❤️ Contributing & Feedback</h2>
-
-I may have limited availability, but **bug reports, suggestions, and contributions** are always welcome! Feel free to:
-
-- **[File an issue](https://github.com/alythobani/vscode-region-helper/issues/new/choose)** for bugs or feature requests.
-- **[Browse issues open to PRs](https://github.com/alythobani/vscode-region-helper/issues?q=state%3Aopen%20label%3A%22accepting%20PRs%22)** and submit one if you'd like to help.
-- **[Leave a review](https://marketplace.visualstudio.com/items?itemName=alythobani.region-helper&ssr=false#review-details)** to share your thoughts or overall feedback.
-
----
-
-Hope you enjoy using Region Helper! Have a great day, and try to make someone else's day great too. 😊
