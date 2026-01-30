@@ -152,8 +152,11 @@ export class FullOutlineStore implements vscode.Disposable {
   private refreshItems(): void {
     this.isRefreshingItems = true;
     const flattenedRegionItems = getFlattenedRegionFullTreeItems(this.regionStore.flattenedRegions);
+    // Pass the active document for modifier extraction
+    const activeDocument = vscode.window.activeTextEditor?.document;
     const flattenedSymbolItems = getFlattenedSymbolFullTreeItems(
-      this.documentSymbolStore.flattenedDocumentSymbols
+      this.documentSymbolStore.flattenedDocumentSymbols,
+      activeDocument
     );
     // Sort both flattened lists by start position before merging.
     // This is necessary because the flattening produces depth-first order,

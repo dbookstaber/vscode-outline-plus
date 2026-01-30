@@ -18,7 +18,7 @@
   },
   "icon": "assets/icon.png",
   "license": "GPL-3.0-only",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "engines": {
     "vscode": "^1.94.0"
   },
@@ -461,6 +461,26 @@
             "type": "boolean",
             "default": true,
             "description": "Automatically reveal and highlight the cursor's active region/symbol in the Full Outline view."
+          },
+          "regionHelper.fullOutlineView.modifierDisplay": {
+            "type": "string",
+            "enum": [
+              "off",
+              "colorOnly",
+              "colorAndDescription"
+            ],
+            "enumDescriptions": [
+              "Do not show symbol modifiers",
+              "Show visibility modifiers using icon colors only",
+              "Show visibility modifiers using icon colors and text descriptions"
+            ],
+            "default": "colorOnly",
+            "description": "Controls how symbol modifiers (visibility: public/private/protected, static, readonly, etc.) are displayed in the Full Outline view."
+          },
+          "regionHelper.fullOutlineView.useDistinctModifierColors": {
+            "type": "boolean",
+            "default": true,
+            "description": "Use distinct colors (green=public, red=private, yellow=protected) for visibility modifiers. When disabled, uses more subtle symbol-themed colors."
           }
         }
       }
