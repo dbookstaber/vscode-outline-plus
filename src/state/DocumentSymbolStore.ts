@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { fetchDocumentSymbols, fetchDocumentSymbolsAfterDelay } from "../lib/fetchDocumentSymbols";
 import { flattenDocumentSymbols } from "../lib/flattenDocumentSymbols";
 import { type DebouncedFunction, debounce } from "../utils/debounce";
+import { log } from "../utils/debugLog";
 
 const REFRESH_SYMBOLS_DEBOUNCE_DELAY_MS = 100;
 
@@ -87,6 +88,13 @@ export class DocumentSymbolStore implements vscode.Disposable {
     return this._versionedDocumentId;
   }
 
+  /**
+   * Monotonically increasing counter to detect stale async fetches.
+   * Each call to refreshDocumentSymbols increments this; if the value has
+   * changed by the time an async fetch completes, the result is discarded.
+   */
+  private _refreshGeneration = 0;
+
   private debouncedRefreshDocumentSymbols: DebouncedFunction<
     (document: vscode.TextDocument | undefined) => void
   > = debounce(this.refreshDocumentSymbols.bind(this), REFRESH_SYMBOLS_DEBOUNCE_DELAY_MS);
@@ -103,14 +111,66 @@ export class DocumentSymbolStore implements vscode.Disposable {
     this._onDidChangeDocumentSymbols.dispose();
   }
 
+  /**
+   * Forces an immediate refresh of document symbols for the active editor,
+   * bypassing change-detection so the event always fires.
+   */
+  forceRefresh(): void {
+    const document = vscode.window.activeTextEditor?.document;
+    this.debouncedRefreshDocumentSymbols.cancel();
+    void this.refreshDocumentSymbolsForced(document);
+  }
+
+  private async refreshDocumentSymbolsForced(
+    document: vscode.TextDocument | undefined
+  ): Promise<void> {
+    const generation = ++this._refreshGeneration;
+    if (!document) {
+      this._versionedDocumentId = undefined;
+      this._documentSymbols = [];
+      this._flattenedDocumentSymbols = [];
+      this._onDidChangeDocumentSymbols.fire();
+      return;
+    }
+    try {
+      const fetchResult = await fetchDocumentSymbols(document);
+      if (generation !== this._refreshGeneration) {
+        return;
+      }
+      const { documentSymbols, versionedDocumentId } = fetchResult;
+      if (documentSymbols === undefined) {
+        return;
+      }
+      sortSymbolsRecursivelyByStart(documentSymbols);
+      this._versionedDocumentId = versionedDocumentId;
+      this._documentSymbols = documentSymbols;
+      this._flattenedDocumentSymbols = flattenDocumentSymbols(documentSymbols);
+      // Always fire on force refresh, even if no change detected
+      this._onDidChangeDocumentSymbols.fire();
+    } catch {
+      // Language server may not be ready or may have failed
+    }
+  }
+
   private registerListeners(subscriptions: vscode.Disposable[]): void {
     vscode.window.onDidChangeActiveTextEditor(
-      (editor) => this.debouncedRefreshDocumentSymbols(editor?.document),
+      (editor) => {
+        log(`DocumentSymbolStore: active editor changed → ${editor?.document.uri.toString() ?? "(none)"}`);
+        this.debouncedRefreshDocumentSymbols(editor?.document);
+      },
       undefined,
       subscriptions
     );
     vscode.workspace.onDidChangeTextDocument(
-      (event) => this.debouncedRefreshDocumentSymbols(event.document),
+      (event) => {
+        // Only refresh if the changed document is the active editor's document.
+        // onDidChangeTextDocument fires for ALL open documents (e.g., background saves,
+        // auto-formatters), and refreshing for non-active documents would overwrite
+        // the store with incorrect data.
+        if (event.document === vscode.window.activeTextEditor?.document) {
+          this.debouncedRefreshDocumentSymbols(event.document);
+        }
+      },
       undefined,
       subscriptions
     );
@@ -120,6 +180,10 @@ export class DocumentSymbolStore implements vscode.Disposable {
     document: vscode.TextDocument | undefined,
     attemptIdx = 0
   ): Promise<void> {
+    // Increment generation on each top-level call (not retries) so we can detect
+    // when a newer refresh has been initiated while this one was in flight.
+    const generation = attemptIdx === 0 ? ++this._refreshGeneration : this._refreshGeneration;
+
     if (!document) {
       this._versionedDocumentId = undefined;
       const oldDocumentSymbols = this._documentSymbols;
@@ -139,6 +203,15 @@ export class DocumentSymbolStore implements vscode.Disposable {
         attemptIdx === 0
           ? await fetchDocumentSymbols(document)
           : await fetchDocumentSymbolsAfterDelay(document, retryDelayMs);
+
+      // Discard result if a newer refresh was initiated while we were fetching.
+      // This prevents a slow fetch for editor A from overwriting results after
+      // the user has already switched to editor B.
+      if (generation !== this._refreshGeneration) {
+        log(`DocumentSymbolStore: discarding stale fetch (gen ${generation} vs current ${this._refreshGeneration})`);
+        return;
+      }
+
       // If the document became inactive during a delayed retry, fetchResult will be undefined
       if (!fetchResult) {
         return;
@@ -158,6 +231,7 @@ export class DocumentSymbolStore implements vscode.Disposable {
 
       // Only fire event if the symbols actually changed
       if (didDocumentSymbolsChange(oldDocumentSymbols, documentSymbols)) {
+        log(`DocumentSymbolStore: symbols changed (${documentSymbols.length} symbols, ${versionedDocumentId})`);
         this._onDidChangeDocumentSymbols.fire();
       }
     } catch {

@@ -8,7 +8,7 @@ Region Helper provides an API that other extensions can use to access **code reg
 import * as vscode from "vscode";
 
 async function getRegionHelperAPI() {
-  const extension = vscode.extensions.getExtension("alythobani.region-helper");
+  const extension = vscode.extensions.getExtension("Bookstaber.region-helper");
   if (!extension) return undefined;
   if (!extension.isActive) await extension.activate();
   return extension.exports;

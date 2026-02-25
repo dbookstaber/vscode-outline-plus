@@ -4,7 +4,7 @@
 
 A Visual Studio Code extension for navigating, visualizing, and managing code regions.
 
-This fork features higher performance and fewer bugs than the original!
+This fork features higher performance, more features, and fewer bugs than the original!
 
 **[QuickStart](./docs/DEV_NOTES.md#1-install-dependencies)**
 
@@ -12,8 +12,10 @@ This fork features higher performance and fewer bugs than the original!
 
 - 📁 **Regions View** – Interactive tree for viewing and navigating regions.
 - 🏛 **Full Outline View** – Like VSCode's builtin Outline view, but incorporates regions.
+- 🎨 **Modifier-Aware Icons** – Color-coded icons showing visibility and member modifiers for C#, Java, TypeScript, Python, and more.
 - 🐇 **Quick Navigation** – Jump, search, and select regions with commands and keyboard shortcuts.
 - ⚠️ **Diagnostics** – Detects unmatched region boundaries.
+- 🔄 **Refresh & Debug** – Manual refresh buttons and built-in debug logging for diagnosing issues.
 
 ![Region Helper Demo](./assets/readme-gifs/0-main-demo.gif)
 
@@ -24,17 +26,22 @@ This fork features higher performance and fewer bugs than the original!
 3. [🔬 Detailed Features](#-detailed-features)
    1. [📂 Regions View](#regions-view)
    2. [🏛 Full Outline View](#-full-outline-view)
-   3. [⚠️ Region Diagnostics](#-region-diagnostics)
-   4. [🔍 Go to Region...](#-go-to-region)
-   5. [🐇 Go to Region Boundary](#-go-to-region-boundary)
-   6. [⏭ Go to Next / Previous Region](#-go-to-next--previous-region)
-   7. [🎯 Select Current Region](#-select-current-region)
+   3. [🎨 Modifier-Aware Icons](#-modifier-aware-icons)
+   4. [⚠️ Region Diagnostics](#-region-diagnostics)
+   5. [🔍 Go to Region...](#-go-to-region)
+   6. [🐇 Go to Region Boundary](#-go-to-region-boundary)
+   7. [⏭ Go to Next / Previous Region](#-go-to-next--previous-region)
+   8. [🎯 Select Current Region](#-select-current-region)
 4. [⚙️ Settings](#-settings)
    1. [🙈 Show/Hide Views](#-showhide-views)
    2. [🔄 Toggling Auto-Highlighting in Views](#-toggling-auto-highlighting-in-views)
-   3. [🔧 Custom Region Patterns](#-custom-region-patterns)
-5. [📡 Extension API](#-extension-api)
-6. [🚧 Known Limitations](#-known-limitations)
+   3. [🎨 Modifier Display Settings](#-modifier-display-settings)
+   4. [🔧 Custom Region Patterns](#-custom-region-patterns)
+5. [🛠 Troubleshooting](#-troubleshooting)
+   1. [🔄 Manual Refresh](#-manual-refresh)
+   2. [🐛 Debug Logging](#-debug-logging)
+6. [📡 Extension API](#-extension-api)
+7. [🚧 Known Limitations](#-known-limitations)
 
 ## <h2 id="-detailed-features">🔬 Detailed Features</h2>
 
@@ -54,23 +61,13 @@ This fork features higher performance and fewer bugs than the original!
 
 ![Full Outline View Demo](./assets/readme-gifs/2-full-outline-view.gif)
 
-### <h3 id="-modifier-aware-icons">Modifier-aware icons</h3>
+### <h3 id="-modifier-aware-icons">🎨 Modifier-Aware Icons</h3>
 
-Beginning in v1.6.2: Two new settings have been added under `regionHelper.fullOutlineView`:
+The Full Outline view can display **color-coded icons** that indicate the visibility and characteristics of symbols — similar to Visual Studio's Document Outline.
 
-```json
-{
-  "regionHelper.fullOutlineView.modifierDisplay": "colorOnly",
-  "regionHelper.fullOutlineView.useDistinctModifierColors": true
-}
-```
+**Custom SVG overlay icons** are provided for common combinations (e.g., a private static method shows a distinct icon). When overlay icons aren't available, the standard VS Code symbol icon is tinted with a color representing the symbol's visibility.
 
-| Setting | Values | Description |
-|---------|--------|-------------|
-| `modifierDisplay` | `"off"`, `"colorOnly"`, `"colorAndDescription"` | Controls how modifiers are displayed |
-| `useDistinctModifierColors` | `boolean` | Use distinct colors (green=public, red=private, yellow=protected) vs subtle symbol colors |
-
-Modifier extraction is currently implemented for:
+#### Supported Languages
 
 | Language | Visibility Modifiers | Member Modifiers |
 |----------|---------------------|------------------|
@@ -79,21 +76,34 @@ Modifier extraction is currently implemented for:
 | **Kotlin** | `public`, `private`, `protected`, `internal` | `const`, `val`, `abstract`, `override`, `sealed` |
 | **TypeScript/JavaScript** | `public`, `private`, `protected` | `static`, `readonly`, `const`, `abstract`, `async`, `override` |
 | **C/C++** | `public`, `private`, `protected` | `static`, `const`, `constexpr`, `virtual`, `override`, `volatile`, `extern` |
-| **Python** | (via naming conventions: `_name`=protected, `__name`=private) | `@staticmethod`, `@classmethod`, `@abstractmethod`, `async` |
+| **Python** | (via naming conventions: `_name` = protected, `__name` = private) | `@staticmethod`, `@classmethod`, `@abstractmethod`, `async` |
 
-#### Visual Behavior
+#### Color Legend
 
-1. **Icon Colors:** When `modifierDisplay` is enabled, symbol icons are tinted based on visibility:
-   - 🟢 Green: `public`
-   - 🔴 Red: `private`
-   - 🟡 Yellow: `protected`
-   - 🔵 Blue: `internal` / `package`
-   - 🟠 Orange: `protected internal`
-   - 🟣 Purple: `private protected`
+| Color | Meaning |
+|-------|---------|
+| 🟢 Green | `public` |
+| 🔴 Red | `private` |
+| 🟡 Yellow | `protected` |
+| 🔵 Blue | `internal` / `package` |
+| 🟠 Orange | `protected internal` |
+| 🟣 Purple | `private protected` |
 
-2. **Tooltips:** Always enhanced to show `[modifier list] SymbolName: line range`
+#### Display Modes
 
-3. **Descriptions:** When `modifierDisplay: "colorAndDescription"`, text badges appear to the right of symbol names (e.g., "static", "readonly", "async")
+Controlled by `regionHelper.fullOutlineView.modifierDisplay`:
+
+| Mode | Behavior |
+|------|----------|
+| `"off"` | Standard VS Code symbol icons only |
+| `"colorOnly"` | Icon colors reflect visibility (default) |
+| `"colorAndBadge"` | Colors + emoji badge prefixes on labels |
+| `"colorAndSvgOverlay"` | Colors + custom SVG overlay icons for methods/fields/properties |
+| `"colorAndDescription"` | Colors + text descriptions to the right of symbol names (e.g., "static", "readonly") |
+
+> **Tooltips** are always enhanced to show `[modifier list] SymbolName: line range`, regardless of display mode.
+
+For technical details on the icon system, see [OUTLINE_MODIFIER_ICONS.md](./OUTLINE_MODIFIER_ICONS.md).
 
 
 ### <h3 id="-region-diagnostics">⚠️ Region Diagnostics</h3>
@@ -145,17 +155,24 @@ To quickly show or hide the **Regions** or **Full Outline** views, you can use t
 
 - **Show/Hide Region View**
   - Commands: `Show Regions View` / `Hide Regions View`
-  - Setting: `regionHelper.shouldShowRegionsView`
+  - Setting: `regionHelper.regionsView.isVisible`
 - **Show/Hide Full Outline View**
   - Commands: `Show Full Outline View` / `Hide Full Outline View`
-  - Setting: `regionHelper.shouldShowFullOutlineView`
+  - Setting: `regionHelper.fullOutlineView.isVisible`
 
 ### <h3 id="-toggling-auto-highlighting-in-views">🔄 Toggling Auto-Highlighting/Revealing in Tree Views</h3>
 
 - By default, the Regions and Full Outline views will **automatically reveal and highlight** the cursor's active region or symbol as you navigate the editor.
-- If you ever want to **disable this auto-revealing behavior** (e.g. for a more stable scroll position), you can use the `{Stop/Start} Auto-Highlighting Active {Region/Item}` commands, or click the tree view's **title bar action** to toggle it on/off:
+- If you ever want to **disable this auto-revealing behavior** (e.g. for a more stable scroll position), you can use the `{Stop/Start} Auto-Highlighting Active {Region/Item}` commands, or click the tree view's **title bar action** (the sync icon) to toggle it on/off.
 
-![Toggle Full Outline Auto-Highlighting Title Action](./assets/readme-pics/8-auto-highlight-view-title-action.png)
+### <h3 id="-modifier-display-settings">🎨 Modifier Display Settings</h3>
+
+Settings under `regionHelper.fullOutlineView`:
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `modifierDisplay` | string | `"colorOnly"` | Controls how modifiers are displayed. Values: `"off"`, `"colorOnly"`, `"colorAndBadge"`, `"colorAndSvgOverlay"`, `"colorAndDescription"` |
+| `useDistinctModifierColors` | boolean | `true` | Use distinct colors (green=public, red=private, yellow=protected) vs subtle symbol-themed colors |
 
 ### <h3 id="-custom-region-patterns">🔧 Custom Region Patterns</h3>
 
@@ -164,6 +181,26 @@ To quickly show or hide the **Regions** or **Full Outline** views, you can use t
 - Define your own **custom region patterns**, or adjust the **existing default patterns**, to customize how regions are parsed.
   - Setting: `regionHelper.regionBoundaryPatternByLanguageId`
     - Note: you may need to restart the extension after changing this setting for it to take effect.
+
+## <h2 id="-troubleshooting">🛠 Troubleshooting</h2>
+
+### <h3 id="-manual-refresh">🔄 Manual Refresh</h3>
+
+Both the **Regions** and **Full Outline** views have a **Refresh** button (↻) in the view's title bar. Click it to force a complete re-fetch of all data, bypassing any caching or change-detection. You can also run the commands from the Command Palette:
+
+- **Region Helper: Refresh Regions View**
+- **Region Helper: Refresh Full Outline**
+
+### <h3 id="-debug-logging">🐛 Debug Logging</h3>
+
+If the outline gets stuck or stops updating, you can capture diagnostic information:
+
+1. **Enable debug logging**: Open Settings (`Ctrl+,`) → search for `regionHelper.enableDebugLogging` → set to `true`.
+2. **Reproduce the problem**.
+3. **Dump diagnostic state**: Open the Command Palette (`Ctrl+Shift+P`) → run **Region Helper: Dump Diagnostic State**. This opens the "Region Helper" Output channel with a snapshot of all internal store state.
+4. **Show the debug log**: Run **Region Helper: Show Debug Log** to review the full timeline of state transitions.
+
+The log captures editor switches, symbol fetches, discarded stale fetches, and version mismatches — all the data needed to diagnose refresh issues.
 
 ## <h2 id="-extension-api">📡 Extension API</h2>
 
@@ -176,3 +213,4 @@ Region Helper provides an API for accessing **parsed code regions** and **full o
 
 - 🔍 **Go to Region...** only supports **camelCase matching** (not full fuzzy search) due to a [VSCode API limitation](https://github.com/microsoft/vscode/issues/34088#issuecomment-328734452).
 - The 📁 **Regions** and 🏛 **Full Outline** tree views **always highlight the cursor's last active item**, even when outside any region/symbol ([another VSCode API limitation](https://github.com/microsoft/vscode/issues/48754)).
+- 🎨 **Modifier extraction** relies on parsing the document text to match language-specific keyword patterns. It does not use the Language Server Protocol's symbol tags (which are not yet widely supported). This means modifier detection may be imperfect for complex or unusual code patterns.

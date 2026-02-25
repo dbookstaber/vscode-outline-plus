@@ -1,12 +1,14 @@
 import * as vscode from "vscode";
+import { extractDocumentIdFromVersioned } from "../lib/getVersionedDocumentId";
 import { type FullTreeItem } from "../treeView/fullTreeView/FullTreeItem";
 import { generateFullOutlineTreeItems } from "../treeView/fullTreeView/generateTopLevelFullTreeItems";
 import { getActiveFullTreeItem } from "../treeView/fullTreeView/getActiveFullTreeItem";
 import {
-  getFlattenedRegionFullTreeItems,
-  getFlattenedSymbolFullTreeItems,
+    getFlattenedRegionFullTreeItems,
+    getFlattenedSymbolFullTreeItems,
 } from "../treeView/fullTreeView/getFlattenedFullTreeItems";
 import { type DebouncedFunction, debounce } from "../utils/debounce";
+import { log } from "../utils/debugLog";
 import { type CollapsibleStateManager } from "./CollapsibleStateManager";
 import { type DocumentSymbolStore } from "./DocumentSymbolStore";
 import { type RegionStore } from "./RegionStore";
@@ -107,6 +109,19 @@ export class FullOutlineStore implements vscode.Disposable {
     this._onDidChangeActiveFullOutlineItem.dispose();
   }
 
+  /**
+   * Forces a complete refresh of both underlying stores and the full outline.
+   * This is the nuclear option for recovering from stuck/stale state.
+   */
+  forceRefresh(): void {
+    this.regionStore.forceRefresh();
+    this.documentSymbolStore.forceRefresh();
+    // The above fire events that trigger debouncedRefreshFullOutline, but we also
+    // schedule an immediate refresh in case events don't propagate fast enough.
+    this.debouncedRefreshFullOutline.cancel();
+    this.refreshFullOutline();
+  }
+
   private registerListeners(subscriptions: vscode.Disposable[]): void {
     vscode.window.onDidChangeActiveTextEditor(
       this.debouncedRefreshFullOutline,
@@ -139,12 +154,25 @@ export class FullOutlineStore implements vscode.Disposable {
   private refreshFullOutline(): void {
     const regionStoreVersionedDocumentId = this.regionStore.versionedDocumentId;
     const documentSymbolStoreVersionedDocumentId = this.documentSymbolStore.versionedDocumentId;
-    if (regionStoreVersionedDocumentId !== documentSymbolStoreVersionedDocumentId) {
-      // Wait for both region and symbol data to be synced on the same document version
-      return;
+
+    // If both stores refer to different documents entirely (not just different versions
+    // of the same document), wait for them to converge.
+    if (regionStoreVersionedDocumentId !== undefined && documentSymbolStoreVersionedDocumentId !== undefined) {
+      const regionDocId = extractDocumentIdFromVersioned(regionStoreVersionedDocumentId);
+      const symbolDocId = extractDocumentIdFromVersioned(documentSymbolStoreVersionedDocumentId);
+      if (regionDocId !== symbolDocId) {
+        // Stores are looking at different documents — wait for convergence.
+        log(`FullOutlineStore: skipping refresh — stores on different documents (region=${regionDocId}, symbol=${symbolDocId})`);
+        return;
+      }
     }
+
+    // Use whichever versioned ID is most current. The RegionStore updates synchronously
+    // and is typically ahead of the async DocumentSymbolStore. We refresh with whatever
+    // data is available rather than blocking on an exact version match, because blocking
+    // can leave the outline permanently stale during rapid edits.
     this._documentId = this.regionStore.documentId;
-    this._versionedDocumentId = regionStoreVersionedDocumentId;
+    this._versionedDocumentId = regionStoreVersionedDocumentId ?? documentSymbolStoreVersionedDocumentId;
     this.refreshItems();
     this.refreshActiveItem();
   }

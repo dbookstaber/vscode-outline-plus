@@ -36,7 +36,7 @@ type SerializedCollapsibleStateStoreByDocumentId = Record<string, SerializedColl
  * Manages the collapsible state (Expanded/Collapsed) of tree items across files, so that
  * collapsible state persists across sessions and file switches.
  */
-export class CollapsibleStateManager {
+export class CollapsibleStateManager implements vscode.Disposable {
   private collapsibleStateStoreByDocumentId: CollapsibleStateStoreByDocumentId = {};
 
   private debouncedCleanIdsAndMaybeSwitchMode = debounce(
@@ -64,8 +64,15 @@ export class CollapsibleStateManager {
     });
     // Add disposables to subscriptions if provided, to ensure proper cleanup
     if (subscriptions) {
-      subscriptions.push(renameDisposable, deleteDisposable);
+      subscriptions.push(renameDisposable, deleteDisposable, this);
     }
+  }
+
+  dispose(): void {
+    this.debouncedCleanIdsAndMaybeSwitchMode.cancel();
+    // Flush pending save before shutdown, then cancel the debounce
+    this.debouncedSaveToWorkspaceState.cancel();
+    void this.saveToWorkspaceState();
   }
 
   private onFileRename({ oldUri, newUri }: { oldUri: vscode.Uri; newUri: vscode.Uri }): void {
