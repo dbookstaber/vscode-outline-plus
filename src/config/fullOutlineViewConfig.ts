@@ -1,10 +1,10 @@
 import {
-  type GetLevel2Keys,
-  getRegionHelperConfig,
-  setGlobalRegionHelperConfigValue,
+    type GetLevel2Keys,
+    getRegionHelperConfig,
+    setGlobalRegionHelperConfigValue,
 } from "./regionHelperConfig";
 
-export type ModifierDisplayMode = "off" | "colorOnly" | "colorAndDescription";
+export type ModifierDisplayMode = "off" | "colorOnly" | "colorAndBadge" | "colorAndSvgOverlay" | "colorAndDescription";
 
 export type FullOutlineViewConfig = Readonly<{
   isVisible: boolean;

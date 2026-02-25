@@ -1,3 +1,4 @@
+import * as path from "path";
 import * as vscode from "vscode";
 import {
   getModifierDescription,
@@ -43,10 +44,12 @@ export type ModifierIconConfig = {
   showVisibilityColors: boolean;
   /** Whether to use distinct (chart) colors vs symbol-based colors */
   useDistinctColors: boolean;
-  /** Whether to add visibility badge suffix to icon */
-  showVisibilityBadge: boolean;
+  /** Where to show badge symbols: "none", "labelPrefix", "description", or "svgOverlay" */
+  badgePosition: "none" | "labelPrefix" | "description" | "svgOverlay";
   /** Whether to add static indicator */
   showStaticIndicator: boolean;
+  /** Extension path for loading custom icons (required for svgOverlay mode) */
+  extensionPath?: string | undefined;
 };
 
 /**
@@ -56,9 +59,83 @@ export function getDefaultModifierIconConfig(): ModifierIconConfig {
   return {
     showVisibilityColors: true,
     useDistinctColors: true,
-    showVisibilityBadge: false, // VS Code doesn't support icon badges yet
+    badgePosition: "labelPrefix", // Show badges as label prefix (closest to icon)
     showStaticIndicator: true,
   };
+}
+
+/**
+ * Symbol types that have custom SVG icons with overlays.
+ */
+const SUPPORTED_CUSTOM_ICON_TYPES = new Set(["symbol-method", "symbol-property", "symbol-field"]);
+
+/**
+ * Map from symbol icon ID to custom icon base name.
+ */
+const CUSTOM_ICON_BASE_NAMES: Record<string, string> = {
+  "symbol-method": "method",
+  "symbol-property": "property",
+  "symbol-field": "field",
+};
+
+/**
+ * Gets the custom SVG icon path for a symbol with modifiers.
+ * Returns undefined if no custom icon is available for this combination.
+ *
+ * @param baseIconId The base symbol icon ID (e.g., "symbol-method")
+ * @param modifiers The symbol's modifiers
+ * @param extensionPath Path to the extension directory
+ * @returns Icon path object for light/dark themes, or undefined
+ */
+export function getCustomModifierIconPath(
+  baseIconId: string,
+  modifiers: SymbolModifiers,
+  extensionPath: string
+): { light: vscode.Uri; dark: vscode.Uri } | undefined {
+  // Check if we have custom icons for this symbol type
+  if (!SUPPORTED_CUSTOM_ICON_TYPES.has(baseIconId)) {
+    return undefined;
+  }
+
+  const baseName = CUSTOM_ICON_BASE_NAMES[baseIconId];
+  if (baseName === undefined) {
+    return undefined;
+  }
+
+  // Determine which icon variant to use based on modifiers
+  const parts: string[] = [baseName];
+
+  // Add visibility suffix
+  switch (modifiers.visibility) {
+    case "private":
+    case "private-protected":
+      parts.push("private");
+      break;
+    case "protected":
+    case "protected-internal":
+      parts.push("protected");
+      break;
+    // public and internal use base icon (or just static variant)
+    default:
+      // Only proceed if there's a static modifier
+      if (!modifiers.memberModifiers.isStatic) {
+        return undefined; // No custom icon for plain public
+      }
+      break;
+  }
+
+  // Add static suffix
+  if (modifiers.memberModifiers.isStatic) {
+    parts.push("static");
+  }
+
+  // Build icon filename
+  const iconName = parts.join("-") + ".svg";
+  const iconPath = path.join(extensionPath, "assets", "icons", iconName);
+  const iconUri = vscode.Uri.file(iconPath);
+
+  // Use same icon for both light and dark themes (icons are designed to work in both)
+  return { light: iconUri, dark: iconUri };
 }
 
 /**
@@ -145,8 +222,94 @@ export function createModifierTooltip(baseTooltip: string, modifiers: SymbolModi
 }
 
 /**
+ * Badge characters for modifier indicators.
+ * Using compact unicode symbols that render well in tree views.
+ */
+const MODIFIER_BADGES = {
+  private: "🔒",         // Padlock for private
+  protected: "🛡️",       // Shield for protected
+  static: "ˢ",           // Superscript S for static (smaller than Ⓢ)
+  readonly: "ʳ",         // Superscript r for readonly
+  const: "ᶜ",            // Superscript c for const
+  abstract: "ᵃ",         // Superscript a for abstract
+  async: "⚡",            // Lightning bolt for async
+} as const;
+
+/**
+ * Creates modifier badge symbols string.
+ * Used for both label prefix and description positions.
+ *
+ * Badge order: visibility first (🔒🛡️), then static (ˢ)
+ *
+ * @param modifiers The symbol's modifiers
+ * @param config The icon configuration
+ * @returns Badge string or undefined if no badges
+ */
+function createModifierBadges(
+  modifiers: SymbolModifiers,
+  config: ModifierIconConfig
+): string | undefined {
+  const parts: string[] = [];
+
+  // Add visibility badge
+  switch (modifiers.visibility) {
+    case "private":
+    case "private-protected":
+      parts.push(MODIFIER_BADGES.private);
+      break;
+    case "protected":
+    case "protected-internal":
+      parts.push(MODIFIER_BADGES.protected);
+      break;
+    // public and internal don't get badges (they're the "expected" state)
+  }
+
+  // Add static indicator
+  if (config.showStaticIndicator && modifiers.memberModifiers.isStatic) {
+    parts.push(MODIFIER_BADGES.static);
+  }
+
+  if (parts.length === 0) {
+    return undefined;
+  }
+
+  return parts.join("");
+}
+
+/**
+ * Creates a label prefix string for tree item that shows modifier badges.
+ * This appears BETWEEN the icon and the label text.
+ *
+ * Format: "🔒ˢ " (padlock + static badge + space before name)
+ *
+ * @param modifiers The symbol's modifiers
+ * @param config The icon configuration
+ * @returns Label prefix string or empty string if no badges
+ */
+export function createModifierLabelPrefix(
+  modifiers: SymbolModifiers,
+  config: ModifierIconConfig
+): string {
+  if (config.badgePosition !== "labelPrefix") {
+    return "";
+  }
+
+  const badges = createModifierBadges(modifiers, config);
+  if (badges === undefined) {
+    return "";
+  }
+
+  return badges + " ";
+}
+
+/**
  * Creates a description string for tree item that shows modifier badges.
  * This appears to the right of the tree item label.
+ *
+ * Uses unicode symbols for compact visual indication:
+ * - 🔒 for private members
+ * - 🛡️ for protected members  
+ * - ˢ for static members
  *
  * @param modifiers The symbol's modifiers
  * @param config The icon configuration
@@ -156,12 +319,37 @@ export function createModifierDescription(
   modifiers: SymbolModifiers,
   config: ModifierIconConfig
 ): string | undefined {
+  if (config.badgePosition !== "description") {
+    // When using label prefix, description shows other modifiers
+    return createTextDescription(modifiers);
+  }
+
   const parts: string[] = [];
 
-  // Add static indicator
-  if (config.showStaticIndicator && modifiers.memberModifiers.isStatic) {
-    parts.push("static");
+  // Add visibility badge
+  const badges = createModifierBadges(modifiers, config);
+  if (badges !== undefined) {
+    parts.push(badges);
   }
+
+  // Add text modifiers
+  const textDesc = createTextDescription(modifiers);
+  if (textDesc !== undefined) {
+    parts.push(textDesc);
+  }
+
+  if (parts.length === 0) {
+    return undefined;
+  }
+
+  return parts.join(" ");
+}
+
+/**
+ * Creates text description for non-visibility modifiers.
+ */
+function createTextDescription(modifiers: SymbolModifiers): string | undefined {
+  const parts: string[] = [];
 
   // Add readonly/const indicator
   if (modifiers.memberModifiers.isReadonly) {
@@ -184,7 +372,7 @@ export function createModifierDescription(
     return undefined;
   }
 
-  return parts.join(", ");
+  return parts.join(" ");
 }
 
 /**

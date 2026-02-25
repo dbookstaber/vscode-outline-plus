@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- Base field icon: light blue small square/box -->
+  <rect x="4" y="4" width="8" height="8" rx="1" fill="#4FC1FF" fill-opacity="0.25"/>
+  <rect x="4" y="4" width="8" height="8" rx="1" stroke="#4FC1FF" stroke-width="1" fill="none"/>
+  <!-- Field indicator: horizontal line -->
+  <line x1="6" y1="8" x2="10" y2="8" stroke="#4FC1FF" stroke-width="1.5" stroke-linecap="round"/>
+  
+  <!-- Static 'S' badge overlay (top-left) -->
+  <g transform="translate(0, 0)">
+    <!-- Badge background circle -->
+    <circle cx="2.5" cy="2.5" r="2.5" fill="#3794FF"/>
+    <!-- S letter -->
+    <text x="2.5" y="4" text-anchor="middle" font-family="sans-serif" font-size="4" fill="white" font-weight="bold">S</text>
+  </g>
+  
+  <!-- Protected shield overlay (bottom-right) -->
+  <g transform="translate(11, 11)">
+    <!-- Shield shape -->
+    <path d="M2.5 0L5 1V3C5 4.5 2.5 5 2.5 5C2.5 5 0 4.5 0 3V1L2.5 0Z" fill="#CCA700"/>
+  </g>
+</svg>

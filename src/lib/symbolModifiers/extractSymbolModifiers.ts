@@ -295,7 +295,7 @@ function setMemberModifier(memberModifiers: MemberModifiers, key: string): void 
 /**
  * Gets the text of a symbol's declaration, carefully avoiding text from other symbols.
  * Reads from the symbol's selection range line and up to 3 lines before it,
- * but stops at blank lines to avoid capturing modifiers from previous declarations.
+ * but stops at boundaries that indicate we've left this symbol's declaration.
  */
 function getSymbolDeclarationText(
   symbol: vscode.DocumentSymbol,
@@ -311,17 +311,38 @@ function getSymbolDeclarationText(
 
   let startLine = symbolLine;
 
-  // Look backwards up to 3 lines for decorators/attributes, stopping at blank lines
+  // Look backwards up to 3 lines for decorators/attributes, stopping at declaration boundaries
   for (let i = 1; i <= 3 && symbolLine - i >= 0; i++) {
     const prevLine = symbolLine - i;
     if (prevLine >= lineCount) {
       break;
     }
     const lineText = document.lineAt(prevLine).text;
-    // Stop if we hit a blank line or a line that looks like end of another declaration
-    if (lineText.trim() === "" || /^[\s]*[}\])]/.test(lineText)) {
+    const trimmedLine = lineText.trim();
+
+    // Stop conditions - we've left this symbol's declaration area:
+    // 1. Empty/blank line
+    if (trimmedLine === "") {
       break;
     }
+    // 2. Line is just an opening or closing brace (start of a block)
+    if (trimmedLine === "{" || trimmedLine === "}") {
+      break;
+    }
+    // 3. Line ends with opening brace (class/method declaration with body start)
+    if (trimmedLine.endsWith("{")) {
+      break;
+    }
+    // 4. Line ends with closing brace or paren (end of another declaration)
+    if (/[}\]);]$/.test(trimmedLine)) {
+      break;
+    }
+    // 5. Line contains a visibility keyword followed by "class", "struct", "interface", "enum"
+    //    This means we've reached a parent type declaration
+    if (/\b(public|private|protected|internal)\s+(sealed\s+|abstract\s+|static\s+|partial\s+)*(class|struct|interface|enum|record)\b/i.test(lineText)) {
+      break;
+    }
+
     startLine = prevLine;
   }
 

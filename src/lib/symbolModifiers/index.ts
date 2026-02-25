@@ -4,16 +4,16 @@
  */
 
 export {
-  getDefaultModifiers, getModifierDescription, hasAnyModifier, type MemberModifiers,
-  type SymbolModifiers, type VisibilityModifier
+    getDefaultModifiers, getModifierDescription, hasAnyModifier, type MemberModifiers,
+    type SymbolModifiers, type VisibilityModifier
 } from "./SymbolModifiers";
 
 export {
-  clearModifierCache, extractSymbolModifiers,
-  extractSymbolModifiersWithCache
+    clearModifierCache, extractSymbolModifiers,
+    extractSymbolModifiersWithCache
 } from "./extractSymbolModifiers";
 
 export {
-  createModifierAwareIcon, createModifierDescription, createModifierTooltip, getDefaultModifierIconConfig, getStaticIndicator, getVisibilityIndicator, getVisibilityLevel, type ModifierIconConfig
+    createModifierAwareIcon, createModifierDescription, createModifierLabelPrefix, createModifierTooltip, getCustomModifierIconPath, getDefaultModifierIconConfig, getStaticIndicator, getVisibilityIndicator, getVisibilityLevel, type ModifierIconConfig
 } from "./modifierIcons";
 

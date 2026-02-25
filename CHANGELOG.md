@@ -4,6 +4,64 @@ All notable changes to the "region-helper" extension will be documented in this 
 
 This changelog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is structured for clarity and readability, inspired by [Common Changelog](https://common-changelog.org/) and [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.7.0] - 2026-02-25
+
+Bug fixes and new features, including debugging option detailed in [DEV_NOTES.md](./docs/DEV_NOTES.md).
+
+### New view title bar buttons
+Both the **Regions** and **Full Outline** views now have a **Refresh** button (circular arrow icon) in position @0 of the navigation bar. The auto-highlight toggle buttons remain at position @1.
+
+### Bug 1: "Full Outline doesn't update when reorganizing code"
+**Location:** FullOutlineStore.ts `refreshFullOutline()`
+
+The `FullOutlineStore` required the `RegionStore` and `DocumentSymbolStore` to have an **exact versioned document ID match** before refreshing. Since `RegionStore` parses synchronously (immediately has the latest version) while `DocumentSymbolStore` fetches async (lags behind), during any edit sequence the versions would mismatch and the refresh was **silently skipped**. This is why switching away and back "fixed" it — that triggered `onDidChangeActiveTextEditor` which re-synchronized both stores.
+
+**Fix:** Relaxed the check to only block when the stores are looking at *different documents entirely* (different URIs), not different versions of the same document. The outline now refreshes with whatever data is available and self-corrects when both stores converge.
+
+### Bug 2: "Extension gets stuck on one editor"  
+**Location:** DocumentSymbolStore.ts `refreshDocumentSymbols()`
+
+A classic async race condition. When switching editors rapidly:
+1. Fetch starts for Editor A (async)
+2. User switches to Editor B, fetch starts for B
+3. B's fetch completes first — correct data stored
+4. A's fetch completes later — **overwrites state with stale data from A!**
+
+Now the active view is stuck showing A's outline even though B is active.
+
+**Fix:** Added a monotonically increasing `_refreshGeneration` counter. Each top-level refresh increments it; when an async fetch completes, it checks whether its generation is still current. Stale fetches from previous editors are silently discarded.
+
+### Bug 3: Wrong-document triggers from background edits
+**Location:** DocumentSymbolStore.ts `onDidChangeTextDocument` listener
+
+`onDidChangeTextDocument` fires for **all** open documents, not just the active one. With dozens of editors open, background saves, auto-formatters, or extension updates on non-active documents could trigger a symbol fetch for the wrong document.
+
+**Fix:** Added an active-document guard so only changes to the active editor's document trigger a refresh.
+
+## Changes Made
+
+### New files
+- refreshViews.ts — Refresh commands for both views
+- debugLog.ts — Debug logging infrastructure
+
+### Modified files (9 files)
+
+| File | Changes |
+|------|---------|
+| DocumentSymbolStore.ts | Race condition fix (generation counter), active-doc guard on `onDidChangeTextDocument`, `forceRefresh()`, debug logging |
+| FullOutlineStore.ts | Relaxed version-match gating to document-ID match, `forceRefresh()`, debug logging |
+| RegionStore.ts | `forceRefresh()`, debug logging |
+| CollapsibleStateManager.ts | Added `Disposable` interface, `dispose()` flushes pending state save |
+| getVersionedDocumentId.ts | Added `extractDocumentIdFromVersioned()` helper |
+| registerCommand.ts | Added `fullOutlineStore` to closured params, registered refresh commands |
+| extension.ts | Wired up debug log init, debug commands, `fullOutlineStore` in command params |
+| package.json | Added refresh commands, refresh buttons in view title bars, debug setting, debug commands |
+
+## [1.6.2] - 2026-01-30
+
+**New feature: Outline Modifier Icons** 
+Optionally display additional icons and colors to indicate characteristics of objects in the FULL OUTLINE view.
+
 ## [1.5.3] - 2025-12-20
 
 - Slight adjustments to README, and also a re-publish attempt since VSCode seemed to silently fail to fully publish v1.5.2

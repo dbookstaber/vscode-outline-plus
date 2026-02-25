@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- Base method icon: purple diamond/box shape -->
+  <path d="M8 1L14 8L8 15L2 8L8 1Z" fill="#C586C0" fill-opacity="0.25"/>
+  <path d="M8 1L14 8L8 15L2 8L8 1Z" stroke="#C586C0" stroke-width="1" fill="none"/>
+  <!-- Method parentheses indicator -->
+  <text x="8" y="10.5" text-anchor="middle" font-family="monospace" font-size="6" fill="#C586C0" font-weight="bold">M</text>
+  
+  <!-- Private padlock overlay (bottom-right, 5x5) -->
+  <g transform="translate(11, 11)">
+    <!-- Padlock body -->
+    <rect x="0" y="2" width="5" height="3" rx="0.5" fill="#F14C4C"/>
+    <!-- Padlock shackle -->
+    <path d="M1 2V1.5C1 0.7 1.7 0 2.5 0C3.3 0 4 0.7 4 1.5V2" stroke="#F14C4C" stroke-width="1" fill="none"/>
+  </g>
+</svg>
