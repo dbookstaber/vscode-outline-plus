@@ -4,6 +4,7 @@ import { getDocumentId, getVersionedDocumentId } from "../lib/getVersionedDocume
 import { type InvalidMarker, parseAllRegions } from "../lib/parseAllRegions";
 import { type Region } from "../models/Region";
 import { type DebouncedFunction, debounce } from "../utils/debounce";
+import { log } from "../utils/debugLog";
 import { getActiveRegion } from "../utils/getActiveRegion";
 
 const REFRESH_REGIONS_DEBOUNCE_DELAY_MS = 100;
@@ -98,6 +99,44 @@ export class RegionStore implements vscode.Disposable {
     this._onDidChangeInvalidMarkers.dispose();
   }
 
+  /**
+   * Forces an immediate refresh of regions for the active editor,
+   * bypassing change-detection so the event always fires.
+   */
+  forceRefresh(): void {
+    this.debouncedRefreshRegionsAndActiveRegion.cancel();
+    this.refreshRegionsForced();
+    this.refreshActiveRegion();
+  }
+
+  private refreshRegionsForced(): void {
+    this.isRefreshingRegions = true;
+    const activeDocument = vscode.window.activeTextEditor?.document;
+    const activeDocumentId = activeDocument ? getDocumentId(activeDocument) : undefined;
+    const versionedDocumentId = activeDocument ? getVersionedDocumentId(activeDocument) : undefined;
+
+    if (!activeDocument) {
+      this._topLevelRegions = [];
+      this._flattenedRegions = [];
+      this._invalidMarkers = [];
+      this._allParentIds = new Set<string>();
+    } else {
+      const { topLevelRegions, invalidMarkers } = parseAllRegions(activeDocument);
+      this._topLevelRegions = topLevelRegions;
+      const { flattenedRegions, allParentIds } = flattenRegionsAndCountParents(topLevelRegions);
+      this._flattenedRegions = flattenedRegions;
+      this._allParentIds = allParentIds;
+      this._invalidMarkers = invalidMarkers;
+    }
+    this._documentId = activeDocumentId;
+    this._versionedDocumentId = versionedDocumentId;
+
+    // Always fire on force refresh, even if no change detected
+    this._onDidChangeRegions.fire();
+    this._onDidChangeInvalidMarkers.fire();
+    this.isRefreshingRegions = false;
+  }
+
   private registerListeners(subscriptions: vscode.Disposable[]): void {
     vscode.window.onDidChangeActiveTextEditor(
       this.debouncedRefreshRegionsAndActiveRegion,
@@ -155,6 +194,7 @@ export class RegionStore implements vscode.Disposable {
 
     // Only fire events if the data actually changed
     if (didFlattenedRegionsChange(oldFlattenedRegions, this._flattenedRegions)) {
+      log(`RegionStore: regions changed (${this._flattenedRegions.length} regions, ${versionedDocumentId})`);
       this._onDidChangeRegions.fire();
     }
     if (didInvalidMarkersChange(oldInvalidMarkers, this._invalidMarkers)) {

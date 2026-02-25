@@ -5,11 +5,14 @@ int x = 42;
 #region Second Region
 class MyClass {
     #region    InnerRegion  
-    void MyMethod() {}
+    readonly int x = 42;
+    int y = 100;
+    protected int z = 200;
+    private void MyMethod() {}
     #endregion   ends  InnerRegion    
 
     #region
-    void MyMethod2() {}
+    static void MyMethod2() {}
     #endregion  
 }
 #endregion

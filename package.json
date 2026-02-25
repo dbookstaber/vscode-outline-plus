@@ -18,7 +18,7 @@
   },
   "icon": "assets/icon.png",
   "license": "GPL-3.0-only",
-  "version": "1.6.1",
+  "version": "1.7.0",
   "engines": {
     "vscode": "^1.94.0"
   },
@@ -109,6 +109,24 @@
         "command": "regionHelper.fullOutlineView.expandAll",
         "title": "Region Helper: Full Outline View: Expand All",
         "icon": "$(expand-all)"
+      },
+      {
+        "command": "regionHelper.regionsView.refresh",
+        "title": "Region Helper: Refresh Regions View",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "regionHelper.fullOutlineView.refresh",
+        "title": "Region Helper: Refresh Full Outline",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "regionHelper.showDebugLog",
+        "title": "Region Helper: Show Debug Log"
+      },
+      {
+        "command": "regionHelper.dumpDiagnosticState",
+        "title": "Region Helper: Dump Diagnostic State"
       }
     ],
     "configuration": [
@@ -461,6 +479,41 @@
             "type": "boolean",
             "default": true,
             "description": "Automatically reveal and highlight the cursor's active region/symbol in the Full Outline view."
+          },
+          "regionHelper.fullOutlineView.modifierDisplay": {
+            "type": "string",
+            "enum": [
+              "off",
+              "colorOnly",
+              "colorAndBadge",
+              "colorAndSvgOverlay",
+              "colorAndDescription"
+            ],
+            "enumDescriptions": [
+              "Do not show symbol modifiers",
+              "Show visibility modifiers using icon colors only",
+              "Show visibility using icon colors + badge symbols next to icon (🔒 S etc.)",
+              "Show visibility using icon colors + custom SVG icons with overlay badges (method/property/field only)",
+              "Show visibility using icon colors + text descriptions to the right"
+            ],
+            "default": "colorAndBadge",
+            "description": "Controls how symbol modifiers (visibility: public/private/protected, static, readonly, etc.) are displayed in the Full Outline view."
+          },
+          "regionHelper.fullOutlineView.useDistinctModifierColors": {
+            "type": "boolean",
+            "default": true,
+            "description": "Use distinct colors (green=public, red=private, yellow=protected) for visibility modifiers. When disabled, uses more subtle symbol-themed colors."
+          }
+        }
+      },
+      {
+        "title": "Region Helper: Debug",
+        "order": 2,
+        "properties": {
+          "regionHelper.enableDebugLogging": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable debug logging to the 'Region Helper' output channel. Useful for diagnosing issues with outline refresh or editor tracking."
           }
         }
       }
@@ -495,6 +548,16 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "regionHelper.regionsView.refresh",
+          "when": "view == regionHelperRegionsView",
+          "group": "navigation@0"
+        },
+        {
+          "command": "regionHelper.fullOutlineView.refresh",
+          "when": "view == regionHelperFullTreeView",
+          "group": "navigation@0"
+        },
         {
           "command": "regionHelper.regionsView.stopAutoHighlightingActiveRegion",
           "when": "view == regionHelperRegionsView && config.regionHelper.regionsView.shouldAutoHighlightActiveRegion",

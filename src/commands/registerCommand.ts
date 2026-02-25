@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { type FullOutlineStore } from "../state/FullOutlineStore";
 import { type RegionStore } from "../state/RegionStore";
 import { type FullTreeViewProvider } from "../treeView/fullTreeView/FullTreeViewProvider";
 import { goToFullTreeItemCommand } from "../treeView/fullTreeView/goToFullTreeItem";
@@ -9,6 +10,7 @@ import { goToNextRegionCommand } from "./goToNextRegion";
 import { goToPreviousRegionCommand } from "./goToPreviousRegion";
 import { goToRegionBoundaryCommand } from "./goToRegionBoundary";
 import { goToRegionFromQuickPickCommand } from "./goToRegionFromQuickPick";
+import { allRefreshCommands } from "./refreshViews";
 import { selectCurrentRegionCommand } from "./selectCurrentRegion";
 import { allFullOutlineViewConfigCommands } from "./toggleFullOutlineViewSettings";
 import { allRegionsViewConfigCommands } from "./toggleRegionsViewSettings";
@@ -19,6 +21,7 @@ type RegionHelperCommandId = `${RegionHelperExtensionId}.${string}`;
 
 export type RegionHelperClosuredParams = {
   regionStore: RegionStore;
+  fullOutlineStore: FullOutlineStore;
   regionTreeViewProvider: RegionTreeViewProvider;
   fullTreeViewProvider: FullTreeViewProvider;
 };
@@ -59,6 +62,7 @@ const commandsToRegister: RegionHelperCommand[] = [
   ...allRegionsViewConfigCommands,
   ...allFullOutlineViewConfigCommands,
   ...allExpandAllCommands,
+  ...allRefreshCommands,
 ];
 
 function registerRegionHelperCommand(
