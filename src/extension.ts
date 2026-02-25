@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { type RegionHelperAPI } from "./api/regionHelperAPI";
 import { registerAllCommands } from "./commands/registerCommand";
 import { createResetAutoHidePreferenceCommand } from "./commands/toggleRegionsViewSettings";
+import { initializeExtensionContext } from "./config/extensionContext";
 import { RegionDiagnosticsManager } from "./diagnostics/RegionDiagnosticsManager";
 import { type FlattenedRegion } from "./lib/flattenRegions";
 import { type InvalidMarker } from "./lib/parseAllRegions";
@@ -14,9 +15,15 @@ import { RegionsViewAutoHideManager } from "./state/RegionsViewAutoHideManager";
 import { type FullTreeItem } from "./treeView/fullTreeView/FullTreeItem";
 import { FullTreeViewProvider } from "./treeView/fullTreeView/FullTreeViewProvider";
 import { RegionTreeViewProvider } from "./treeView/regionTreeView/RegionTreeViewProvider";
+import { dumpDiagnosticState, initializeDebugLog, showDebugLog } from "./utils/debugLog";
 
 export function activate(context: vscode.ExtensionContext): RegionHelperAPI {
-  const { subscriptions, workspaceState } = context;
+  const { subscriptions, workspaceState, extensionPath } = context;
+  
+  // Store extension path for use by icon loading
+  initializeExtensionContext(extensionPath);
+  initializeDebugLog(subscriptions);
+  
   const regionCollapsibleStateManager = new CollapsibleStateManager(
     workspaceState,
     "regionsViewCollapsibleStateStoreByDocumentId",
@@ -73,7 +80,7 @@ export function activate(context: vscode.ExtensionContext): RegionHelperAPI {
   const regionDiagnosticsManager = new RegionDiagnosticsManager(regionStore, subscriptions);
   subscriptions.push(regionDiagnosticsManager.diagnostics);
 
-  registerAllCommands(subscriptions, { regionStore, regionTreeViewProvider, fullTreeViewProvider });
+  registerAllCommands(subscriptions, { regionStore, fullOutlineStore, regionTreeViewProvider, fullTreeViewProvider });
 
   // Register the reset auto-hide preference command
   const resetAutoHideCommand = vscode.commands.registerCommand(
@@ -81,6 +88,27 @@ export function activate(context: vscode.ExtensionContext): RegionHelperAPI {
     createResetAutoHidePreferenceCommand(workspaceState)
   );
   subscriptions.push(resetAutoHideCommand);
+
+  // Register debug commands
+  subscriptions.push(
+    vscode.commands.registerCommand("regionHelper.showDebugLog", () => {
+      showDebugLog();
+    }),
+    vscode.commands.registerCommand("regionHelper.dumpDiagnosticState", () => {
+      const activeEditor = vscode.window.activeTextEditor;
+      dumpDiagnosticState({
+        regionStoreVersionedDocId: regionStore.versionedDocumentId,
+        documentSymbolStoreVersionedDocId: documentSymbolStore.versionedDocumentId,
+        fullOutlineStoreVersionedDocId: fullOutlineStore.versionedDocumentId,
+        fullOutlineStoreDocId: fullOutlineStore.documentId,
+        activeEditorUri: activeEditor?.document.uri.toString(),
+        activeEditorVersion: activeEditor?.document.version,
+        regionCount: regionStore.flattenedRegions.length,
+        symbolCount: documentSymbolStore.flattenedDocumentSymbols.length,
+        fullOutlineItemCount: fullOutlineStore.topLevelFullOutlineItems.length,
+      });
+    })
+  );
 
   return {
     // #region Region Store API

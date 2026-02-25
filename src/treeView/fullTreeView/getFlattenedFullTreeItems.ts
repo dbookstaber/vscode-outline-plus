@@ -1,9 +1,21 @@
 import * as vscode from "vscode";
+import { getExtensionPath } from "../../config/extensionContext";
+import { getGlobalFullOutlineViewConfigValue } from "../../config/fullOutlineViewConfig";
 import { getRegionDisplayName } from "../../lib/getRegionDisplayInfo";
 import { getRegionRange } from "../../lib/getRegionRange";
+import {
+    createModifierAwareIcon,
+    createModifierDescription,
+    createModifierLabelPrefix,
+    extractSymbolModifiersWithCache,
+    getCustomModifierIconPath,
+    getDefaultModifiers,
+    type ModifierIconConfig,
+    type SymbolModifiers,
+} from "../../lib/symbolModifiers";
 import { type Region } from "../../models/Region";
-import { getSymbolThemeIcon, getSymbolThemeIconId } from "../../utils/themeIconUtils";
-import { FullTreeItem, type FullTreeItemType } from "./FullTreeItem";
+import { getSymbolThemeIconId } from "../../utils/themeIconUtils";
+import { FullTreeItem, type FullTreeItemType, type TreeItemIcon } from "./FullTreeItem";
 
 /**
  * Creates a flattened list of region items for the Full Outline tree view, given a flattened list
@@ -26,6 +38,8 @@ export function getFlattenedRegionFullTreeItems(flattenedRegions: Region[]): Ful
       range: getRegionRange(region),
       itemType,
       icon: new vscode.ThemeIcon("symbol-namespace"),
+      modifiers: getDefaultModifiers(),
+      modifierDescription: undefined,
     });
   });
 }
@@ -35,11 +49,17 @@ export function getFlattenedRegionFullTreeItems(flattenedRegions: Region[]): Ful
  * list of document symbols. Turns each symbol into a `FullTreeItem` object, with no parent or children yet,
  * since we'll manually add those later when generating the full tree. Gives a unique ID to each item, for
  * the sake of persistent collapsed/selected state (see `vscode.TreeItem.id`).
+ *
+ * @param flattenedDocumentSymbols The flattened list of document symbols
+ * @param document The text document (needed for modifier extraction)
  */
 export function getFlattenedSymbolFullTreeItems(
-  flattenedDocumentSymbols: vscode.DocumentSymbol[]
+  flattenedDocumentSymbols: vscode.DocumentSymbol[],
+  document: vscode.TextDocument | undefined
 ): FullTreeItem[] {
   const itemCountByPartialId = new Map<string, number>();
+  const modifierConfig = getModifierIconConfig();
+
   return flattenedDocumentSymbols.map((symbol) => {
     const displayName = symbol.name;
     const symbolThemeIconId = getSymbolThemeIconId(symbol.kind);
@@ -47,15 +67,83 @@ export function getFlattenedSymbolFullTreeItems(
     const newItemCount = (itemCountByPartialId.get(partialId) ?? 0) + 1;
     itemCountByPartialId.set(partialId, newItemCount);
     const id = getUniqueTreeItemId({ partialId, itemCount: newItemCount });
-    const maybeThemeIcon = getSymbolThemeIcon(symbolThemeIconId);
+
+    // Extract modifiers if enabled and document is available
+    const modifiers =
+      modifierConfig.showVisibilityColors && document
+        ? extractSymbolModifiersWithCache(symbol, document)
+        : getDefaultModifiers();
+
+    // Determine icon to use
+    let icon: TreeItemIcon;
+    
+    // Try custom SVG icon first if svgOverlay mode is enabled
+    if (modifierConfig.badgePosition === "svgOverlay" && modifierConfig.extensionPath !== undefined) {
+      const customIconPath = getCustomModifierIconPath(
+        symbolThemeIconId,
+        modifiers,
+        modifierConfig.extensionPath
+      );
+      if (customIconPath !== undefined) {
+        icon = customIconPath;
+      } else {
+        // Fall back to theme icon with color for unsupported symbol types
+        icon = createModifierAwareIcon(symbolThemeIconId, modifiers, modifierConfig);
+      }
+    } else {
+      // Use standard theme icon with modifier-aware coloring
+      icon = createModifierAwareIcon(symbolThemeIconId, modifiers, modifierConfig);
+    }
+
+    // Create label prefix if configured for badge position (not used with svgOverlay)
+    const modifierLabelPrefix = 
+      modifierConfig.badgePosition === "svgOverlay" 
+        ? "" 
+        : createModifierLabelPrefix(modifiers, modifierConfig);
+
+    // Create description if configured for description position
+    const modifierDescription = createModifierDescription(modifiers, modifierConfig);
+
     return getFlattenedFullTreeItem({
       id,
       displayName: symbol.name,
       range: symbol.range,
       itemType: "symbol",
-      icon: maybeThemeIcon,
+      icon,
+      modifiers,
+      modifierLabelPrefix,
+      modifierDescription,
     });
   });
+}
+
+/**
+ * Gets the modifier icon configuration from settings.
+ */
+function getModifierIconConfig(): ModifierIconConfig {
+  const modifierDisplay = getGlobalFullOutlineViewConfigValue("modifierDisplay");
+  const useDistinctColors = getGlobalFullOutlineViewConfigValue("useDistinctModifierColors");
+
+  const showVisibilityColors = modifierDisplay !== "off";
+  const showStaticIndicator = modifierDisplay !== "off" && modifierDisplay !== "colorOnly";
+
+  // Determine badge position based on modifierDisplay setting
+  let badgePosition: "none" | "labelPrefix" | "description" | "svgOverlay" = "none";
+  if (modifierDisplay === "colorAndBadge") {
+    badgePosition = "labelPrefix";
+  } else if (modifierDisplay === "colorAndSvgOverlay") {
+    badgePosition = "svgOverlay";
+  } else if (modifierDisplay === "colorAndDescription") {
+    badgePosition = "description";
+  }
+
+  return {
+    showVisibilityColors,
+    useDistinctColors,
+    badgePosition,
+    showStaticIndicator,
+    extensionPath: getExtensionPath(),
+  };
 }
 
 /**
@@ -92,14 +180,31 @@ function getFlattenedFullTreeItem({
   displayName,
   range,
   icon,
+  modifiers,
+  modifierLabelPrefix,
+  modifierDescription,
 }: {
   id: string;
   itemType: FullTreeItemType;
   displayName: string;
   range: vscode.Range;
-  icon: vscode.ThemeIcon | undefined;
+  icon: TreeItemIcon;
+  modifiers: SymbolModifiers;
+  modifierLabelPrefix?: string | undefined;
+  modifierDescription: string | undefined;
 }): FullTreeItem {
   const parent = undefined;
   const children: FullTreeItem[] = [];
-  return new FullTreeItem({ id, displayName, range, itemType, parent, children, icon });
+  return new FullTreeItem({
+    id,
+    displayName,
+    range,
+    itemType,
+    parent,
+    children,
+    icon,
+    modifiers,
+    modifierLabelPrefix,
+    modifierDescription,
+  });
 }

@@ -187,3 +187,41 @@ The `code` command may not be in your PATH. Use one of these alternatives:
 ## Building for Different Platforms
 
 The extension is platform-independent (pure JavaScript/TypeScript), so the same `.vsix` file works on Windows, macOS, and Linux.
+
+
+## Debugging Option
+
+(Introduced in v1.7.0)
+
+When you encounter a problem, do this:
+
+### Step 1: Enable debug logging
+Open Settings (Ctrl+,) and search for `regionHelper.enableDebugLogging`. Set it to `true`. This starts writing timestamped entries to a dedicated output channel.
+
+### Step 2: Reproduce the problem
+Do whatever triggers the issue. Then immediately:
+
+### Step 3: Dump diagnostic state
+Open the Command Palette (Ctrl+Shift+P) and run:
+> **Region Helper: Dump Diagnostic State**
+
+This writes a snapshot to the output channel showing:
+- Active editor URI and version
+- What each store thinks the current document is (and its version)
+- Region, symbol, and outline item counts
+
+The Output panel ("Region Helper" channel) opens automatically.
+
+### Step 4: Show the debug log
+If you want to review the full timeline of events, run:
+> **Region Helper: Show Debug Log**
+
+### Step 5: Try manual recovery
+Click the **Refresh** button (↻) in the view's title bar, or run:
+> **Region Helper: Refresh Full Outline**  
+> **Region Helper: Refresh Regions View**
+
+This forces all stores to re-fetch from scratch, bypassing all caching and change-detection.
+
+### What to capture when filing a bug
+Copy the entire contents of the "Region Helper" output channel. It will show the sequence of editor switches, symbol fetches, any discarded stale fetches, and version mismatches that led to the problem.

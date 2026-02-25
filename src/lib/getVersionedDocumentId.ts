@@ -7,6 +7,14 @@ export function isCurrentActiveVersionedDocumentId(
   return currentActiveDocumentId === versionedDocumentId;
 }
 
+/**
+ * Extracts the document URI portion from a versioned document ID (strips `@version` suffix).
+ */
+export function extractDocumentIdFromVersioned(versionedDocumentId: string): string {
+  const atIdx = versionedDocumentId.lastIndexOf("@");
+  return atIdx >= 0 ? versionedDocumentId.substring(0, atIdx) : versionedDocumentId;
+}
+
 export function getCurrentActiveVersionedDocumentId(): string | undefined {
   const { activeTextEditor } = vscode.window;
   if (!activeTextEditor) {
