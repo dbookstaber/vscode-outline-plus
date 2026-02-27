@@ -19,11 +19,21 @@ export function getActiveRegionInEditor(
 }
 
 export function getActiveRegionAtLine(regions: Region[], cursorLine: number): Region | undefined {
-  for (const region of regions) {
-    if (cursorLine < region.range.start.line || cursorLine > region.range.end.line) {
-      continue;
+  let currentRegions = regions;
+  let deepestMatch: Region | undefined;
+  while (currentRegions.length > 0) {
+    let found = false;
+    for (const region of currentRegions) {
+      if (cursorLine >= region.range.start.line && cursorLine <= region.range.end.line) {
+        deepestMatch = region;
+        currentRegions = region.children;
+        found = true;
+        break;
+      }
     }
-    return getActiveRegionAtLine(region.children, cursorLine) ?? region;
+    if (!found) {
+      break;
+    }
   }
-  return undefined;
+  return deepestMatch;
 }

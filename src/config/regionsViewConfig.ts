@@ -1,7 +1,7 @@
 import {
-  type GetLevel2Keys,
-  getRegionHelperConfig,
-  setGlobalRegionHelperConfigValue,
+    type GetLevel2Keys,
+    getRegionHelperConfig,
+    setGlobalRegionHelperConfigValue,
 } from "./regionHelperConfig";
 
 export type RegionsViewConfig = Readonly<{
@@ -18,8 +18,8 @@ const defaultRegionsViewConfig = {
   shouldAutoHighlightActiveRegion: true,
 } as const satisfies RegionsViewConfig;
 
-export function setRegionsViewVisibility(isVisible: boolean): void {
-  setGlobalRegionsViewConfigValue("isVisible", isVisible);
+export function setRegionsViewVisibility(isVisible: boolean): Thenable<void> {
+  return setGlobalRegionsViewConfigValue("isVisible", isVisible);
 }
 
 export function setGlobalRegionsViewConfigValue<K extends RawRegionsViewConfigKey>(

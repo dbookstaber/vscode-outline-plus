@@ -138,6 +138,8 @@ const pythonPatterns: ModifierPatternConfig = {
     isAbstract: ["@abstractmethod"],
     isAsync: ["async"],
   },
+  typeDeclarationPattern:
+    /\b(class|def)\s+\w+/i,
 };
 
 /**
@@ -422,13 +424,16 @@ export function extractSymbolModifiersWithCache(
   const cacheKey = getSymbolCacheKey(symbol, document.version, document.uri.toString());
   const cached = modifierCache.get(cacheKey);
   if (cached) {
+    // LRU: move to end of Map iteration order by re-inserting
+    modifierCache.delete(cacheKey);
+    modifierCache.set(cacheKey, cached);
     return cached;
   }
 
   const modifiers = extractSymbolModifiers(symbol, document);
   modifierCache.set(cacheKey, modifiers);
 
-  // Limit cache size
+  // Evict oldest entries when cache exceeds limit
   if (modifierCache.size > 5000) {
     const keysToDelete = Array.from(modifierCache.keys()).slice(0, 1000);
     for (const key of keysToDelete) {

@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 
 import {
-  getGlobalFullOutlineViewConfigValue,
-  setGlobalFullOutlineViewConfigValue,
+    getGlobalFullOutlineViewConfigValue,
+    setGlobalFullOutlineViewConfigValue,
 } from "../config/fullOutlineViewConfig";
 import { type RegionHelperNonClosuredCommand } from "./registerCommand";
 
@@ -49,7 +49,7 @@ function hideFullOutlineView(): void {
     vscode.window.showInformationMessage("Region Helper: Full Outline view is already hidden.");
     return;
   }
-  setGlobalFullOutlineViewConfigValue("isVisible", false);
+  void setGlobalFullOutlineViewConfigValue("isVisible", false);
 }
 
 function showFullOutlineView(): void {
@@ -58,7 +58,7 @@ function showFullOutlineView(): void {
     vscode.window.showInformationMessage("Region Helper: Full Outline view is already visible.");
     return;
   }
-  setGlobalFullOutlineViewConfigValue("isVisible", true);
+  void setGlobalFullOutlineViewConfigValue("isVisible", true);
 }
 
 function stopAutoHighlightingActiveItem(): void {
@@ -71,7 +71,7 @@ function stopAutoHighlightingActiveItem(): void {
     );
     return;
   }
-  setGlobalFullOutlineViewConfigValue("shouldAutoHighlightActiveItem", false);
+  void setGlobalFullOutlineViewConfigValue("shouldAutoHighlightActiveItem", false);
 }
 
 function startAutoHighlightingActiveItem(): void {
@@ -84,7 +84,7 @@ function startAutoHighlightingActiveItem(): void {
     );
     return;
   }
-  setGlobalFullOutlineViewConfigValue("shouldAutoHighlightActiveItem", true);
+  void setGlobalFullOutlineViewConfigValue("shouldAutoHighlightActiveItem", true);
 }
 
 // #endregion

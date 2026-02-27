@@ -10,10 +10,12 @@ export function moveCursorToFirstNonWhitespaceCharOfLine({
   lineIdx: number;
   revealType: vscode.TextEditorRevealType;
 }): void {
-  const firstCharIdx = getFirstNonWhitespaceCharacterIndex(activeTextEditor, lineIdx);
+  const lastLine = activeTextEditor.document.lineCount - 1;
+  const clampedLine = Math.max(0, Math.min(lineIdx, lastLine));
+  const firstCharIdx = getFirstNonWhitespaceCharacterIndex(activeTextEditor, clampedLine);
   moveCursorToPosition({
     activeTextEditor,
-    lineIdx,
+    lineIdx: clampedLine,
     character: firstCharIdx,
     revealType,
   });

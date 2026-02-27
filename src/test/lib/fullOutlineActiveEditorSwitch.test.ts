@@ -147,49 +147,45 @@ suite("Full Outline Active Editor Switch", function() {
     }
   });
 
-  // SKIP: This test compares object identity of activeItem1 vs activeItem2, but these are
-  // different TreeItem instances even when pointing to the same logical item. The condition
-  // `active !== activeItem1` is always true for different TreeItem instances.
-  // TODO: Refactor to compare item properties (label, line number) instead of object identity.
-  test.skip("should update active full outline item when switching files", async () => {
+  test("should update active full outline item when switching files", async () => {
     // Open first document and move cursor
     const doc1 = await openSampleDocument("sampleRegionsDocument.ts");
     const editor1 = await vscode.window.showTextDocument(doc1);
     await waitForFullOutlineItems();
 
-    // Move cursor to a specific position
+    // Move cursor to a specific position inside the Imports region (line 5)
     editor1.selection = new vscode.Selection(5, 0, 5, 0);
     await waitForActiveFullOutlineItem();
 
     const activeItem1 = regionHelperAPI.getActiveFullOutlineItem();
     assert.ok(activeItem1 !== undefined, "Should have an active item in first document");
 
-    // Open second document
-    const doc2 = await openSampleDocument("validSamples", "validSample.cs");
-    const _editor2 = await vscode.window.showTextDocument(doc2);
+    // Open second document (different TS file — TS language server available in test env)
+    const doc2 = await openSampleDocument("readmeSample.ts");
+    const editor2 = await vscode.window.showTextDocument(doc2);
     await waitForFullOutlineItems();
 
-    // Move cursor in second document
-    _editor2.selection = new vscode.Selection(1, 0, 1, 0);
-    
-    // Wait for active item to change
+    // Move cursor inside Project Overview region (line 1)
+    editor2.selection = new vscode.Selection(1, 0, 1, 0);
+
+    // Wait for active item to reflect the new file's context
+    // The active item should either be undefined (if not resolved yet)
+    // or have a different displayName than doc1's active item
     await waitForCondition(
       () => {
         const active = regionHelperAPI.getActiveFullOutlineItem();
-        return active !== undefined && active !== activeItem1;
+        return active !== undefined && active.displayName !== activeItem1.displayName;
       },
-      3000,
+      5000,
       50
     );
 
     const activeItem2 = regionHelperAPI.getActiveFullOutlineItem();
-    
-    // The active items should be different (from different files)
     assert.ok(activeItem2 !== undefined, "Should have an active item in second document");
     assert.notStrictEqual(
-      activeItem1,
-      activeItem2,
-      "Active full outline items should be different when switching files"
+      activeItem2.displayName,
+      activeItem1.displayName,
+      "Active items should have different display names when switching files"
     );
   });
 
@@ -252,62 +248,57 @@ suite("Full Outline Active Editor Switch", function() {
     );
   });
 
-  // SKIP: This test compares object identity of activeItem1 vs activeItem2, but these are
-  // different TreeItem instances even when pointing to the same logical item. The condition
-  // `active !== activeItem1` is always true for different TreeItem instances.
-  // TODO: Refactor to compare item properties (label, line number) instead of object identity.
-  test.skip("should maintain versioned document ID consistency when switching files", async () => {
-    // This test verifies that the internal state (versionedDocumentId) is properly
-    // updated when switching between files. While we can't directly access the
-    // versionedDocumentId from the API, we can infer correctness from the fact that
-    // the outline items and active item update correctly.
+  test("should maintain versioned document ID consistency when switching files", async () => {
+    // This test verifies that the internal state is properly updated when
+    // switching between files, inferred by active items changing correctly.
 
     const doc1 = await openSampleDocument("sampleRegionsDocument.ts");
     const editor1 = await vscode.window.showTextDocument(doc1);
     await waitForFullOutlineItems();
 
-    // Move cursor in doc1
+    // Move cursor inside Imports region in doc1
     editor1.selection = new vscode.Selection(5, 0, 5, 0);
     await waitForActiveFullOutlineItem();
     const activeItem1 = regionHelperAPI.getActiveFullOutlineItem();
     assert.ok(activeItem1 !== undefined, "Should have active item in doc1");
 
-    // Switch to doc2
-    const doc2 = await openSampleDocument("validSamples", "validSample.cs");
+    // Switch to doc2 (different TS file — TS language server available in test env)
+    const doc2 = await openSampleDocument("readmeSample.ts");
     const editor2 = await vscode.window.showTextDocument(doc2);
     await waitForFullOutlineItems();
 
-    // Move cursor in doc2
-    editor2.selection = new vscode.Selection(2, 0, 2, 0);
+    // Move cursor inside Project Overview region in doc2 (line 1)
+    editor2.selection = new vscode.Selection(1, 0, 1, 0);
     await waitForCondition(
       () => {
         const active = regionHelperAPI.getActiveFullOutlineItem();
-        return active !== undefined && active !== activeItem1;
+        return active !== undefined && active.displayName !== activeItem1.displayName;
       },
-      3000,
+      5000,
       50
     );
     const activeItem2 = regionHelperAPI.getActiveFullOutlineItem();
     assert.ok(activeItem2 !== undefined, "Should have active item in doc2");
 
-    // Switch back to doc1
+    // Switch back to doc1 and restore cursor
     await vscode.window.showTextDocument(doc1);
+    editor1.selection = new vscode.Selection(5, 0, 5, 0);
     await waitForCondition(
       () => {
         const active = regionHelperAPI.getActiveFullOutlineItem();
-        return active !== undefined && active !== activeItem2;
+        return active?.displayName === activeItem1.displayName;
       },
-      3000,
+      8000,
       50
     );
 
-    // The active item should update to doc1's context
-    const activeItem1Again = regionHelperAPI.getActiveFullOutlineItem();
-    
-    // Verify we have valid state and items exist
-    assert.ok(activeItem1Again !== undefined, "Should have active item after switching back to doc1");
-    
-    // Successfully handled file switching without errors
-    assert.ok(true, "System handled file switching correctly");
+    // The active item should match doc1's context again
+    const activeItemBack = regionHelperAPI.getActiveFullOutlineItem();
+    assert.ok(activeItemBack !== undefined, "Should have active item after switching back to doc1");
+    assert.strictEqual(
+      activeItemBack.displayName,
+      activeItem1.displayName,
+      "Active item displayName should match doc1's context after switching back"
+    );
   });
 });

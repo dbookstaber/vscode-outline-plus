@@ -98,28 +98,25 @@ suite("Full Outline Document Editing", function() {
     assert.ok(newRegion !== undefined, "Should find the newly added region");
   });
 
-  // SKIP: This test is flaky because the Full Outline depends on both regions AND document
-  // symbols from the language server. Deleting a region doesn't always reduce the total
-  // top-level item count because document symbols may still be present.
-  // TODO: Refactor to test region-specific behavior via getTopLevelRegions() instead.
-  test.skip("should update full outline items when a region is deleted", async () => {
-    const initialItems = regionHelperAPI.getTopLevelFullOutlineItems();
-    const initialCount = initialItems.length;
+  test("should update full outline items when a region is deleted", async () => {
+    const initialRegions = regionHelperAPI.getTopLevelRegions();
+    const initialRegionCount = initialRegions.length;
+    assert.ok(initialRegionCount > 0, "Should have regions initially");
 
-    // Delete a region (Imports region: lines 4-7 in sampleRegionsDocument.ts)
+    // Delete the Imports region (lines 4-7 in sampleRegionsDocument.ts)
     await deleteLineRange(4, 7);
 
-    // Wait for the full outline to have fewer items
+    // Wait for the region count to decrease
     await waitForCondition(
-      () => regionHelperAPI.getTopLevelFullOutlineItems().length < initialCount,
+      () => regionHelperAPI.getTopLevelRegions().length < initialRegionCount,
       3000,
       50
     );
 
-    const updatedItems = regionHelperAPI.getTopLevelFullOutlineItems();
+    const updatedRegions = regionHelperAPI.getTopLevelRegions();
     assert.ok(
-      updatedItems.length < initialCount,
-      "Full outline should have fewer items after deleting a region"
+      updatedRegions.length < initialRegionCount,
+      "Should have fewer regions after deleting a region"
     );
   });
 
@@ -297,13 +294,8 @@ suite("Full Outline Document Editing", function() {
     );
   });
 
-  // SKIP: This test is flaky because the Full Outline depends on both regions AND document
-  // symbols from the language server. Adding a region and function doesn't guarantee the
-  // top-level item count increases due to how items are merged.
-  // TODO: Refactor to test region-specific behavior via getTopLevelRegions() instead.
-  test.skip("should update when mixing region and symbol changes", async () => {
-    const initialItems = regionHelperAPI.getTopLevelFullOutlineItems();
-    const initialCount = initialItems.length;
+  test("should update when mixing region and symbol changes", async () => {
+    const initialRegionCount = regionHelperAPI.getTopLevelRegions().length;
 
     // Add both a region and a function
     await insertTextAtPosition(
@@ -312,17 +304,19 @@ suite("Full Outline Document Editing", function() {
       0
     );
 
-    // Wait for the full outline to have more items
+    // Wait for the region count to increase
     await waitForCondition(
-      () => regionHelperAPI.getTopLevelFullOutlineItems().length > initialCount,
+      () => regionHelperAPI.getTopLevelRegions().length > initialRegionCount,
       3000,
       50
     );
 
-    const updatedItems = regionHelperAPI.getTopLevelFullOutlineItems();
+    const updatedRegions = regionHelperAPI.getTopLevelRegions();
     assert.ok(
-      updatedItems.length > initialCount,
-      "Full outline should update with both region and symbol changes"
+      updatedRegions.length > initialRegionCount,
+      "Should have more regions after adding a region"
     );
+    const newRegion = updatedRegions.find(region => region.name === "Mixed Region");
+    assert.ok(newRegion !== undefined, "Should find the newly added Mixed Region");
   });
 });
