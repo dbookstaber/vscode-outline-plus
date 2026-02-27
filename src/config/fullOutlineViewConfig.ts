@@ -20,7 +20,7 @@ type RawFullOutlineViewConfigKey = keyof FullOutlineViewConfig;
 const defaultFullOutlineViewConfig = {
   isVisible: true,
   shouldAutoHighlightActiveItem: true,
-  modifierDisplay: "colorOnly",
+  modifierDisplay: "colorAndBadge",
   useDistinctModifierColors: true,
 } as const satisfies FullOutlineViewConfig;
 

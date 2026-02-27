@@ -179,29 +179,32 @@ export class FullOutlineStore implements vscode.Disposable {
 
   private refreshItems(): void {
     this.isRefreshingItems = true;
-    const flattenedRegionItems = getFlattenedRegionFullTreeItems(this.regionStore.flattenedRegions);
-    // Pass the active document for modifier extraction
-    const activeDocument = vscode.window.activeTextEditor?.document;
-    const flattenedSymbolItems = getFlattenedSymbolFullTreeItems(
-      this.documentSymbolStore.flattenedDocumentSymbols,
-      activeDocument
-    );
-    // Sort both flattened lists by start position before merging.
-    // This is necessary because the flattening produces depth-first order,
-    // but the merge algorithm in generateFullOutlineTreeItems expects
-    // items to be sorted by start position for correct interleaving.
-    sortFullTreeItemsByStart(flattenedRegionItems);
-    sortFullTreeItemsByStart(flattenedSymbolItems);
-    const { topLevelItems, allParentIds } = generateFullOutlineTreeItems({
-      flattenedRegionItems,
-      flattenedSymbolItems,
-      collapsibleStateManager: this.collapsibleStateManager,
-      documentId: this._documentId,
-    });
-    this._topLevelItems = topLevelItems;
-    this._allParentIds = allParentIds;
-    this._onDidChangeFullOutlineItems.fire();
-    this.isRefreshingItems = false;
+    try {
+      const flattenedRegionItems = getFlattenedRegionFullTreeItems(this.regionStore.flattenedRegions);
+      // Pass the active document for modifier extraction
+      const activeDocument = vscode.window.activeTextEditor?.document;
+      const flattenedSymbolItems = getFlattenedSymbolFullTreeItems(
+        this.documentSymbolStore.flattenedDocumentSymbols,
+        activeDocument
+      );
+      // Sort both flattened lists by start position before merging.
+      // This is necessary because the flattening produces depth-first order,
+      // but the merge algorithm in generateFullOutlineTreeItems expects
+      // items to be sorted by start position for correct interleaving.
+      sortFullTreeItemsByStart(flattenedRegionItems);
+      sortFullTreeItemsByStart(flattenedSymbolItems);
+      const { topLevelItems, allParentIds } = generateFullOutlineTreeItems({
+        flattenedRegionItems,
+        flattenedSymbolItems,
+        collapsibleStateManager: this.collapsibleStateManager,
+        documentId: this._documentId,
+      });
+      this._topLevelItems = topLevelItems;
+      this._allParentIds = allParentIds;
+      this._onDidChangeFullOutlineItems.fire();
+    } finally {
+      this.isRefreshingItems = false;
+    }
   }
   // #endregion
 

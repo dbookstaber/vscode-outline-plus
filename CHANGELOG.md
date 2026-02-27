@@ -44,7 +44,7 @@ Now the active view is stuck showing A's outline even though B is active.
 - refreshViews.ts — Refresh commands for both views
 - debugLog.ts — Debug logging infrastructure
 
-### Modified files (9 files)
+### Modified files (8 files)
 
 | File | Changes |
 |------|---------|

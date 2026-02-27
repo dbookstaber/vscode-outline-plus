@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import {
-  getDefaultModifiers,
-  type MemberModifiers,
-  type SymbolModifiers,
-  type VisibilityModifier,
+    getDefaultModifiers,
+    type MemberModifiers,
+    type SymbolModifiers,
+    type VisibilityModifier,
 } from "./SymbolModifiers";
 
 /**
@@ -16,6 +16,8 @@ type ModifierPatternConfig = {
   visibilityKeywords: Record<string, VisibilityModifier>;
   /** Keywords that indicate member modifiers */
   memberKeywords: Partial<Record<keyof MemberModifiers, string[]>>;
+  /** Regex to detect parent type declarations (used as a boundary when scanning backwards) */
+  typeDeclarationPattern?: RegExp;
 };
 
 /**
@@ -46,6 +48,8 @@ const csharpPatterns: ModifierPatternConfig = {
     isVolatile: ["volatile"],
     isNew: ["new"],
   },
+  typeDeclarationPattern:
+    /\b(public|private|protected|internal)\s+(sealed\s+|abstract\s+|static\s+|partial\s+)*(class|struct|interface|enum|record)\b/i,
 };
 
 const javaPatterns: ModifierPatternConfig = {
@@ -63,6 +67,8 @@ const javaPatterns: ModifierPatternConfig = {
     isVolatile: ["volatile"],
     isSealed: ["sealed"], // Java 17+
   },
+  typeDeclarationPattern:
+    /\b(public|private|protected)\s+(static\s+|abstract\s+|final\s+|sealed\s+)*(class|interface|enum|record)\b/i,
 };
 
 const kotlinPatterns: ModifierPatternConfig = {
@@ -80,6 +86,8 @@ const kotlinPatterns: ModifierPatternConfig = {
     isOverride: ["override"],
     isSealed: ["sealed"],
   },
+  typeDeclarationPattern:
+    /\b(public|private|protected|internal)\s+(sealed\s+|abstract\s+|data\s+|open\s+)*(class|interface|enum|object)\b/i,
 };
 
 const typescriptPatterns: ModifierPatternConfig = {
@@ -97,6 +105,8 @@ const typescriptPatterns: ModifierPatternConfig = {
     isAsync: ["async"],
     isOverride: ["override"],
   },
+  typeDeclarationPattern:
+    /\b(export\s+)?(abstract\s+)?(class|interface|enum)\b/i,
 };
 
 const cppPatterns: ModifierPatternConfig = {
@@ -114,6 +124,8 @@ const cppPatterns: ModifierPatternConfig = {
     isVolatile: ["volatile"],
     isExtern: ["extern"],
   },
+  typeDeclarationPattern:
+    /\b(class|struct|enum|union)\s+\w+/i,
 };
 
 const pythonPatterns: ModifierPatternConfig = {
@@ -175,7 +187,7 @@ export function extractSymbolModifiers(
 
   // Get text from symbol definition line(s)
   // Read lines that are part of this symbol's declaration only
-  const text = getSymbolDeclarationText(symbol, document);
+  const text = getSymbolDeclarationText(symbol, document, patternConfig);
 
   // Extract visibility (for languages with keywords)
   if (languageId !== "python") {
@@ -299,7 +311,8 @@ function setMemberModifier(memberModifiers: MemberModifiers, key: string): void 
  */
 function getSymbolDeclarationText(
   symbol: vscode.DocumentSymbol,
-  document: vscode.TextDocument
+  document: vscode.TextDocument,
+  patternConfig: ModifierPatternConfig
 ): string {
   const symbolLine = symbol.selectionRange.start.line;
   const lineCount = document.lineCount;
@@ -337,9 +350,9 @@ function getSymbolDeclarationText(
     if (/[}\]);]$/.test(trimmedLine)) {
       break;
     }
-    // 5. Line contains a visibility keyword followed by "class", "struct", "interface", "enum"
+    // 5. Line matches a type declaration pattern for this language
     //    This means we've reached a parent type declaration
-    if (/\b(public|private|protected|internal)\s+(sealed\s+|abstract\s+|static\s+|partial\s+)*(class|struct|interface|enum|record)\b/i.test(lineText)) {
+    if (patternConfig.typeDeclarationPattern?.test(lineText) === true) {
       break;
     }
 
