@@ -4,6 +4,7 @@ import { registerAllCommands } from "./commands/registerCommand";
 import { createResetAutoHidePreferenceCommand } from "./commands/toggleRegionsViewSettings";
 import { initializeExtensionContext } from "./config/extensionContext";
 import { RegionDiagnosticsManager } from "./diagnostics/RegionDiagnosticsManager";
+import { RegionFoldingProvider } from "./lib/RegionFoldingProvider";
 import { type FlattenedRegion } from "./lib/flattenRegions";
 import { type InvalidMarker } from "./lib/parseAllRegions";
 import { type Region } from "./models/Region";
@@ -82,6 +83,13 @@ export function activate(context: vscode.ExtensionContext): RegionHelperAPI {
   subscriptions.push(regionDiagnosticsManager.diagnostics);
 
   registerAllCommands(subscriptions, { regionStore, fullOutlineStore, regionTreeViewProvider, fullTreeViewProvider });
+
+  // Register folding range provider for region markers
+  const foldingProvider = new RegionFoldingProvider();
+  subscriptions.push(
+    vscode.languages.registerFoldingRangeProvider({ scheme: "file" }, foldingProvider),
+    vscode.languages.registerFoldingRangeProvider({ scheme: "untitled" }, foldingProvider)
+  );
 
   // Register the reset auto-hide preference command
   const resetAutoHideCommand = vscode.commands.registerCommand(

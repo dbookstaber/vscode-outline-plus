@@ -45,7 +45,7 @@ const testConfig: Configuration = {
       patterns: [{ from: "src/test/samples", to: "samples" }],
     }),
   ],
-  devtool: "nosources-source-map",
+  devtool: "source-map",
 };
 
 export default testConfig;

@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { getDocumentIdFromUri } from "../lib/getVersionedDocumentId";
 import { debounce } from "../utils/debounce";
+import { log } from "../utils/debugLog";
 import { throwNever } from "../utils/errorUtils";
 import { isEmptyObject } from "../utils/objectUtils";
 
@@ -111,7 +112,7 @@ export class CollapsibleStateManager implements vscode.Disposable {
     itemId: string;
   }): vscode.TreeItemCollapsibleState | undefined {
     if (documentId === undefined) {
-      console.warn("No document ID provided for collapsible state lookup");
+      log("No document ID provided for collapsible state lookup");
       return undefined;
     }
     const collapsibleStateStore = this.collapsibleStateStoreByDocumentId[documentId];
@@ -143,7 +144,7 @@ export class CollapsibleStateManager implements vscode.Disposable {
     allParentIds: Set<string>;
   }): void {
     if (documentId === undefined) {
-      console.warn("No document ID provided for collapse event");
+      log("No document ID provided for collapse event");
       return;
     }
     const store = this.getOrCreateStoreForDocument(documentId);
@@ -171,7 +172,7 @@ export class CollapsibleStateManager implements vscode.Disposable {
     allParentIds: Set<string>;
   }): void {
     if (documentId === undefined) {
-      console.warn("No document ID provided for expand event");
+      log("No document ID provided for expand event");
       return;
     }
     const store = this.getOrCreateStoreForDocument(documentId);

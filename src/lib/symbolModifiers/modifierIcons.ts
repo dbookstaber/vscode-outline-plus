@@ -1,10 +1,10 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import {
-  getModifierDescription,
-  hasAnyModifier,
-  type SymbolModifiers,
-  type VisibilityModifier,
+    getModifierDescription,
+    hasAnyModifier,
+    type SymbolModifiers,
+    type VisibilityModifier,
 } from "./SymbolModifiers";
 
 /**
@@ -131,6 +131,9 @@ export function getCustomModifierIconPath(
 
   // Build icon filename
   const iconName = parts.join("-") + ".svg";
+  if (!/^[a-z-]+\.svg$/.test(iconName)) {
+    return undefined;
+  }
   const iconPath = path.join(extensionPath, "assets", "icons", iconName);
   const iconUri = vscode.Uri.file(iconPath);
 

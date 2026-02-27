@@ -1,12 +1,18 @@
 import * as vscode from "vscode";
 import { scrollLineIntoView } from "./scrollUtils";
 
-const decorationType = vscode.window.createTextEditorDecorationType({
-  backgroundColor: new vscode.ThemeColor("editor.findMatchHighlightBackground"),
-});
+let decorationType: vscode.TextEditorDecorationType | undefined;
+
+function getDecorationType(): vscode.TextEditorDecorationType {
+  decorationType ??= vscode.window.createTextEditorDecorationType({
+    backgroundColor: new vscode.ThemeColor("editor.findMatchHighlightBackground"),
+  });
+  return decorationType;
+}
 
 export function disposeHighlightDecorationType(): void {
-  decorationType.dispose();
+  decorationType?.dispose();
+  decorationType = undefined;
 }
 
 export function highlightAndScrollRegionIntoView({
@@ -29,7 +35,7 @@ export function highlightRegion({
   activeTextEditor: vscode.TextEditor;
   range: vscode.Range;
 }): void {
-  activeTextEditor.setDecorations(decorationType, [
+  activeTextEditor.setDecorations(getDecorationType(), [
     {
       range: new vscode.Range(range.start.line, 0, range.end.line + 1, 0),
     },
@@ -37,5 +43,5 @@ export function highlightRegion({
 }
 
 export function clearHighlightedRegions(activeTextEditor: vscode.TextEditor): void {
-  activeTextEditor.setDecorations(decorationType, []);
+  activeTextEditor.setDecorations(getDecorationType(), []);
 }

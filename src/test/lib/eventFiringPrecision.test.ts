@@ -99,16 +99,19 @@ suite("Event Firing Precision", function() {
   // #region onDidChangeRegions Tests
 
   suite("onDidChangeRegions", () => {
-    // SKIP: This test verifies optimization behavior (event NOT firing).
-    // The test has a known issue where the event fires even though region
-    // structure hasn't changed. The comparison uses range.isEqual() which should work,
-    // but there may be subtle timing or document version issues causing false positives.
-    // TODO: Investigate why regions are considered different after in-region edits.
-    test.skip("should NOT fire when editing inside a region (not affecting boundaries)", async () => {
+    test("should NOT fire when editing inside a region (not affecting boundaries)", async () => {
       const counter = createEventCounter(regionHelperAPI.onDidChangeRegions);
 
       try {
-        // Verify initial state
+        // Wait for initial parsing to fully stabilize (sample has 4 top-level regions)
+        await waitForCondition(
+          () => regionHelperAPI.getTopLevelRegions().length >= 4,
+          3000,
+          50
+        );
+        // Extra stabilization to ensure no in-flight debounced refreshes
+        await delay(500);
+
         const initialRegions = regionHelperAPI.getTopLevelRegions();
         assert.ok(initialRegions.length > 0, "Should have regions initially");
 
@@ -119,8 +122,8 @@ suite("Event Firing Precision", function() {
         // We'll modify this line without changing line count
         await replaceTextAtLine(5, "// import { ModifiedModule } from \"example\";");
 
-        // Wait for any potential event firing
-        await delay(300);
+        // Wait for any potential event firing (debounce is 100ms)
+        await delay(400);
 
         // The event should NOT have fired since region structure is unchanged
         // (same regions, same line numbers, just different content within)
@@ -142,15 +145,14 @@ suite("Event Firing Precision", function() {
       }
     });
 
-    // TODO: This test is flaky because when we read initialRegionCount, the extension
-    // may not have finished its initial region parsing, so we get an incomplete count.
-    // The assertion then fails because the final count doesn't match initialCount + 1.
-    // Needs redesign with explicit initialization sync before capturing initial state.
-    test.skip("should fire when a new region is added", async () => {
+    test("should fire when a new region is added", async () => {
       const counter = createEventCounter(regionHelperAPI.onDidChangeRegions);
 
       try {
+        // Wait for initial state to fully stabilize
+        await delay(300);
         const initialRegionCount = regionHelperAPI.getTopLevelRegions().length;
+        assert.ok(initialRegionCount > 0, "Should have regions initially");
         counter.reset();
 
         // Add a new region at the beginning of the file
@@ -177,14 +179,12 @@ suite("Event Firing Precision", function() {
       }
     });
 
-    // TODO: This test is flaky because when we read initialRegionCount, the extension
-    // may not have finished its initial region parsing, so we get an incomplete count.
-    // The condition then times out because the count doesn't decrease as expected.
-    // Needs redesign with explicit initialization sync before capturing initial state.
-    test.skip("should fire when a region is removed", async () => {
+    test("should fire when a region is removed", async () => {
       const counter = createEventCounter(regionHelperAPI.onDidChangeRegions);
 
       try {
+        // Wait for initial state to fully stabilize
+        await delay(300);
         const initialRegionCount = regionHelperAPI.getTopLevelRegions().length;
         assert.ok(initialRegionCount > 0, "Should have regions to remove");
         counter.reset();

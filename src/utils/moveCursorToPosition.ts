@@ -11,7 +11,11 @@ export function moveCursorToPosition({
   character: number;
   revealType: vscode.TextEditorRevealType;
 }): void {
-  const position = new vscode.Position(lineIdx, character);
+  const lastLine = activeTextEditor.document.lineCount - 1;
+  const clampedLine = Math.max(0, Math.min(lineIdx, lastLine));
+  const lineLength = activeTextEditor.document.lineAt(clampedLine).text.length;
+  const clampedChar = Math.max(0, Math.min(character, lineLength));
+  const position = new vscode.Position(clampedLine, clampedChar);
   const selection = new vscode.Selection(position, position);
   activeTextEditor.selection = selection;
   activeTextEditor.revealRange(selection, revealType);

@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import {
-  getGlobalRegionsViewConfigValue,
-  setGlobalRegionsViewConfigValue,
-  setRegionsViewVisibility,
+    getGlobalRegionsViewConfigValue,
+    setGlobalRegionsViewConfigValue,
+    setRegionsViewVisibility,
 } from "../config/regionsViewConfig";
 import { type RegionHelperNonClosuredCommand } from "./registerCommand";
 
@@ -52,7 +52,7 @@ function hideRegionsView(): void {
     vscode.window.showInformationMessage("Region Helper: Regions view is already hidden.");
     return;
   }
-  setRegionsViewVisibility(false);
+  void setRegionsViewVisibility(false);
 }
 
 function showRegionsView(): void {
@@ -61,15 +61,15 @@ function showRegionsView(): void {
     vscode.window.showInformationMessage("Region Helper: Regions view is already visible.");
     return;
   }
-  setRegionsViewVisibility(true);
+  void setRegionsViewVisibility(true);
 }
 
 function stopAutoHighlightingActiveRegion(): void {
-  setGlobalRegionsViewConfigValue("shouldAutoHighlightActiveRegion", false);
+  void setGlobalRegionsViewConfigValue("shouldAutoHighlightActiveRegion", false);
 }
 
 function startAutoHighlightingActiveRegion(): void {
-  setGlobalRegionsViewConfigValue("shouldAutoHighlightActiveRegion", true);
+  void setGlobalRegionsViewConfigValue("shouldAutoHighlightActiveRegion", true);
 }
 
 // #endregion
