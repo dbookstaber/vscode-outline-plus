@@ -147,8 +147,8 @@ export class DocumentSymbolStore implements vscode.Disposable {
       this._flattenedDocumentSymbols = flattenDocumentSymbols(documentSymbols);
       // Always fire on force refresh, even if no change detected
       this._onDidChangeDocumentSymbols.fire();
-    } catch {
-      // Language server may not be ready or may have failed
+    } catch (error: unknown) {
+      log(`DocumentSymbolStore: error during forced symbol fetch: ${String(error)}`);
     }
   }
 
@@ -234,8 +234,8 @@ export class DocumentSymbolStore implements vscode.Disposable {
         log(`DocumentSymbolStore: symbols changed (${documentSymbols.length} symbols, ${versionedDocumentId})`);
         this._onDidChangeDocumentSymbols.fire();
       }
-    } catch {
-      // Language server may not be ready or may have failed
+    } catch (error: unknown) {
+      log(`DocumentSymbolStore: error fetching symbols (attempt ${attemptIdx}): ${String(error)}`);
     }
   }
 }

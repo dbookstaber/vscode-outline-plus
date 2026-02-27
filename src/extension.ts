@@ -16,6 +16,7 @@ import { type FullTreeItem } from "./treeView/fullTreeView/FullTreeItem";
 import { FullTreeViewProvider } from "./treeView/fullTreeView/FullTreeViewProvider";
 import { RegionTreeViewProvider } from "./treeView/regionTreeView/RegionTreeViewProvider";
 import { dumpDiagnosticState, initializeDebugLog, showDebugLog } from "./utils/debugLog";
+import { disposeHighlightDecorationType } from "./utils/highlightRegion";
 
 export function activate(context: vscode.ExtensionContext): RegionHelperAPI {
   const { subscriptions, workspaceState, extensionPath } = context;
@@ -150,5 +151,5 @@ export function activate(context: vscode.ExtensionContext): RegionHelperAPI {
 }
 
 export function deactivate(): void {
-  // Do nothing
+  disposeHighlightDecorationType();
 }

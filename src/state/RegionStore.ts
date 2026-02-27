@@ -111,30 +111,33 @@ export class RegionStore implements vscode.Disposable {
 
   private refreshRegionsForced(): void {
     this.isRefreshingRegions = true;
-    const activeDocument = vscode.window.activeTextEditor?.document;
-    const activeDocumentId = activeDocument ? getDocumentId(activeDocument) : undefined;
-    const versionedDocumentId = activeDocument ? getVersionedDocumentId(activeDocument) : undefined;
+    try {
+      const activeDocument = vscode.window.activeTextEditor?.document;
+      const activeDocumentId = activeDocument ? getDocumentId(activeDocument) : undefined;
+      const versionedDocumentId = activeDocument ? getVersionedDocumentId(activeDocument) : undefined;
 
-    if (!activeDocument) {
-      this._topLevelRegions = [];
-      this._flattenedRegions = [];
-      this._invalidMarkers = [];
-      this._allParentIds = new Set<string>();
-    } else {
-      const { topLevelRegions, invalidMarkers } = parseAllRegions(activeDocument);
-      this._topLevelRegions = topLevelRegions;
-      const { flattenedRegions, allParentIds } = flattenRegionsAndCountParents(topLevelRegions);
-      this._flattenedRegions = flattenedRegions;
-      this._allParentIds = allParentIds;
-      this._invalidMarkers = invalidMarkers;
+      if (!activeDocument) {
+        this._topLevelRegions = [];
+        this._flattenedRegions = [];
+        this._invalidMarkers = [];
+        this._allParentIds = new Set<string>();
+      } else {
+        const { topLevelRegions, invalidMarkers } = parseAllRegions(activeDocument);
+        this._topLevelRegions = topLevelRegions;
+        const { flattenedRegions, allParentIds } = flattenRegionsAndCountParents(topLevelRegions);
+        this._flattenedRegions = flattenedRegions;
+        this._allParentIds = allParentIds;
+        this._invalidMarkers = invalidMarkers;
+      }
+      this._documentId = activeDocumentId;
+      this._versionedDocumentId = versionedDocumentId;
+
+      // Always fire on force refresh, even if no change detected
+      this._onDidChangeRegions.fire();
+      this._onDidChangeInvalidMarkers.fire();
+    } finally {
+      this.isRefreshingRegions = false;
     }
-    this._documentId = activeDocumentId;
-    this._versionedDocumentId = versionedDocumentId;
-
-    // Always fire on force refresh, even if no change detected
-    this._onDidChangeRegions.fire();
-    this._onDidChangeInvalidMarkers.fire();
-    this.isRefreshingRegions = false;
   }
 
   private registerListeners(subscriptions: vscode.Disposable[]): void {
@@ -169,38 +172,41 @@ export class RegionStore implements vscode.Disposable {
 
   private refreshRegions(): void {
     this.isRefreshingRegions = true;
-    const activeDocument = vscode.window.activeTextEditor?.document;
-    const activeDocumentId = activeDocument ? getDocumentId(activeDocument) : undefined;
-    const versionedDocumentId = activeDocument ? getVersionedDocumentId(activeDocument) : undefined;
+    try {
+      const activeDocument = vscode.window.activeTextEditor?.document;
+      const activeDocumentId = activeDocument ? getDocumentId(activeDocument) : undefined;
+      const versionedDocumentId = activeDocument ? getVersionedDocumentId(activeDocument) : undefined;
 
-    const oldFlattenedRegions = this._flattenedRegions;
-    const oldInvalidMarkers = this._invalidMarkers;
+      const oldFlattenedRegions = this._flattenedRegions;
+      const oldInvalidMarkers = this._invalidMarkers;
 
-    if (!activeDocument) {
-      this._topLevelRegions = [];
-      this._flattenedRegions = [];
-      this._invalidMarkers = [];
-      this._allParentIds = new Set<string>();
-    } else {
-      const { topLevelRegions, invalidMarkers } = parseAllRegions(activeDocument);
-      this._topLevelRegions = topLevelRegions;
-      const { flattenedRegions, allParentIds } = flattenRegionsAndCountParents(topLevelRegions);
-      this._flattenedRegions = flattenedRegions;
-      this._allParentIds = allParentIds;
-      this._invalidMarkers = invalidMarkers;
-    }
-    this._documentId = activeDocumentId;
-    this._versionedDocumentId = versionedDocumentId;
+      if (!activeDocument) {
+        this._topLevelRegions = [];
+        this._flattenedRegions = [];
+        this._invalidMarkers = [];
+        this._allParentIds = new Set<string>();
+      } else {
+        const { topLevelRegions, invalidMarkers } = parseAllRegions(activeDocument);
+        this._topLevelRegions = topLevelRegions;
+        const { flattenedRegions, allParentIds } = flattenRegionsAndCountParents(topLevelRegions);
+        this._flattenedRegions = flattenedRegions;
+        this._allParentIds = allParentIds;
+        this._invalidMarkers = invalidMarkers;
+      }
+      this._documentId = activeDocumentId;
+      this._versionedDocumentId = versionedDocumentId;
 
-    // Only fire events if the data actually changed
-    if (didFlattenedRegionsChange(oldFlattenedRegions, this._flattenedRegions)) {
-      log(`RegionStore: regions changed (${this._flattenedRegions.length} regions, ${versionedDocumentId})`);
-      this._onDidChangeRegions.fire();
+      // Only fire events if the data actually changed
+      if (didFlattenedRegionsChange(oldFlattenedRegions, this._flattenedRegions)) {
+        log(`RegionStore: regions changed (${this._flattenedRegions.length} regions, ${versionedDocumentId})`);
+        this._onDidChangeRegions.fire();
+      }
+      if (didInvalidMarkersChange(oldInvalidMarkers, this._invalidMarkers)) {
+        this._onDidChangeInvalidMarkers.fire();
+      }
+    } finally {
+      this.isRefreshingRegions = false;
     }
-    if (didInvalidMarkersChange(oldInvalidMarkers, this._invalidMarkers)) {
-      this._onDidChangeInvalidMarkers.fire();
-    }
-    this.isRefreshingRegions = false;
   }
 
   // #region Refresh active region on selection change

@@ -48,23 +48,26 @@ export class CollapsibleStateManager implements vscode.Disposable {
     await this.saveToWorkspaceState();
   }, SAVE_TO_WORKSPACE_STATE_DEBOUNCE_DELAY_MS);
 
+  private readonly renameDisposable: vscode.Disposable;
+  private readonly deleteDisposable: vscode.Disposable;
+
   constructor(
     private workspaceState: vscode.Memento,
     private storageKey: string,
     subscriptions?: vscode.Disposable[]
   ) {
     this.loadFromWorkspaceState();
-    const renameDisposable = vscode.workspace.onDidRenameFiles((event) => {
+    this.renameDisposable = vscode.workspace.onDidRenameFiles((event) => {
       const { files } = event;
       for (const fileRenaming of files) this.onFileRename(fileRenaming);
     });
-    const deleteDisposable = vscode.workspace.onDidDeleteFiles((event) => {
+    this.deleteDisposable = vscode.workspace.onDidDeleteFiles((event) => {
       const { files } = event;
       for (const deletedUri of files) this.onFileDelete(deletedUri);
     });
     // Add disposables to subscriptions if provided, to ensure proper cleanup
     if (subscriptions) {
-      subscriptions.push(renameDisposable, deleteDisposable, this);
+      subscriptions.push(this.renameDisposable, this.deleteDisposable, this);
     }
   }
 
@@ -72,7 +75,11 @@ export class CollapsibleStateManager implements vscode.Disposable {
     this.debouncedCleanIdsAndMaybeSwitchMode.cancel();
     // Flush pending save before shutdown, then cancel the debounce
     this.debouncedSaveToWorkspaceState.cancel();
-    void this.saveToWorkspaceState();
+    this.renameDisposable.dispose();
+    this.deleteDisposable.dispose();
+    this.saveToWorkspaceState().catch((error: unknown) => {
+      console.error("CollapsibleStateManager: failed to save on dispose:", error);
+    });
   }
 
   private onFileRename({ oldUri, newUri }: { oldUri: vscode.Uri; newUri: vscode.Uri }): void {
@@ -282,20 +289,24 @@ export class CollapsibleStateManager implements vscode.Disposable {
 
   /** Saves the current state to VS Code's workspace storage (if storage is provided) */
   async saveToWorkspaceState(): Promise<void> {
-    const serializedStoreByDocId: SerializedCollapsibleStateStoreByDocumentId = {};
-    for (const [docId, store] of Object.entries(this.collapsibleStateStoreByDocumentId)) {
-      const { storageMode, itemIds } = store;
-      if (this.isDefaultStore(store)) {
-        // No need to save a default store
-        continue;
+    try {
+      const serializedStoreByDocId: SerializedCollapsibleStateStoreByDocumentId = {};
+      for (const [docId, store] of Object.entries(this.collapsibleStateStoreByDocumentId)) {
+        const { storageMode, itemIds } = store;
+        if (this.isDefaultStore(store)) {
+          // No need to save a default store
+          continue;
+        }
+        serializedStoreByDocId[docId] = { storageMode, itemIds: Array.from(itemIds) };
       }
-      serializedStoreByDocId[docId] = { storageMode, itemIds: Array.from(itemIds) };
+      if (isEmptyObject(serializedStoreByDocId)) {
+        await this.workspaceState.update(this.storageKey, undefined);
+        return;
+      }
+      await this.workspaceState.update(this.storageKey, serializedStoreByDocId);
+    } catch (error) {
+      console.error("CollapsibleStateManager: failed to save workspace state:", error);
     }
-    if (isEmptyObject(serializedStoreByDocId)) {
-      await this.workspaceState.update(this.storageKey, undefined);
-      return;
-    }
-    await this.workspaceState.update(this.storageKey, serializedStoreByDocId);
   }
 
   // #endregion

@@ -5,6 +5,10 @@ const decorationType = vscode.window.createTextEditorDecorationType({
   backgroundColor: new vscode.ThemeColor("editor.findMatchHighlightBackground"),
 });
 
+export function disposeHighlightDecorationType(): void {
+  decorationType.dispose();
+}
+
 export function highlightAndScrollRegionIntoView({
   activeTextEditor,
   range,
