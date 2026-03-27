@@ -1,6 +1,7 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
 import { type RegionHelperAPI } from "../../api/regionHelperAPI";
+import { type FullTreeItem } from "../../treeView/fullTreeView/FullTreeItem";
 import { openSampleDocument } from "../utils/openSampleDocument";
 import { delay, waitForCondition } from "../utils/waitForEvent";
 
@@ -15,8 +16,10 @@ import { delay, waitForCondition } from "../utils/waitForEvent";
  * listener is registered.
  */
 suite("Full Outline Active Editor Switch", function() {
-  // Increase timeout for all tests in this suite to accommodate polling
-  this.timeout(10000);
+  // Increase timeout for all tests in this suite to accommodate polling.
+  // The versioned-document-ID consistency test switches editors multiple times,
+  // each requiring debounce cycles + language server round-trips.
+  this.timeout(20000);
 
   let regionHelperAPI: RegionHelperAPI;
 
@@ -55,6 +58,37 @@ suite("Full Outline Active Editor Switch", function() {
       () => regionHelperAPI.getActiveFullOutlineItem() !== undefined,
       timeoutMs,
       50
+    );
+  }
+
+  /**
+   * Recursively flatten all FullTreeItems (depth-first).
+   */
+  function flattenOutlineItems(): FullTreeItem[] {
+    const result: FullTreeItem[] = [];
+    function walk(items: FullTreeItem[]): void {
+      for (const item of items) {
+        result.push(item);
+        if (item.children.length > 0) {
+          walk(item.children);
+        }
+      }
+    }
+    walk(regionHelperAPI.getTopLevelFullOutlineItems());
+    return result;
+  }
+
+  /**
+   * Waits until the outline contains a region with the given display name.
+   * This is more reliable than `waitForFullOutlineItems()` after an editor
+   * switch, because it verifies the items actually belong to the target
+   * document rather than passing with stale items from the previous document.
+   */
+  async function waitForOutlineContaining(regionName: string, timeoutMs = 5000): Promise<void> {
+    await waitForCondition(
+      () => flattenOutlineItems().some((i) => i.displayName === regionName),
+      timeoutMs,
+      100
     );
   }
 
@@ -251,23 +285,27 @@ suite("Full Outline Active Editor Switch", function() {
   test("should maintain versioned document ID consistency when switching files", async () => {
     // This test verifies that the internal state is properly updated when
     // switching between files, inferred by active items changing correctly.
+    //
+    // Key: after each switch, we wait for the outline to contain a region name
+    // unique to the target document — not just `items.length > 0`, which can
+    // pass with stale items from the previous document while the debounced
+    // refresh is still pending.
 
+    // --- Doc 1: sampleRegionsDocument.ts (has "Imports" region) ---
     const doc1 = await openSampleDocument("sampleRegionsDocument.ts");
     const editor1 = await vscode.window.showTextDocument(doc1);
-    await waitForFullOutlineItems();
+    await waitForOutlineContaining("Imports");
 
-    // Move cursor inside Imports region in doc1
     editor1.selection = new vscode.Selection(5, 0, 5, 0);
     await waitForActiveFullOutlineItem();
     const activeItem1 = regionHelperAPI.getActiveFullOutlineItem();
     assert.ok(activeItem1 !== undefined, "Should have active item in doc1");
 
-    // Switch to doc2 (different TS file — TS language server available in test env)
+    // --- Doc 2: readmeSample.ts (has "Project Overview" region) ---
     const doc2 = await openSampleDocument("readmeSample.ts");
     const editor2 = await vscode.window.showTextDocument(doc2);
-    await waitForFullOutlineItems();
+    await waitForOutlineContaining("Project Overview", 8000);
 
-    // Move cursor inside Project Overview region in doc2 (line 1)
     editor2.selection = new vscode.Selection(1, 0, 1, 0);
     await waitForCondition(
       () => {
@@ -275,24 +313,25 @@ suite("Full Outline Active Editor Switch", function() {
         return active !== undefined && active.displayName !== activeItem1.displayName;
       },
       5000,
-      50
+      100
     );
     const activeItem2 = regionHelperAPI.getActiveFullOutlineItem();
     assert.ok(activeItem2 !== undefined, "Should have active item in doc2");
 
-    // Switch back to doc1 and restore cursor
-    await vscode.window.showTextDocument(doc1);
-    editor1.selection = new vscode.Selection(5, 0, 5, 0);
+    // --- Switch back to Doc 1 ---
+    const returnedEditor = await vscode.window.showTextDocument(doc1);
+    await waitForOutlineContaining("Imports", 8000);
+
+    returnedEditor.selection = new vscode.Selection(5, 0, 5, 0);
     await waitForCondition(
       () => {
         const active = regionHelperAPI.getActiveFullOutlineItem();
         return active?.displayName === activeItem1.displayName;
       },
-      8000,
-      50
+      5000,
+      100
     );
 
-    // The active item should match doc1's context again
     const activeItemBack = regionHelperAPI.getActiveFullOutlineItem();
     assert.ok(activeItemBack !== undefined, "Should have active item after switching back to doc1");
     assert.strictEqual(
