@@ -4,6 +4,11 @@ All notable changes to the "region-helper" extension will be documented in this 
 
 This changelog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is structured for clarity and readability, inspired by [Common Changelog](https://common-changelog.org/) and [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.7.1] - 2026-03-26
+
+- Improved language parsing to catch cases that confused modifier-aware icons.
+- Added LIMITATIONS.md
+
 ## [1.7.0] - 2026-02-25
 
 Bug fixes and new features, including debugging option detailed in [DEV_NOTES.md](./docs/DEV_NOTES.md).

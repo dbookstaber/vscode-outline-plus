@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import {
-    getDefaultModifiers,
-    type MemberModifiers,
-    type SymbolModifiers,
-    type VisibilityModifier,
+  getDefaultModifiers,
+  type MemberModifiers,
+  type SymbolModifiers,
+  type VisibilityModifier,
 } from "./SymbolModifiers";
 
 /**
@@ -189,7 +189,12 @@ export function extractSymbolModifiers(
 
   // Get text from symbol definition line(s)
   // Read lines that are part of this symbol's declaration only
-  const text = getSymbolDeclarationText(symbol, document, patternConfig);
+  const rawText = getSymbolDeclarationText(symbol, document, patternConfig);
+
+  // Strip comments to prevent false keyword matches (e.g., "private" appearing in
+  // an XML doc comment like "/// Retrieve the private field..." would otherwise be
+  // detected as a visibility modifier instead of the actual "public" keyword).
+  const text = stripComments(rawText);
 
   // Extract visibility (for languages with keywords)
   if (languageId !== "python") {
@@ -226,11 +231,10 @@ function extractVisibility(
     }
   }
 
-  // Handle language-specific defaults
+  // Handle language-specific defaults when no visibility keyword is present
   if (languageId === "java") {
-    // Java default is package-private (no keyword)
-    // Could look for absence of visibility keywords, but for now return default
-    return "default";
+    // In Java, the absence of a visibility keyword means package-private access.
+    return "package";
   }
 
   return "default";
@@ -248,12 +252,21 @@ function extractMemberModifiers(
     // Skip if no keywords defined for this modifier
     if (keywords.length === 0) continue;
     for (const keyword of keywords) {
-      // Handle decorator/attribute syntax (@, [])
-      const patterns = [
-        new RegExp(`\\b${escapeRegex(keyword)}\\b`, "i"), // Regular keyword
-        new RegExp(`@${escapeRegex(keyword)}`, "i"), // Python decorator
-        new RegExp(`\\[${escapeRegex(keyword)}\\]`, "i"), // C# attribute style
-      ];
+      let patterns: RegExp[];
+
+      if (keyword.startsWith("@")) {
+        // Decorator keyword (e.g., @staticmethod, @abstractmethod) — match as-is.
+        // Cannot use \b word-boundary because @ is not a word character,
+        // and must not prepend another @ (would produce @@staticmethod).
+        patterns = [new RegExp(escapeRegex(keyword), "i")];
+      } else {
+        // Regular keyword — try plain keyword, @decorator, and [attribute] forms
+        patterns = [
+          new RegExp(`\\b${escapeRegex(keyword)}\\b`, "i"), // Regular keyword
+          new RegExp(`@${escapeRegex(keyword)}`, "i"), // Python decorator
+          new RegExp(`\\[${escapeRegex(keyword)}\\]`, "i"), // C# attribute style
+        ];
+      }
 
       for (const pattern of patterns) {
         if (pattern.test(text)) {
@@ -304,6 +317,35 @@ function setMemberModifier(memberModifiers: MemberModifiers, key: string): void 
       memberModifiers.isNew = true;
       break;
   }
+}
+
+/**
+ * Strip comments and preprocessor directives from source text to prevent false
+ * keyword matches. Handles:
+ * - Block comments: /* ... * / (C-family)
+ * - Line comments: // and /// (C-family)
+ * - Preprocessor directives and standalone # comment lines (C#, C/C++, Python)
+ *
+ * This prevents XML doc comments like `/// Retrieve the private field...`,
+ * line comments like `// private-field helpers`, and directives like
+ * `#region Private Helpers` from polluting visibility extraction.
+ *
+ * Note: Python inline `#` comments (e.g., `def f(): # private helper`) are NOT
+ * stripped because the regex cannot reliably distinguish `#` in comments from `#`
+ * in string literals (e.g., `def f(pattern="#regex")`). Standalone `#` comment
+ * lines are handled by the `^\s*#` pattern.
+ */
+function stripComments(text: string): string {
+  // Remove block comments first (may span multiple lines)
+  let result = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  // Remove line comments (// and /// doc comments)
+  result = result.replace(/\/\/.*$/gm, "");
+  // Remove lines starting with # — covers C/C#/C++ preprocessor directives
+  // (#region, #if, #include) and standalone Python comments (# comment).
+  // Only matches when # is the first non-whitespace character on the line,
+  // so it won't corrupt # inside string literals on code lines.
+  result = result.replace(/^\s*#.*$/gm, "");
+  return result;
 }
 
 /**
@@ -368,8 +410,9 @@ function getSymbolDeclarationText(
 
 /**
  * Apply Python naming conventions to determine visibility.
+ * - __name__: dunder/magic method, conventionally "public"
+ * - __name: name mangling, conventionally "private"
  * - _name: conventionally "protected"
- * - __name: conventionally "private"
  * - name: conventionally "public"
  */
 function applyPythonNamingConventionVisibility(
@@ -378,8 +421,11 @@ function applyPythonNamingConventionVisibility(
 ): void {
   const name = symbol.name;
 
-  if (name.startsWith("__") && !name.endsWith("__")) {
-    // Double underscore prefix (not dunder) = private
+  if (name.startsWith("__") && name.endsWith("__")) {
+    // Dunder/magic method (e.g., __init__, __str__) = public
+    modifiers.visibility = "public";
+  } else if (name.startsWith("__")) {
+    // Double underscore prefix (name mangling) = private
     modifiers.visibility = "private";
   } else if (name.startsWith("_")) {
     // Single underscore prefix = protected/internal
