@@ -1,4 +1,4 @@
-import { getRegionHelperConfig } from "../config/regionHelperConfig";
+import { getOutlinePlusConfig } from "../config/regionHelperConfig";
 
 type LanguageId = string;
 
@@ -26,7 +26,7 @@ export function getRegionBoundaryPatternMap(): RegionBoundaryPatternMap {
 }
 
 function getRegionBoundaryPatternsConfig(): RegionBoundaryPatternsConfig {
-  const config = getRegionHelperConfig();
+  const config = getOutlinePlusConfig();
   return config.get("regionBoundaryPatternByLanguageId", {});
 }
 

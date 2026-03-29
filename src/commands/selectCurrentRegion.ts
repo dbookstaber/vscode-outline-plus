@@ -2,17 +2,17 @@ import * as vscode from "vscode";
 import { getActiveRegionInEditor } from "../utils/getActiveRegion";
 import { selectRange } from "../utils/selectionUtils";
 import {
-    type RegionHelperClosuredCommand,
-    type RegionHelperClosuredParams,
+    type OutlinePlusClosuredCommand,
+    type OutlinePlusClosuredParams,
 } from "./registerCommand";
 
-export const selectCurrentRegionCommand: RegionHelperClosuredCommand = {
-  id: "regionHelper.selectCurrentRegion",
+export const selectCurrentRegionCommand: OutlinePlusClosuredCommand = {
+  id: "outlinePlus.selectCurrentRegion",
   callback: selectCurrentRegion,
   needsRegionHelperParams: true,
 };
 
-function selectCurrentRegion({ regionStore }: RegionHelperClosuredParams): void {
+function selectCurrentRegion({ regionStore }: OutlinePlusClosuredParams): void {
   const { activeTextEditor } = vscode.window;
   if (!activeTextEditor) {
     return;

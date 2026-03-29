@@ -1,14 +1,14 @@
-# 📡 Region Helper API
+# 📡 Outline++ API
 
-Region Helper provides an API that other extensions can use to access **code regions** and **full outline symbols**.
+Outline++ provides an API that other extensions can use to access **code regions** and **full outline symbols**.
 
 ## 🔌 Accessing the API
 
 ```ts
 import * as vscode from "vscode";
 
-async function getRegionHelperAPI() {
-  const extension = vscode.extensions.getExtension("Bookstaber.region-helper");
+async function getOutlinePlusAPI() {
+  const extension = vscode.extensions.getExtension("DavidBookstaber.outline-plus");
   if (!extension) return undefined;
   if (!extension.isActive) await extension.activate();
   return extension.exports;
@@ -19,10 +19,10 @@ async function getRegionHelperAPI() {
 
 ```ts
 async function logRegions() {
-  const regionHelperAPI = await getRegionHelperAPI();
-  if (!regionHelperAPI) return;
+  const outlinePlusAPI = await getOutlinePlusAPI();
+  if (!outlinePlusAPI) return;
 
-  const regions = regionHelperAPI.getFlattenedRegions();
+  const regions = outlinePlusAPI.getFlattenedRegions();
   console.log("Regions in current file:", regions);
 }
 ```

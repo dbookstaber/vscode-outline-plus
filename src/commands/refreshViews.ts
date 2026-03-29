@@ -1,18 +1,18 @@
 import {
-    type RegionHelperClosuredCommand,
-    type RegionHelperClosuredParams,
+    type OutlinePlusClosuredCommand,
+    type OutlinePlusClosuredParams,
 } from "./registerCommand";
 
 // #region Exported commands
 
-const refreshRegionsViewCommand: RegionHelperClosuredCommand = {
-  id: "regionHelper.regionsView.refresh",
+const refreshRegionsViewCommand: OutlinePlusClosuredCommand = {
+  id: "outlinePlus.regionsView.refresh",
   callback: refreshRegionsView,
   needsRegionHelperParams: true,
 };
 
-const refreshFullOutlineViewCommand: RegionHelperClosuredCommand = {
-  id: "regionHelper.fullOutlineView.refresh",
+const refreshFullOutlineViewCommand: OutlinePlusClosuredCommand = {
+  id: "outlinePlus.fullOutlineView.refresh",
   callback: refreshFullOutlineView,
   needsRegionHelperParams: true,
 };
@@ -23,11 +23,11 @@ export const allRefreshCommands = [refreshRegionsViewCommand, refreshFullOutline
 
 // #region Command implementations
 
-function refreshRegionsView({ regionStore }: RegionHelperClosuredParams): void {
+function refreshRegionsView({ regionStore }: OutlinePlusClosuredParams): void {
   regionStore.forceRefresh();
 }
 
-function refreshFullOutlineView({ fullOutlineStore }: RegionHelperClosuredParams): void {
+function refreshFullOutlineView({ fullOutlineStore }: OutlinePlusClosuredParams): void {
   fullOutlineStore.forceRefresh();
 }
 

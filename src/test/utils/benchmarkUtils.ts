@@ -1,5 +1,5 @@
 /**
- * Benchmark utilities for measuring Region Helper extension performance.
+ * Benchmark utilities for measuring Outline++ extension performance.
  *
  * These utilities can be imported and run during development to measure
  * the impact of changes on extension performance.

@@ -4,13 +4,17 @@
     "name": "David Bookstaber",
     "email": "bookstaber@gmail.com"
   },
-  "publisher": "Bookstaber",
-  "name": "region-helper",
-  "displayName": "Region Helper",
-  "description": "Keyboard navigation, interactive tree views, fuzzy search, diagnostics, and other useful tools for code regions.",
+  "publisher": "DavidBookstaber",
+  "name": "outline-plus",
+  "displayName": "Outline++ (Regions & Colors)",
+  "description": "Code outline and region navigation with color-coded modifier icons.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dbookstaber/vscode-region-helper.git"
+    "url": "https://github.com/dbookstaber/vscode-outline-plus.git"
+  },
+  "homepage": "https://github.com/dbookstaber/vscode-outline-plus#readme",
+  "bugs": {
+    "url": "https://github.com/dbookstaber/vscode-outline-plus/issues"
   },
   "galleryBanner": {
     "color": "#00002e",
@@ -18,13 +22,23 @@
   },
   "icon": "assets/icon.png",
   "license": "GPL-3.0-only",
-  "version": "1.7.1",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.94.0"
   },
   "categories": [
     "Other",
     "Visualization"
+  ],
+  "keywords": [
+    "outline",
+    "regions",
+    "region",
+    "symbols",
+    "document-symbols",
+    "navigation",
+    "tree-view",
+    "code-structure"
   ],
   "activationEvents": [
     "onLanguage"
@@ -33,108 +47,108 @@
   "contributes": {
     "commands": [
       {
-        "command": "regionHelper.goToRegionBoundary",
-        "title": "Region Helper: Go to Region Boundary"
+        "command": "outlinePlus.goToRegionBoundary",
+        "title": "Outline++: Go to Region Boundary"
       },
       {
-        "command": "regionHelper.selectCurrentRegion",
-        "title": "Region Helper: Select Current Region"
+        "command": "outlinePlus.selectCurrentRegion",
+        "title": "Outline++: Select Current Region"
       },
       {
-        "command": "regionHelper.goToRegionFromQuickPick",
-        "title": "Region Helper: Go to Region..."
+        "command": "outlinePlus.goToRegionFromQuickPick",
+        "title": "Outline++: Go to Region..."
       },
       {
-        "command": "regionHelper.goToNextRegion",
-        "title": "Region Helper: Go to Next Region"
+        "command": "outlinePlus.goToNextRegion",
+        "title": "Outline++: Go to Next Region"
       },
       {
-        "command": "regionHelper.goToPreviousRegion",
-        "title": "Region Helper: Go to Previous Region"
+        "command": "outlinePlus.goToPreviousRegion",
+        "title": "Outline++: Go to Previous Region"
       },
       {
-        "command": "regionHelper.regionsView.hide",
-        "title": "Region Helper: Hide Regions View",
-        "when": "config.regionHelper.regionsView.isVisible"
+        "command": "outlinePlus.regionsView.hide",
+        "title": "Outline++: Hide Regions View",
+        "when": "config.outlinePlus.regionsView.isVisible"
       },
       {
-        "command": "regionHelper.regionsView.show",
-        "title": "Region Helper: Show Regions View",
-        "when": "!config.regionHelper.regionsView.isVisible"
+        "command": "outlinePlus.regionsView.show",
+        "title": "Outline++: Show Regions View",
+        "when": "!config.outlinePlus.regionsView.isVisible"
       },
       {
-        "command": "regionHelper.regionsView.resetAutoHidePreference",
-        "title": "Region Helper: Reset Regions View Auto-Hide Preference"
+        "command": "outlinePlus.regionsView.resetAutoHidePreference",
+        "title": "Outline++: Reset Regions View Auto-Hide Preference"
       },
       {
-        "command": "regionHelper.fullOutlineView.hide",
-        "title": "Region Helper: Hide Full Outline View",
-        "when": "config.regionHelper.fullOutlineView.isVisible"
+        "command": "outlinePlus.fullOutlineView.hide",
+        "title": "Outline++: Hide Full Outline View",
+        "when": "config.outlinePlus.fullOutlineView.isVisible"
       },
       {
-        "command": "regionHelper.fullOutlineView.show",
-        "title": "Region Helper: Show Full Outline View",
-        "when": "!config.regionHelper.fullOutlineView.isVisible"
+        "command": "outlinePlus.fullOutlineView.show",
+        "title": "Outline++: Show Full Outline View",
+        "when": "!config.outlinePlus.fullOutlineView.isVisible"
       },
       {
-        "command": "regionHelper.regionsView.stopAutoHighlightingActiveRegion",
-        "title": "Region Helper: Regions View: Stop Auto-Highlighting Active Region",
-        "when": "config.regionHelper.regionsView.shouldAutoHighlightActiveRegion",
+        "command": "outlinePlus.regionsView.stopAutoHighlightingActiveRegion",
+        "title": "Outline++: Regions View: Stop Auto-Highlighting Active Region",
+        "when": "config.outlinePlus.regionsView.shouldAutoHighlightActiveRegion",
         "icon": "$(sync)"
       },
       {
-        "command": "regionHelper.regionsView.startAutoHighlightingActiveRegion",
-        "title": "Region Helper: Regions View: Start Auto-Highlighting Active Region",
-        "when": "!config.regionHelper.regionsView.shouldAutoHighlightActiveRegion",
+        "command": "outlinePlus.regionsView.startAutoHighlightingActiveRegion",
+        "title": "Outline++: Regions View: Start Auto-Highlighting Active Region",
+        "when": "!config.outlinePlus.regionsView.shouldAutoHighlightActiveRegion",
         "icon": "$(sync-ignored)"
       },
       {
-        "command": "regionHelper.fullOutlineView.stopAutoHighlightingActiveItem",
-        "title": "Region Helper: Full Outline View: Stop Auto-Highlighting Active Item",
-        "when": "config.regionHelper.fullOutlineView.shouldAutoHighlightActiveItem",
+        "command": "outlinePlus.fullOutlineView.stopAutoHighlightingActiveItem",
+        "title": "Outline++: Full Outline View: Stop Auto-Highlighting Active Item",
+        "when": "config.outlinePlus.fullOutlineView.shouldAutoHighlightActiveItem",
         "icon": "$(sync)"
       },
       {
-        "command": "regionHelper.fullOutlineView.startAutoHighlightingActiveItem",
-        "title": "Region Helper: Full Outline View: Start Auto-Highlighting Active Item",
-        "when": "!config.regionHelper.fullOutlineView.shouldAutoHighlightActiveItem",
+        "command": "outlinePlus.fullOutlineView.startAutoHighlightingActiveItem",
+        "title": "Outline++: Full Outline View: Start Auto-Highlighting Active Item",
+        "when": "!config.outlinePlus.fullOutlineView.shouldAutoHighlightActiveItem",
         "icon": "$(sync-ignored)"
       },
       {
-        "command": "regionHelper.regionsView.expandAll",
-        "title": "Region Helper: Regions View: Expand All",
+        "command": "outlinePlus.regionsView.expandAll",
+        "title": "Outline++: Regions View: Expand All",
         "icon": "$(expand-all)"
       },
       {
-        "command": "regionHelper.fullOutlineView.expandAll",
-        "title": "Region Helper: Full Outline View: Expand All",
+        "command": "outlinePlus.fullOutlineView.expandAll",
+        "title": "Outline++: Full Outline View: Expand All",
         "icon": "$(expand-all)"
       },
       {
-        "command": "regionHelper.regionsView.refresh",
-        "title": "Region Helper: Refresh Regions View",
+        "command": "outlinePlus.regionsView.refresh",
+        "title": "Outline++: Refresh Regions View",
         "icon": "$(refresh)"
       },
       {
-        "command": "regionHelper.fullOutlineView.refresh",
-        "title": "Region Helper: Refresh Full Outline",
+        "command": "outlinePlus.fullOutlineView.refresh",
+        "title": "Outline++: Refresh Full Outline",
         "icon": "$(refresh)"
       },
       {
-        "command": "regionHelper.showDebugLog",
-        "title": "Region Helper: Show Debug Log"
+        "command": "outlinePlus.showDebugLog",
+        "title": "Outline++: Show Debug Log"
       },
       {
-        "command": "regionHelper.dumpDiagnosticState",
-        "title": "Region Helper: Dump Diagnostic State"
+        "command": "outlinePlus.dumpDiagnosticState",
+        "title": "Outline++: Dump Diagnostic State"
       }
     ],
     "configuration": [
       {
-        "title": "Region Helper",
+        "title": "Outline++",
         "order": 0,
         "properties": {
-          "regionHelper.regionBoundaryPatternByLanguageId": {
+          "outlinePlus.regionBoundaryPatternByLanguageId": {
             "type": "object",
             "description": "Regular expression strings to match region boundaries for different languages.",
             "additionalProperties": {
@@ -449,17 +463,17 @@
         "title": "Regions View",
         "order": 1,
         "properties": {
-          "regionHelper.regionsView.isVisible": {
+          "outlinePlus.regionsView.isVisible": {
             "type": "boolean",
             "default": true,
             "description": "Show the Regions view."
           },
-          "regionHelper.regionsView.shouldAutoHide": {
+          "outlinePlus.regionsView.shouldAutoHide": {
             "type": "boolean",
             "default": true,
             "description": "Automatically hide the Regions view when the active document has no regions, and show it when switching to a document with regions."
           },
-          "regionHelper.regionsView.shouldAutoHighlightActiveRegion": {
+          "outlinePlus.regionsView.shouldAutoHighlightActiveRegion": {
             "type": "boolean",
             "default": true,
             "description": "Automatically reveal and highlight the cursor's active region in the Regions view."
@@ -470,17 +484,17 @@
         "title": "Full Outline View",
         "order": 2,
         "properties": {
-          "regionHelper.fullOutlineView.isVisible": {
+          "outlinePlus.fullOutlineView.isVisible": {
             "type": "boolean",
             "default": true,
             "description": "Show the Full Outline view."
           },
-          "regionHelper.fullOutlineView.shouldAutoHighlightActiveItem": {
+          "outlinePlus.fullOutlineView.shouldAutoHighlightActiveItem": {
             "type": "boolean",
             "default": true,
             "description": "Automatically reveal and highlight the cursor's active region/symbol in the Full Outline view."
           },
-          "regionHelper.fullOutlineView.modifierDisplay": {
+          "outlinePlus.fullOutlineView.modifierDisplay": {
             "type": "string",
             "enum": [
               "off",
@@ -499,7 +513,7 @@
             "default": "colorAndBadge",
             "description": "Controls how symbol modifiers (visibility: public/private/protected, static, readonly, etc.) are displayed in the Full Outline view."
           },
-          "regionHelper.fullOutlineView.useDistinctModifierColors": {
+          "outlinePlus.fullOutlineView.useDistinctModifierColors": {
             "type": "boolean",
             "default": true,
             "description": "Use distinct colors (green=public, red=private, yellow=protected) for visibility modifiers. When disabled, uses more subtle symbol-themed colors."
@@ -507,41 +521,41 @@
         }
       },
       {
-        "title": "Region Helper: Debug",
+        "title": "Outline++: Debug",
         "order": 2,
         "properties": {
-          "regionHelper.enableDebugLogging": {
+          "outlinePlus.enableDebugLogging": {
             "type": "boolean",
             "default": false,
-            "description": "Enable debug logging to the 'Region Helper' output channel. Useful for diagnosing issues with outline refresh or editor tracking."
+            "description": "Enable debug logging to the 'Outline++' output channel. Useful for diagnosing issues with outline refresh or editor tracking."
           }
         }
       }
     ],
     "keybindings": [
       {
-        "command": "regionHelper.goToRegionBoundary",
+        "command": "outlinePlus.goToRegionBoundary",
         "key": "alt+m",
         "when": "editorTextFocus"
       },
       {
-        "command": "regionHelper.selectCurrentRegion",
+        "command": "outlinePlus.selectCurrentRegion",
         "key": "alt+shift+m",
         "when": "editorTextFocus"
       },
       {
-        "command": "regionHelper.goToRegionFromQuickPick",
+        "command": "outlinePlus.goToRegionFromQuickPick",
         "key": "ctrl+shift+r",
         "mac": "cmd+shift+r",
         "when": "editorTextFocus"
       },
       {
-        "command": "regionHelper.goToNextRegion",
+        "command": "outlinePlus.goToNextRegion",
         "key": "ctrl+alt+n",
         "when": "editorTextFocus"
       },
       {
-        "command": "regionHelper.goToPreviousRegion",
+        "command": "outlinePlus.goToPreviousRegion",
         "key": "ctrl+alt+p",
         "when": "editorTextFocus"
       }
@@ -549,43 +563,43 @@
     "menus": {
       "view/title": [
         {
-          "command": "regionHelper.regionsView.refresh",
-          "when": "view == regionHelperRegionsView",
+          "command": "outlinePlus.regionsView.refresh",
+          "when": "view == outlinePlusRegionsView",
           "group": "navigation@0"
         },
         {
-          "command": "regionHelper.fullOutlineView.refresh",
-          "when": "view == regionHelperFullTreeView",
+          "command": "outlinePlus.fullOutlineView.refresh",
+          "when": "view == outlinePlusFullTreeView",
           "group": "navigation@0"
         },
         {
-          "command": "regionHelper.regionsView.stopAutoHighlightingActiveRegion",
-          "when": "view == regionHelperRegionsView && config.regionHelper.regionsView.shouldAutoHighlightActiveRegion",
+          "command": "outlinePlus.regionsView.stopAutoHighlightingActiveRegion",
+          "when": "view == outlinePlusRegionsView && config.outlinePlus.regionsView.shouldAutoHighlightActiveRegion",
           "group": "navigation@1"
         },
         {
-          "command": "regionHelper.regionsView.startAutoHighlightingActiveRegion",
-          "when": "view == regionHelperRegionsView && !config.regionHelper.regionsView.shouldAutoHighlightActiveRegion",
+          "command": "outlinePlus.regionsView.startAutoHighlightingActiveRegion",
+          "when": "view == outlinePlusRegionsView && !config.outlinePlus.regionsView.shouldAutoHighlightActiveRegion",
           "group": "navigation@1"
         },
         {
-          "command": "regionHelper.fullOutlineView.stopAutoHighlightingActiveItem",
-          "when": "view == regionHelperFullTreeView && config.regionHelper.fullOutlineView.shouldAutoHighlightActiveItem",
+          "command": "outlinePlus.fullOutlineView.stopAutoHighlightingActiveItem",
+          "when": "view == outlinePlusFullTreeView && config.outlinePlus.fullOutlineView.shouldAutoHighlightActiveItem",
           "group": "navigation@1"
         },
         {
-          "command": "regionHelper.fullOutlineView.startAutoHighlightingActiveItem",
-          "when": "view == regionHelperFullTreeView && !config.regionHelper.fullOutlineView.shouldAutoHighlightActiveItem",
+          "command": "outlinePlus.fullOutlineView.startAutoHighlightingActiveItem",
+          "when": "view == outlinePlusFullTreeView && !config.outlinePlus.fullOutlineView.shouldAutoHighlightActiveItem",
           "group": "navigation@1"
         },
         {
-          "command": "regionHelper.regionsView.expandAll",
-          "when": "view == regionHelperRegionsView",
+          "command": "outlinePlus.regionsView.expandAll",
+          "when": "view == outlinePlusRegionsView",
           "group": "navigation@2"
         },
         {
-          "command": "regionHelper.fullOutlineView.expandAll",
-          "when": "view == regionHelperFullTreeView",
+          "command": "outlinePlus.fullOutlineView.expandAll",
+          "when": "view == outlinePlusFullTreeView",
           "group": "navigation@2"
         }
       ]
@@ -593,17 +607,17 @@
     "views": {
       "explorer": [
         {
-          "id": "regionHelperRegionsView",
+          "id": "outlinePlusRegionsView",
           "name": "Regions",
           "contextualTitle": "Regions",
-          "when": "config.regionHelper.regionsView.isVisible",
+          "when": "config.outlinePlus.regionsView.isVisible",
           "icon": "./assets/regions-view-icon.svg"
         },
         {
-          "id": "regionHelperFullTreeView",
+          "id": "outlinePlusFullTreeView",
           "name": "Full Outline",
           "contextualTitle": "Full Outline",
-          "when": "config.regionHelper.fullOutlineView.isVisible",
+          "when": "config.outlinePlus.fullOutlineView.isVisible",
           "icon": "./assets/full-outline-view-icon.svg"
         }
       ]
@@ -616,7 +630,7 @@
     "compile-tests": "npx rimraf dist-tests && webpack --config webpack.test.config.ts",
     "watch-tests": "webpack --config webpack.test.config.ts --watch",
     "package": "npx @vscode/vsce package",
-    "pretest": "npm run compile-tests && npm run lint",
+    "pretest": "npm run compile && npm run compile-tests && npm run lint",
     "lint": "eslint src",
     "test": "npx rimraf .vscode-test/user-data .vscode-test/extensions && vscode-test"
   },

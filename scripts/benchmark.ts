@@ -1,5 +1,5 @@
 /**
- * Command-line benchmark script for Region Helper
+ * Command-line benchmark script for Outline++
  * 
  * This script benchmarks the core parsing logic without requiring VS Code.
  * Run with: npx ts-node scripts/benchmark.ts
@@ -133,7 +133,7 @@ function runBenchmark(): BenchmarkResult[] {
 }
 
 // Run and display results
-console.log("\n=== Region Helper Benchmark Results ===\n");
+console.log("\n=== Outline++ Benchmark Results ===\n");
 
 const results = runBenchmark();
 

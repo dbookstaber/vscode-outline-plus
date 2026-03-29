@@ -1,7 +1,7 @@
 import {
     type GetLevel2Keys,
-    getRegionHelperConfig,
-    setGlobalRegionHelperConfigValue,
+    getOutlinePlusConfig,
+    setGlobalOutlinePlusConfigValue,
 } from "./regionHelperConfig";
 
 export type RegionsViewConfig = Readonly<{
@@ -27,7 +27,7 @@ export function setGlobalRegionsViewConfigValue<K extends RawRegionsViewConfigKe
   value: RegionsViewConfig[K]
 ): Thenable<void> {
   const fullConfigKey = getRegionsViewConfigKey(key);
-  return setGlobalRegionHelperConfigValue(fullConfigKey, value);
+  return setGlobalOutlinePlusConfigValue(fullConfigKey, value);
 }
 
 export function getGlobalRegionsViewConfigValue<K extends RawRegionsViewConfigKey>(
@@ -42,7 +42,7 @@ function getRegionsViewConfigKey(key: RawRegionsViewConfigKey): GetLevel2Keys<"r
 }
 
 export function getRegionsViewConfig(): RegionsViewConfig {
-  const regionHelperConfig = getRegionHelperConfig();
-  const regionsViewConfig = regionHelperConfig.get<RegionsViewConfig>("regionsView");
+  const outlinePlusConfig = getOutlinePlusConfig();
+  const regionsViewConfig = outlinePlusConfig.get<RegionsViewConfig>("regionsView");
   return regionsViewConfig ?? defaultRegionsViewConfig;
 }

@@ -4,30 +4,30 @@ import {
     getGlobalFullOutlineViewConfigValue,
     setGlobalFullOutlineViewConfigValue,
 } from "../config/fullOutlineViewConfig";
-import { type RegionHelperNonClosuredCommand } from "./registerCommand";
+import { type OutlinePlusNonClosuredCommand } from "./registerCommand";
 
 // #region Exported commands
 
-const hideFullOutlineViewCommand: RegionHelperNonClosuredCommand = {
-  id: "regionHelper.fullOutlineView.hide",
+const hideFullOutlineViewCommand: OutlinePlusNonClosuredCommand = {
+  id: "outlinePlus.fullOutlineView.hide",
   callback: hideFullOutlineView,
   needsRegionHelperParams: false,
 };
 
-const showFullOutlineViewCommand: RegionHelperNonClosuredCommand = {
-  id: "regionHelper.fullOutlineView.show",
+const showFullOutlineViewCommand: OutlinePlusNonClosuredCommand = {
+  id: "outlinePlus.fullOutlineView.show",
   callback: showFullOutlineView,
   needsRegionHelperParams: false,
 };
 
-const stopAutoHighlightingActiveItemCommand: RegionHelperNonClosuredCommand = {
-  id: "regionHelper.fullOutlineView.stopAutoHighlightingActiveItem",
+const stopAutoHighlightingActiveItemCommand: OutlinePlusNonClosuredCommand = {
+  id: "outlinePlus.fullOutlineView.stopAutoHighlightingActiveItem",
   callback: stopAutoHighlightingActiveItem,
   needsRegionHelperParams: false,
 };
 
-const startAutoHighlightingActiveItemCommand: RegionHelperNonClosuredCommand = {
-  id: "regionHelper.fullOutlineView.startAutoHighlightingActiveItem",
+const startAutoHighlightingActiveItemCommand: OutlinePlusNonClosuredCommand = {
+  id: "outlinePlus.fullOutlineView.startAutoHighlightingActiveItem",
   callback: startAutoHighlightingActiveItem,
   needsRegionHelperParams: false,
 };
@@ -46,7 +46,7 @@ export const allFullOutlineViewConfigCommands = [
 function hideFullOutlineView(): void {
   const isAlreadyVisible = getGlobalFullOutlineViewConfigValue("isVisible");
   if (!isAlreadyVisible) {
-    vscode.window.showInformationMessage("Region Helper: Full Outline view is already hidden.");
+    vscode.window.showInformationMessage("Outline++: Full Outline view is already hidden.");
     return;
   }
   void setGlobalFullOutlineViewConfigValue("isVisible", false);
@@ -55,7 +55,7 @@ function hideFullOutlineView(): void {
 function showFullOutlineView(): void {
   const isAlreadyVisible = getGlobalFullOutlineViewConfigValue("isVisible");
   if (isAlreadyVisible) {
-    vscode.window.showInformationMessage("Region Helper: Full Outline view is already visible.");
+    vscode.window.showInformationMessage("Outline++: Full Outline view is already visible.");
     return;
   }
   void setGlobalFullOutlineViewConfigValue("isVisible", true);
@@ -67,7 +67,7 @@ function stopAutoHighlightingActiveItem(): void {
   );
   if (!isAlreadyAutoHighlightingActiveItem) {
     vscode.window.showInformationMessage(
-      "Region Helper: Full Outline view is already not auto-highlighting the active item."
+      "Outline++: Full Outline view is already not auto-highlighting the active item."
     );
     return;
   }
@@ -80,7 +80,7 @@ function startAutoHighlightingActiveItem(): void {
   );
   if (isAlreadyAutoHighlightingActiveItem) {
     vscode.window.showInformationMessage(
-      "Region Helper: Full Outline view is already auto-highlighting the active item."
+      "Outline++: Full Outline view is already auto-highlighting the active item."
     );
     return;
   }

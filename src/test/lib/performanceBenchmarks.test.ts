@@ -1,5 +1,5 @@
 /**
- * Benchmark tests for Region Helper extension performance.
+ * Benchmark tests for Outline++ extension performance.
  *
  * This file tests:
  * 1. Region parsing performance across different file sizes
@@ -10,7 +10,7 @@
 
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { type RegionHelperAPI } from "../../api/regionHelperAPI";
+import { type OutlinePlusAPI } from "../../api/regionHelperAPI";
 import { flattenRegionsAndCountParents } from "../../lib/flattenRegions";
 import { parseAllRegions } from "../../lib/parseAllRegions";
 import { generateLargeTestFile, printEventCountResults, type EventCountResult } from "../utils/benchmarkUtils";
@@ -24,16 +24,16 @@ function wait(ms: number): Promise<void> {
 
 suite("Performance Benchmarks", () => {
   const timeout = 60000; // 60 second timeout for performance tests
-  let regionHelperAPI: RegionHelperAPI;
+  let regionHelperAPI: OutlinePlusAPI;
 
   // Ensure extension is activated before tests
   suiteSetup(async () => {
-    const ext = vscode.extensions.getExtension("bookstaber.region-helper");
+    const ext = vscode.extensions.getExtension("DavidBookstaber.outline-plus");
     if (!ext) {
-      throw new Error("Region Helper extension not found!");
+      throw new Error("Outline++ extension not found!");
     }
     await ext.activate();
-    regionHelperAPI = ext.exports as RegionHelperAPI;
+    regionHelperAPI = ext.exports as OutlinePlusAPI;
   });
 
   /**

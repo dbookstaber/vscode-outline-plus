@@ -3,17 +3,17 @@ import { getNextRegion } from "../lib/getNextRegion";
 import { moveCursorToRegion } from "../lib/moveCursorToRegion";
 import { getActiveCursorLineIdx } from "../utils/getActiveCursorLineIdx";
 import {
-  type RegionHelperClosuredCommand,
-  type RegionHelperClosuredParams,
+    type OutlinePlusClosuredCommand,
+    type OutlinePlusClosuredParams,
 } from "./registerCommand";
 
-export const goToNextRegionCommand: RegionHelperClosuredCommand = {
-  id: "regionHelper.goToNextRegion",
+export const goToNextRegionCommand: OutlinePlusClosuredCommand = {
+  id: "outlinePlus.goToNextRegion",
   callback: goToNextRegion,
   needsRegionHelperParams: true,
 };
 
-function goToNextRegion({ regionStore }: RegionHelperClosuredParams): void {
+function goToNextRegion({ regionStore }: OutlinePlusClosuredParams): void {
   const { flattenedRegions } = regionStore;
   const { activeTextEditor } = vscode.window;
   if (!activeTextEditor) {
