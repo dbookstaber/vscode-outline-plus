@@ -1,13 +1,13 @@
 import * as vscode from "vscode";
-import { type RegionHelperNonClosuredCommand } from "../../commands/registerCommand";
+import { type OutlinePlusNonClosuredCommand } from "../../commands/registerCommand";
 import { throwNever } from "../../utils/errorUtils";
 import { focusActiveEditorGroup } from "../../utils/focusEditor";
 import { moveCursorToFirstNonWhitespaceCharOfLine } from "../../utils/moveCursorToFirstNonWhitespaceOfLine";
 import { moveCursorToPosition } from "../../utils/moveCursorToPosition";
 import { type FullTreeItemType } from "./FullTreeItem";
 
-export const goToFullTreeItemCommand: RegionHelperNonClosuredCommand = {
-  id: "regionHelper.goToFullTreeItem",
+export const goToFullTreeItemCommand: OutlinePlusNonClosuredCommand = {
+  id: "outlinePlus.goToFullTreeItem",
   callback: goToFullTreeItem,
   needsRegionHelperParams: false,
 };

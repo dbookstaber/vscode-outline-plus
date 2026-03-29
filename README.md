@@ -1,10 +1,12 @@
 <!-- markdownlint-disable no-inline-html -->
 
-# Region Helper
+# Outline++
 
-A Visual Studio Code extension for navigating, visualizing, and managing code regions.
+[![VS Code Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/DavidBookstaber.outline-plus?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=DavidBookstaber.outline-plus)
+[![VS Code Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/DavidBookstaber.outline-plus)](https://marketplace.visualstudio.com/items?itemName=DavidBookstaber.outline-plus)
+[![VS Code Marketplace Rating](https://img.shields.io/visual-studio-marketplace/r/DavidBookstaber.outline-plus)](https://marketplace.visualstudio.com/items?itemName=DavidBookstaber.outline-plus)
 
-This fork features higher performance, more features, and fewer bugs than the original!
+A Visual Studio Code extension for navigating, visualizing, and managing code regions and document outlines.
 
 **[QuickStart](./docs/DEV_NOTES.md#1-install-dependencies)**
 
@@ -12,12 +14,12 @@ This fork features higher performance, more features, and fewer bugs than the or
 
 - 📁 **Regions View** – Interactive tree for viewing and navigating regions.
 - 🏛 **Full Outline View** – Like VSCode's builtin Outline view, but incorporates regions.
-- 🎨 **Modifier-Aware Icons** – Color-coded icons showing visibility and member modifiers for C#, Java, TypeScript, Python, and more.
+- 🎨 **Modifier-Aware Icons** – Color-coded icons showing visibility and member modifiers for C++, C#, Java, TypeScript, Python, and more.
 - 🐇 **Quick Navigation** – Jump, search, and select regions with commands and keyboard shortcuts.
 - ⚠️ **Diagnostics** – Detects unmatched region boundaries.
 - 🔄 **Refresh & Debug** – Manual refresh buttons and built-in debug logging for diagnosing issues.
 
-![Region Helper Demo](./assets/readme-gifs/0-main-demo.gif)
+![Outline++ Demo](./assets/readme-gifs/0-main-demo.gif)
 
 ## 📖 Table of Contents
 
@@ -91,7 +93,7 @@ The Full Outline view can display **color-coded icons** that indicate the visibi
 
 #### Display Modes
 
-Controlled by `regionHelper.fullOutlineView.modifierDisplay`:
+Controlled by `outlinePlus.fullOutlineView.modifierDisplay`:
 
 | Mode | Behavior |
 |------|----------|
@@ -155,10 +157,10 @@ To quickly show or hide the **Regions** or **Full Outline** views, you can use t
 
 - **Show/Hide Region View**
   - Commands: `Show Regions View` / `Hide Regions View`
-  - Setting: `regionHelper.regionsView.isVisible`
+  - Setting: `outlinePlus.regionsView.isVisible`
 - **Show/Hide Full Outline View**
   - Commands: `Show Full Outline View` / `Hide Full Outline View`
-  - Setting: `regionHelper.fullOutlineView.isVisible`
+  - Setting: `outlinePlus.fullOutlineView.isVisible`
 
 ### 🔄 Toggling Auto-Highlighting/Revealing in Tree Views
 
@@ -167,7 +169,7 @@ To quickly show or hide the **Regions** or **Full Outline** views, you can use t
 
 ### 🎨 Modifier Display Settings
 
-Settings under `regionHelper.fullOutlineView`:
+Settings under `outlinePlus.fullOutlineView`:
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
@@ -179,7 +181,7 @@ Settings under `regionHelper.fullOutlineView`:
 - **Supports 50 languages** out of the box, including:
   - **C, C++, C#, Java, Python, JavaScript, JSX, TypeScript, TSX, PHP, Ruby, Swift, Go, Rust, HTML, XML, Markdown, JSON/JSONC, YAML, SQL, and more**.
 - Define your own **custom region patterns**, or adjust the **existing default patterns**, to customize how regions are parsed.
-  - Setting: `regionHelper.regionBoundaryPatternByLanguageId`
+  - Setting: `outlinePlus.regionBoundaryPatternByLanguageId`
     - Note: you may need to restart the extension after changing this setting for it to take effect.
 
 ## 🛠 Troubleshooting
@@ -188,23 +190,23 @@ Settings under `regionHelper.fullOutlineView`:
 
 Both the **Regions** and **Full Outline** views have a **Refresh** button (↻) in the view's title bar. Click it to force a complete re-fetch of all data, bypassing any caching or change-detection. You can also run the commands from the Command Palette:
 
-- **Region Helper: Refresh Regions View**
-- **Region Helper: Refresh Full Outline**
+- **Outline++: Refresh Regions View**
+- **Outline++: Refresh Full Outline**
 
 ### 🐛 Debug Logging
 
 If the outline gets stuck or stops updating, you can capture diagnostic information:
 
-1. **Enable debug logging**: Open Settings (`Ctrl+,`) → search for `regionHelper.enableDebugLogging` → set to `true`.
+1. **Enable debug logging**: Open Settings (`Ctrl+,`) → search for `outlinePlus.enableDebugLogging` → set to `true`.
 2. **Reproduce the problem**.
-3. **Dump diagnostic state**: Open the Command Palette (`Ctrl+Shift+P`) → run **Region Helper: Dump Diagnostic State**. This opens the "Region Helper" Output channel with a snapshot of all internal store state.
-4. **Show the debug log**: Run **Region Helper: Show Debug Log** to review the full timeline of state transitions.
+3. **Dump diagnostic state**: Open the Command Palette (`Ctrl+Shift+P`) → run **Outline++: Dump Diagnostic State**. This opens the "Outline++" Output channel with a snapshot of all internal store state.
+4. **Show the debug log**: Run **Outline++: Show Debug Log** to review the full timeline of state transitions.
 
 The log captures editor switches, symbol fetches, discarded stale fetches, and version mismatches — all the data needed to diagnose refresh issues.
 
 ## 📡 Extension API
 
-Region Helper provides an API for accessing **parsed code regions** and **full outline symbols** programmatically. You can use it to build your own VSCode region extension without worrying about writing a region parser from scratch!
+Outline++ provides an API for accessing **parsed code regions** and **full outline symbols** programmatically. You can use it to build your own VS Code extension without worrying about writing a region parser from scratch!
 
 **See the full [API documentation](./docs/API.md) for details and examples.**
 

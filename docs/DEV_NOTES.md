@@ -1,7 +1,7 @@
 # Project Structure
 
 ```
-vscode-region-helper/
+vscode-outline-plus/
 ├── src/
 │   ├── extension.ts          # Extension entry point
 │   ├── api/                   # Public API
@@ -24,7 +24,7 @@ vscode-region-helper/
 
 # Local Installation Guide
 
-This guide explains how to build and install the Region Helper extension from the local repository into your VS Code installation.
+This guide explains how to build and install the Outline++ extension from the local repository into your VS Code installation.
 
 ## Prerequisites
 
@@ -36,8 +36,8 @@ This guide explains how to build and install the Region Helper extension from th
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/dbookstaber/vscode-region-helper.git
-cd vscode-region-helper
+git clone https://github.com/dbookstaber/vscode-outline-plus.git
+cd vscode-outline-plus
 
 # 2. Install dependencies
 npm install
@@ -91,7 +91,7 @@ npm install -g @vscode/vsce
 vsce package
 ```
 
-This creates a `.vsix` file (e.g., `region-helper-1.5.0.vsix`) in the project root.
+This creates a `.vsix` file (e.g., `outline-plus-1.7.1.vsix`) in the project root.
 
 ### 5. Install the Extension
 
@@ -99,7 +99,7 @@ This creates a `.vsix` file (e.g., `region-helper-1.5.0.vsix`) in the project ro
 
 ```bash
 # If 'code' (or 'code-insiders') is in your PATH:
-code --install-extension region-helper-1.5.0.vsix
+code --install-extension outline-plus-1.7.1.vsix
 ```
 
 If `code` is not recognized, use **Option B** or **Option C** below instead (recommended for Windows users).
@@ -146,12 +146,12 @@ Then press `F5` to launch the Extension Development Host. After making changes, 
 To uninstall the locally installed extension:
 
 ```bash
-code --uninstall-extension Bookstaber.region-helper
+code --uninstall-extension DavidBookstaber.outline-plus
 ```
 
 Or via the VS Code UI:
 1. Open the Extensions view (`Ctrl+Shift+X`)
-2. Find "Region Helper"
+2. Find "Outline++"
 3. Click the gear icon and select **Uninstall**
 
 ## Troubleshooting
@@ -196,32 +196,32 @@ The extension is platform-independent (pure JavaScript/TypeScript), so the same 
 When you encounter a problem, do this:
 
 ### Step 1: Enable debug logging
-Open Settings (Ctrl+,) and search for `regionHelper.enableDebugLogging`. Set it to `true`. This starts writing timestamped entries to a dedicated output channel.
+Open Settings (Ctrl+,) and search for `outlinePlus.enableDebugLogging`. Set it to `true`. This starts writing timestamped entries to a dedicated output channel.
 
 ### Step 2: Reproduce the problem
 Do whatever triggers the issue. Then immediately:
 
 ### Step 3: Dump diagnostic state
 Open the Command Palette (Ctrl+Shift+P) and run:
-> **Region Helper: Dump Diagnostic State**
+> **Outline++: Dump Diagnostic State**
 
 This writes a snapshot to the output channel showing:
 - Active editor URI and version
 - What each store thinks the current document is (and its version)
 - Region, symbol, and outline item counts
 
-The Output panel ("Region Helper" channel) opens automatically.
+The Output panel ("Outline++" channel) opens automatically.
 
 ### Step 4: Show the debug log
 If you want to review the full timeline of events, run:
-> **Region Helper: Show Debug Log**
+> **Outline++: Show Debug Log**
 
 ### Step 5: Try manual recovery
 Click the **Refresh** button (↻) in the view's title bar, or run:
-> **Region Helper: Refresh Full Outline**  
-> **Region Helper: Refresh Regions View**
+> **Outline++: Refresh Full Outline**  
+> **Outline++: Refresh Regions View**
 
 This forces all stores to re-fetch from scratch, bypassing all caching and change-detection.
 
 ### What to capture when filing a bug
-Copy the entire contents of the "Region Helper" output channel. It will show the sequence of editor switches, symbol fetches, any discarded stale fetches, and version mismatches that led to the problem.
+Copy the entire contents of the "Outline++" output channel. It will show the sequence of editor switches, symbol fetches, any discarded stale fetches, and version mismatches that led to the problem.

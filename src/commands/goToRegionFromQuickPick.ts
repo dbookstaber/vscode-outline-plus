@@ -9,19 +9,19 @@ import {
 import { moveCursorToFirstNonWhitespaceCharOfLine } from "../utils/moveCursorToFirstNonWhitespaceOfLine";
 import { scrollCurrentLineIntoView } from "../utils/scrollUtils";
 import {
-    type RegionHelperClosuredCommand,
-    type RegionHelperClosuredParams,
+    type OutlinePlusClosuredCommand,
+    type OutlinePlusClosuredParams,
 } from "./registerCommand";
 
 type RegionQuickPickItem = vscode.QuickPickItem & { startLineIdx: number; endLineIdx: number };
 
-export const goToRegionFromQuickPickCommand: RegionHelperClosuredCommand = {
-  id: "regionHelper.goToRegionFromQuickPick",
+export const goToRegionFromQuickPickCommand: OutlinePlusClosuredCommand = {
+  id: "outlinePlus.goToRegionFromQuickPick",
   callback: goToRegionFromQuickPick,
   needsRegionHelperParams: true,
 };
 
-function goToRegionFromQuickPick({ regionStore }: RegionHelperClosuredParams): void {
+function goToRegionFromQuickPick({ regionStore }: OutlinePlusClosuredParams): void {
   const { activeTextEditor } = vscode.window;
   if (!activeTextEditor) {
     return;

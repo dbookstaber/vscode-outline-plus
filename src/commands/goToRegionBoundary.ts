@@ -4,17 +4,17 @@ import { type Region } from "../models/Region";
 import { getActiveCursorLineIdx } from "../utils/getActiveCursorLineIdx";
 import { moveCursorToFirstNonWhitespaceCharOfLine } from "../utils/moveCursorToFirstNonWhitespaceOfLine";
 import {
-    type RegionHelperClosuredCommand,
-    type RegionHelperClosuredParams,
+    type OutlinePlusClosuredCommand,
+    type OutlinePlusClosuredParams,
 } from "./registerCommand";
 
-export const goToRegionBoundaryCommand: RegionHelperClosuredCommand = {
-  id: "regionHelper.goToRegionBoundary",
+export const goToRegionBoundaryCommand: OutlinePlusClosuredCommand = {
+  id: "outlinePlus.goToRegionBoundary",
   callback: goToRegionBoundary,
   needsRegionHelperParams: true,
 };
 
-function goToRegionBoundary({ regionStore }: RegionHelperClosuredParams): void {
+function goToRegionBoundary({ regionStore }: OutlinePlusClosuredParams): void {
   const { activeTextEditor } = vscode.window;
   if (!activeTextEditor) {
     return;

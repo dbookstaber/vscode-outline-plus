@@ -18,7 +18,7 @@ A clear and concise description of the issue.
 
 - **VSCode version:** [e.g., 1.78.0]
 - **OS:** [e.g., Windows 10 / macOS 14 / Ubuntu 22.04]
-- **Region Helper version:** [e.g., 1.1.0]
+- **Outline++ version:** [e.g., 1.1.0]
 
 ### Steps to reproduce
 

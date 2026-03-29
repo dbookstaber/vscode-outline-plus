@@ -1,7 +1,7 @@
 import {
     type GetLevel2Keys,
-    getRegionHelperConfig,
-    setGlobalRegionHelperConfigValue,
+    getOutlinePlusConfig,
+    setGlobalOutlinePlusConfigValue,
 } from "./regionHelperConfig";
 
 export type ModifierDisplayMode = "off" | "colorOnly" | "colorAndBadge" | "colorAndSvgOverlay" | "colorAndDescription";
@@ -29,14 +29,14 @@ export function setGlobalFullOutlineViewConfigValue<K extends RawFullOutlineView
   value: FullOutlineViewConfig[K]
 ): Thenable<void> {
   const fullConfigKey = getFullOutlineViewConfigKey(key);
-  return setGlobalRegionHelperConfigValue(fullConfigKey, value);
+  return setGlobalOutlinePlusConfigValue(fullConfigKey, value);
 }
 
 export function getGlobalFullOutlineViewConfigValue<K extends RawFullOutlineViewConfigKey>(
   key: K
 ): FullOutlineViewConfig[K] {
-  const regionHelperConfig = getFullOutlineViewConfig();
-  return regionHelperConfig[key];
+  const outlinePlusConfig = getFullOutlineViewConfig();
+  return outlinePlusConfig[key];
 }
 
 function getFullOutlineViewConfigKey(
@@ -46,7 +46,7 @@ function getFullOutlineViewConfigKey(
 }
 
 export function getFullOutlineViewConfig(): FullOutlineViewConfig {
-  const regionHelperConfig = getRegionHelperConfig();
-  const fullOutlineViewConfig = regionHelperConfig.get<FullOutlineViewConfig>("fullOutlineView");
+  const outlinePlusConfig = getOutlinePlusConfig();
+  const fullOutlineViewConfig = outlinePlusConfig.get<FullOutlineViewConfig>("fullOutlineView");
   return fullOutlineViewConfig ?? defaultFullOutlineViewConfig;
 }

@@ -7,7 +7,7 @@ import { throwNever } from "../utils/errorUtils";
 const DEBOUNCE_DELAY_MS = 300;
 
 export class RegionDiagnosticsManager {
-  private _diagnostics = vscode.languages.createDiagnosticCollection("region-helper");
+  private _diagnostics = vscode.languages.createDiagnosticCollection("outline-plus");
 
   constructor(private regionStore: RegionStore, subscriptions: vscode.Disposable[]) {
     this.registerInvalidMarkersChangeListener(subscriptions);
@@ -54,7 +54,7 @@ function createDiagnostic(
   const range = new vscode.Range(lineIdx, 0, lineIdx, line.text.length);
   const errorMsg = getErrorMessage(invalidMarker);
   const diagnostic = new vscode.Diagnostic(range, errorMsg, vscode.DiagnosticSeverity.Warning);
-  diagnostic.source = "region-helper";
+  diagnostic.source = "outline-plus";
   return diagnostic;
 }
 

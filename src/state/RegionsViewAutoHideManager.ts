@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import {
-  getGlobalRegionsViewConfigValue,
-  setGlobalRegionsViewConfigValue,
+    getGlobalRegionsViewConfigValue,
+    setGlobalRegionsViewConfigValue,
 } from "../config/regionsViewConfig";
 import { type Region } from "../models/Region";
 import { type RegionStore } from "./RegionStore";
@@ -10,7 +10,7 @@ import { type RegionStore } from "./RegionStore";
  * Configuration key for persisting the user's preference for showing the regions view.
  * This is separate from the actual visibility state - it represents user *intent*.
  */
-const USER_WANTS_REGIONS_VIEW_KEY = "regionHelper.userWantsRegionsView";
+const USER_WANTS_REGIONS_VIEW_KEY = "outlinePlus.userWantsRegionsView";
 
 /**
  * Delay before checking visibility after editor change.
@@ -44,9 +44,9 @@ const PROGRAMMATIC_CHANGE_FALLBACK_TIMEOUT_MS = 500;
  *
  * State machine:
  * - `userWantsRegionsView`: User's preference (true = wants to see it when relevant, false = explicitly hidden)
- * - Actual visibility is controlled via the `regionHelper.regionsView.isVisible` setting
+ * - Actual visibility is controlled via the `outlinePlus.regionsView.isVisible` setting
  *
- * The feature can be disabled via `regionHelper.regionsView.shouldAutoHide` setting.
+ * The feature can be disabled via `outlinePlus.regionsView.shouldAutoHide` setting.
  */
 export class RegionsViewAutoHideManager implements vscode.Disposable {
   private userWantsRegionsView: boolean;

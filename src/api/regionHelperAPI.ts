@@ -5,7 +5,7 @@ import { type InvalidMarker } from "../lib/parseAllRegions";
 import { type Region } from "../models/Region";
 import { type FullTreeItem } from "../treeView/fullTreeView/FullTreeItem";
 
-export type RegionHelperAPI = {
+export type OutlinePlusAPI = {
   // #region Regions API
   // #region Getters
   /** Returns an up-to-date list of top-level regions in the current active editor. This is used to

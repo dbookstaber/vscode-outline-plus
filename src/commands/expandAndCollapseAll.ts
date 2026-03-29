@@ -1,18 +1,18 @@
 import {
-  type RegionHelperClosuredCommand,
-  type RegionHelperClosuredParams,
+    type OutlinePlusClosuredCommand,
+    type OutlinePlusClosuredParams,
 } from "./registerCommand";
 
 // #region Exported commands
 
-const expandAllRegionTreeItemsCommand: RegionHelperClosuredCommand = {
-  id: "regionHelper.regionsView.expandAll",
+const expandAllRegionTreeItemsCommand: OutlinePlusClosuredCommand = {
+  id: "outlinePlus.regionsView.expandAll",
   callback: expandAllRegionTreeItems,
   needsRegionHelperParams: true,
 };
 
-const expandAllFullOutlineItemsCommand: RegionHelperClosuredCommand = {
-  id: "regionHelper.fullOutlineView.expandAll",
+const expandAllFullOutlineItemsCommand: OutlinePlusClosuredCommand = {
+  id: "outlinePlus.fullOutlineView.expandAll",
   callback: expandAllFullOutlineItems,
   needsRegionHelperParams: true,
 };
@@ -26,11 +26,11 @@ export const allExpandAllCommands = [
 
 // #region Command implementations
 
-function expandAllRegionTreeItems({ regionTreeViewProvider }: RegionHelperClosuredParams): void {
+function expandAllRegionTreeItems({ regionTreeViewProvider }: OutlinePlusClosuredParams): void {
   regionTreeViewProvider.expandAllTreeItems();
 }
 
-function expandAllFullOutlineItems({ fullTreeViewProvider }: RegionHelperClosuredParams): void {
+function expandAllFullOutlineItems({ fullTreeViewProvider }: OutlinePlusClosuredParams): void {
   fullTreeViewProvider.expandAllTreeItems();
 }
 

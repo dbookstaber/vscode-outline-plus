@@ -15,43 +15,43 @@ import { selectCurrentRegionCommand } from "./selectCurrentRegion";
 import { allFullOutlineViewConfigCommands } from "./toggleFullOutlineViewSettings";
 import { allRegionsViewConfigCommands } from "./toggleRegionsViewSettings";
 
-type RegionHelperExtensionId = "regionHelper";
+type OutlinePlusExtensionId = "outlinePlus";
 
-type RegionHelperCommandId = `${RegionHelperExtensionId}.${string}`;
+type OutlinePlusCommandId = `${OutlinePlusExtensionId}.${string}`;
 
-export type RegionHelperClosuredParams = {
+export type OutlinePlusClosuredParams = {
   regionStore: RegionStore;
   fullOutlineStore: FullOutlineStore;
   regionTreeViewProvider: RegionTreeViewProvider;
   fullTreeViewProvider: FullTreeViewProvider;
 };
 
-/** A command that needs access to RegionHelperClosuredParams. */
-export type RegionHelperClosuredCommand = {
-  id: RegionHelperCommandId;
-  callback: (regionHelperParams: RegionHelperClosuredParams) => void;
+/** A command that needs access to OutlinePlusClosuredParams. */
+export type OutlinePlusClosuredCommand = {
+  id: OutlinePlusCommandId;
+  callback: (outlinePlusParams: OutlinePlusClosuredParams) => void;
   needsRegionHelperParams: true;
 };
 
-/** A command that doesn't need access to RegionHelperClosuredParams. */
-export type RegionHelperNonClosuredCommand = {
-  id: RegionHelperCommandId;
+/** A command that doesn't need access to OutlinePlusClosuredParams. */
+export type OutlinePlusNonClosuredCommand = {
+  id: OutlinePlusCommandId;
   callback: Parameters<typeof vscode.commands.registerCommand>[1];
   needsRegionHelperParams: false;
 };
 
-type RegionHelperCommand = RegionHelperClosuredCommand | RegionHelperNonClosuredCommand;
+type OutlinePlusCommand = OutlinePlusClosuredCommand | OutlinePlusNonClosuredCommand;
 
 export function registerAllCommands(
   subscriptions: vscode.Disposable[],
-  regionHelperParams: RegionHelperClosuredParams
+  outlinePlusParams: OutlinePlusClosuredParams
 ): void {
   for (const command of commandsToRegister) {
-    registerRegionHelperCommand(command, subscriptions, regionHelperParams);
+    registerOutlinePlusCommand(command, subscriptions, outlinePlusParams);
   }
 }
 
-const commandsToRegister: RegionHelperCommand[] = [
+const commandsToRegister: OutlinePlusCommand[] = [
   goToRegionTreeItemCommand,
   goToFullTreeItemCommand,
   goToRegionBoundaryCommand,
@@ -65,15 +65,15 @@ const commandsToRegister: RegionHelperCommand[] = [
   ...allRefreshCommands,
 ];
 
-function registerRegionHelperCommand(
-  command: RegionHelperCommand,
+function registerOutlinePlusCommand(
+  command: OutlinePlusCommand,
   subscriptions: vscode.Disposable[],
-  regionHelperParams: RegionHelperClosuredParams
+  outlinePlusParams: OutlinePlusClosuredParams
 ): void {
   const { id, callback, needsRegionHelperParams } = command;
   const commandDisposable = vscode.commands.registerCommand(
     id,
-    needsRegionHelperParams ? (): void => callback(regionHelperParams) : callback
+    needsRegionHelperParams ? (): void => callback(outlinePlusParams) : callback
   );
   subscriptions.push(commandDisposable);
 }

@@ -4,38 +4,38 @@ import {
     setGlobalRegionsViewConfigValue,
     setRegionsViewVisibility,
 } from "../config/regionsViewConfig";
-import { type RegionHelperNonClosuredCommand } from "./registerCommand";
+import { type OutlinePlusNonClosuredCommand } from "./registerCommand";
 
 /** Key used by RegionsViewAutoHideManager to persist user preference */
-const USER_WANTS_REGIONS_VIEW_KEY = "regionHelper.userWantsRegionsView";
+const USER_WANTS_REGIONS_VIEW_KEY = "outlinePlus.userWantsRegionsView";
 
 // #region Exported commands
 
-const hideRegionsViewCommand: RegionHelperNonClosuredCommand = {
-  id: "regionHelper.regionsView.hide",
+const hideRegionsViewCommand: OutlinePlusNonClosuredCommand = {
+  id: "outlinePlus.regionsView.hide",
   callback: hideRegionsView,
   needsRegionHelperParams: false,
 };
 
-const showRegionsViewCommand: RegionHelperNonClosuredCommand = {
-  id: "regionHelper.regionsView.show",
+const showRegionsViewCommand: OutlinePlusNonClosuredCommand = {
+  id: "outlinePlus.regionsView.show",
   callback: showRegionsView,
   needsRegionHelperParams: false,
 };
 
-const stopAutoHighlightingActiveRegionCommand: RegionHelperNonClosuredCommand = {
-  id: "regionHelper.regionsView.stopAutoHighlightingActiveRegion",
+const stopAutoHighlightingActiveRegionCommand: OutlinePlusNonClosuredCommand = {
+  id: "outlinePlus.regionsView.stopAutoHighlightingActiveRegion",
   callback: stopAutoHighlightingActiveRegion,
   needsRegionHelperParams: false,
 };
 
-const startAutoHighlightingActiveRegionCommand: RegionHelperNonClosuredCommand = {
-  id: "regionHelper.regionsView.startAutoHighlightingActiveRegion",
+const startAutoHighlightingActiveRegionCommand: OutlinePlusNonClosuredCommand = {
+  id: "outlinePlus.regionsView.startAutoHighlightingActiveRegion",
   callback: startAutoHighlightingActiveRegion,
   needsRegionHelperParams: false,
 };
 
-export const allRegionsViewConfigCommands: RegionHelperNonClosuredCommand[] = [
+export const allRegionsViewConfigCommands: OutlinePlusNonClosuredCommand[] = [
   hideRegionsViewCommand,
   showRegionsViewCommand,
   stopAutoHighlightingActiveRegionCommand,
@@ -49,7 +49,7 @@ export const allRegionsViewConfigCommands: RegionHelperNonClosuredCommand[] = [
 function hideRegionsView(): void {
   const isAlreadyVisible = getGlobalRegionsViewConfigValue("isVisible");
   if (!isAlreadyVisible) {
-    vscode.window.showInformationMessage("Region Helper: Regions view is already hidden.");
+    vscode.window.showInformationMessage("Outline++: Regions view is already hidden.");
     return;
   }
   void setRegionsViewVisibility(false);
@@ -58,7 +58,7 @@ function hideRegionsView(): void {
 function showRegionsView(): void {
   const isAlreadyVisible = getGlobalRegionsViewConfigValue("isVisible");
   if (isAlreadyVisible) {
-    vscode.window.showInformationMessage("Region Helper: Regions view is already visible.");
+    vscode.window.showInformationMessage("Outline++: Regions view is already visible.");
     return;
   }
   void setRegionsViewVisibility(true);
@@ -89,7 +89,7 @@ export function createResetAutoHidePreferenceCommand(
     // Also show the view immediately
     await setGlobalRegionsViewConfigValue("isVisible", true);
     vscode.window.showInformationMessage(
-      "Region Helper: Auto-hide preference has been reset. The Regions view will now auto-show when you open files with regions."
+      "Outline++: Auto-hide preference has been reset. The Regions view will now auto-show when you open files with regions."
     );
   };
 }

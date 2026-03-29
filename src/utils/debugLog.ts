@@ -1,13 +1,13 @@
 import * as vscode from "vscode";
 
 /**
- * Centralized debug logging for Region Helper.
+ * Centralized debug logging for Outline++.
  *
- * Writes timestamped entries to an Output Channel ("Region Helper") that users
- * can open via the Command Palette > "Region Helper: Show Debug Log" or
+ * Writes timestamped entries to an Output Channel ("Outline++") that users
+ * can open via the Command Palette > "Outline++: Show Debug Log" or
  * from the Output panel dropdown.
  *
- * Logging is opt-in: controlled by the `regionHelper.enableDebugLogging` setting.
+ * Logging is opt-in: controlled by the `outlinePlus.enableDebugLogging` setting.
  * When disabled, calls to `log()` are no-ops to avoid performance overhead.
  */
 
@@ -15,20 +15,20 @@ let _outputChannel: vscode.OutputChannel | undefined;
 let _isEnabled = false;
 
 export function initializeDebugLog(subscriptions: vscode.Disposable[]): void {
-  _outputChannel = vscode.window.createOutputChannel("Region Helper");
+  _outputChannel = vscode.window.createOutputChannel("Outline++");
   subscriptions.push(_outputChannel);
 
   // Read initial setting
   _isEnabled = vscode.workspace
-    .getConfiguration("regionHelper")
+    .getConfiguration("outlinePlus")
     .get<boolean>("enableDebugLogging", false);
 
   // React to setting changes
   vscode.workspace.onDidChangeConfiguration(
     (e) => {
-      if (e.affectsConfiguration("regionHelper.enableDebugLogging")) {
+      if (e.affectsConfiguration("outlinePlus.enableDebugLogging")) {
         _isEnabled = vscode.workspace
-          .getConfiguration("regionHelper")
+          .getConfiguration("outlinePlus")
           .get<boolean>("enableDebugLogging", false);
         if (_isEnabled) {
           log("Debug logging enabled");

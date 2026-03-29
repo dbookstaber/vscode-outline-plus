@@ -1,6 +1,6 @@
 # Known Limitations
 
-This document catalogues the known limitations of the Region Helper extension, explains why each has been accepted, and describes alternative approaches that were considered and rejected.
+This document catalogues the known limitations of the Outline++ extension, explains why each has been accepted, and describes alternative approaches that were considered and rejected.
 
 ---
 
@@ -161,7 +161,7 @@ Symbol-fetch retry logic uses stepped delays (300ms → 1s → 3s → 5s) with a
 
 ### 4.1 Region Patterns Require Restart After Change
 
-Custom region boundary patterns (`regionHelper.regionBoundaryPatternByLanguageId`) are compiled into a `Map` at extension startup. Changing the setting at runtime has no effect until the extension is reloaded.
+Custom region boundary patterns (`outlinePlus.regionBoundaryPatternByLanguageId`) are compiled into a `Map` at extension startup. Changing the setting at runtime has no effect until the extension is reloaded.
 
 **Why accepted:** Hot-reloading compiled regex patterns would require invalidating all cached parse results, resetting region stores, and re-parsing every open document — a non-trivial amount of plumbing for a setting that users change once during initial setup.
 
@@ -173,7 +173,7 @@ If a user provides an invalid regex in their custom region pattern, the error is
 
 **Why accepted:** Pop-up notifications on invalid regex would be disruptive during iterative editing of settings. Console logging preserves the error for debugging without interrupting workflow.
 
-**Possible fix — Output channel warning:** A low-severity enhancement that would log to a dedicated Region Helper output channel with a one-time notification.
+**Possible fix — Output channel warning:** A low-severity enhancement that would log to a dedicated Outline++ output channel with a one-time notification.
 
 ### 4.3 Modifier Display Settings Are Global, Not Per-Language
 

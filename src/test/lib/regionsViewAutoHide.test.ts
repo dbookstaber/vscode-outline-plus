@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { type RegionHelperAPI } from "../../api/regionHelperAPI";
+import { type OutlinePlusAPI } from "../../api/regionHelperAPI";
 import { openSampleDocument } from "../utils/openSampleDocument";
 import { delay } from "../utils/waitForEvent";
 
@@ -12,18 +12,18 @@ import { delay } from "../utils/waitForEvent";
  * - The view auto-shows when switching to documents with regions (if user hasn't explicitly hidden it)
  * - User's explicit show/hide actions are remembered as their preference
  *
- * The feature is controlled by the `regionHelper.regionsView.shouldAutoHide` setting.
+ * The feature is controlled by the `outlinePlus.regionsView.shouldAutoHide` setting.
  */
 suite("Regions View Auto-Hide", () => {
-  let regionHelperAPI: RegionHelperAPI;
+  let regionHelperAPI: OutlinePlusAPI;
 
   suiteSetup(async () => {
-    const regionHelperExtension = vscode.extensions.getExtension("bookstaber.region-helper");
+    const regionHelperExtension = vscode.extensions.getExtension("DavidBookstaber.outline-plus");
     if (!regionHelperExtension) {
-      throw new Error("Region Helper extension not found!");
+      throw new Error("Outline++ extension not found!");
     }
     await regionHelperExtension.activate();
-    regionHelperAPI = regionHelperExtension.exports as RegionHelperAPI;
+    regionHelperAPI = regionHelperExtension.exports as OutlinePlusAPI;
   });
 
   // #region Helper Functions
@@ -37,7 +37,7 @@ suite("Regions View Auto-Hide", () => {
   }
 
   function getRegionsViewConfig(): vscode.WorkspaceConfiguration {
-    return vscode.workspace.getConfiguration("regionHelper.regionsView");
+    return vscode.workspace.getConfiguration("outlinePlus.regionsView");
   }
 
   function isRegionsViewVisible(): boolean {
@@ -475,7 +475,7 @@ suite("Regions View Auto-Hide", () => {
       await waitForAutoHideProcessing();
 
       // Now run the reset command
-      await vscode.commands.executeCommand("regionHelper.regionsView.resetAutoHidePreference");
+      await vscode.commands.executeCommand("outlinePlus.regionsView.resetAutoHidePreference");
       await waitForAutoHideProcessing(200);
 
       // View should now be visible (reset command shows it)
