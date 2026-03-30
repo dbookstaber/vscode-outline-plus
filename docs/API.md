@@ -8,7 +8,7 @@ Outline++ provides an API that other extensions can use to access **code regions
 import * as vscode from "vscode";
 
 async function getOutlinePlusAPI() {
-  const extension = vscode.extensions.getExtension("DavidBookstaber.outline-plus");
+  const extension = vscode.extensions.getExtension("DavidBookstaber.outline-regions-plus");
   if (!extension) return undefined;
   if (!extension.isActive) await extension.activate();
   return extension.exports;

@@ -1,4 +1,5 @@
 import { getOutlinePlusConfig } from "../config/regionHelperConfig";
+import { logError } from "../utils/debugLog";
 
 type LanguageId = string;
 
@@ -54,7 +55,7 @@ function parseRegionBoundaryPattern(
       endRegex: parseRegexOrArray(rawPattern.endRegex),
     };
   } catch (e) {
-    console.error(`Failed to parse region boundary pattern for language '${languageId}'`, e);
+    logError(`Failed to parse region boundary pattern for language '${languageId}'`, e);
     return undefined;
   }
 }

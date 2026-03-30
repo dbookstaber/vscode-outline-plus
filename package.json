@@ -5,9 +5,9 @@
     "email": "bookstaber@gmail.com"
   },
   "publisher": "DavidBookstaber",
-  "name": "outline-plus",
+  "name": "outline-regions-plus",
   "displayName": "Outline++ (Regions & Colors)",
-  "description": "Code outline and region navigation with color-coded modifier icons.",
+  "description": "Outline++: navigate code regions and document outlines with color-coded modifier icons.",
   "repository": {
     "type": "git",
     "url": "https://github.com/dbookstaber/vscode-outline-plus.git"
@@ -22,7 +22,7 @@
   },
   "icon": "assets/icon.png",
   "license": "GPL-3.0-only",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "engines": {
     "vscode": "^1.94.0"
   },
@@ -31,12 +31,15 @@
     "Visualization"
   ],
   "keywords": [
+    "outline++",
+    "outline-plus",
     "outline",
     "regions",
     "region",
     "symbols",
     "document-symbols",
     "navigation",
+    "code-navigation",
     "tree-view",
     "code-structure"
   ],
@@ -522,7 +525,7 @@
       },
       {
         "title": "Outline++: Debug",
-        "order": 2,
+        "order": 3,
         "properties": {
           "outlinePlus.enableDebugLogging": {
             "type": "boolean",
@@ -629,10 +632,12 @@
     "watch": "webpack --config webpack.config.ts --watch",
     "compile-tests": "npx rimraf dist-tests && webpack --config webpack.test.config.ts",
     "watch-tests": "webpack --config webpack.test.config.ts --watch",
-    "package": "npx @vscode/vsce package",
+    "package": "vsce package",
+    "vsce:login": "vsce login DavidBookstaber",
+    "vsce:publish": "vsce publish",
     "pretest": "npm run compile && npm run compile-tests && npm run lint",
     "lint": "eslint src",
-    "test": "npx rimraf .vscode-test/user-data .vscode-test/extensions && vscode-test"
+    "test": "npx rimraf .vscode-test/user-data .vscode-test/extensions && node --disable-warning=DEP0190 ./node_modules/@vscode/test-cli/out/bin.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
@@ -640,6 +645,7 @@
     "@types/node": "18.x",
     "@types/vscode": "^1.94.0",
     "@types/webpack": "^5.28.5",
+    "@vscode/vsce": "^3.6.2",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "copy-webpack-plugin": "^12.0.2",

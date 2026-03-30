@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { getDocumentIdFromUri } from "../lib/getVersionedDocumentId";
 import { debounce } from "../utils/debounce";
-import { log } from "../utils/debugLog";
+import { log, logError } from "../utils/debugLog";
 import { throwNever } from "../utils/errorUtils";
 import { isEmptyObject } from "../utils/objectUtils";
 
@@ -79,7 +79,7 @@ export class CollapsibleStateManager implements vscode.Disposable {
     this.renameDisposable.dispose();
     this.deleteDisposable.dispose();
     this.saveToWorkspaceState().catch((error: unknown) => {
-      console.error("CollapsibleStateManager: failed to save on dispose:", error);
+      logError("CollapsibleStateManager: failed to save on dispose", error);
     });
   }
 
@@ -306,7 +306,7 @@ export class CollapsibleStateManager implements vscode.Disposable {
       }
       await this.workspaceState.update(this.storageKey, serializedStoreByDocId);
     } catch (error) {
-      console.error("CollapsibleStateManager: failed to save workspace state:", error);
+      logError("CollapsibleStateManager: failed to save workspace state", error);
     }
   }
 
