@@ -23,7 +23,7 @@ suite("Modifier Extraction Integration", function () {
   let regionHelperAPI: OutlinePlusAPI;
 
   suiteSetup(async () => {
-    const regionHelperExtension = vscode.extensions.getExtension("DavidBookstaber.outline-plus");
+    const regionHelperExtension = vscode.extensions.getExtension("DavidBookstaber.outline-regions-plus");
     if (!regionHelperExtension) {
       throw new Error("Outline++ extension not found!");
     }

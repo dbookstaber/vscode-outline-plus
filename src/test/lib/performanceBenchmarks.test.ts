@@ -28,7 +28,7 @@ suite("Performance Benchmarks", () => {
 
   // Ensure extension is activated before tests
   suiteSetup(async () => {
-    const ext = vscode.extensions.getExtension("DavidBookstaber.outline-plus");
+    const ext = vscode.extensions.getExtension("DavidBookstaber.outline-regions-plus");
     if (!ext) {
       throw new Error("Outline++ extension not found!");
     }

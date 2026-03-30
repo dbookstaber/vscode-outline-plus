@@ -48,6 +48,44 @@ export function log(message: string): void {
   _outputChannel.appendLine(`[${timestamp}] ${message}`);
 }
 
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.stack ?? error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  if (
+    typeof error === "number" ||
+    typeof error === "boolean" ||
+    typeof error === "bigint"
+  ) {
+    return String(error);
+  }
+  if (error === null) {
+    return "null";
+  }
+  if (error === undefined) {
+    return "undefined";
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return Object.prototype.toString.call(error);
+  }
+}
+
+export function logError(message: string, error?: unknown): void {
+  if (!_outputChannel) {
+    return;
+  }
+  const timestamp = new Date().toISOString().slice(11, 23); // HH:mm:ss.SSS
+  _outputChannel.appendLine(`[${timestamp}] ERROR: ${message}`);
+  if (error !== undefined) {
+    _outputChannel.appendLine(formatError(error));
+  }
+}
+
 export function showDebugLog(): void {
   if (!_outputChannel) {
     return;

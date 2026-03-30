@@ -91,7 +91,7 @@ npm install -g @vscode/vsce
 vsce package
 ```
 
-This creates a `.vsix` file (e.g., `outline-plus-1.7.1.vsix`) in the project root.
+This creates a `.vsix` file (e.g., `outline-regions-plus-1.0.1.vsix`) in the project root.
 
 ### 5. Install the Extension
 
@@ -99,7 +99,7 @@ This creates a `.vsix` file (e.g., `outline-plus-1.7.1.vsix`) in the project roo
 
 ```bash
 # If 'code' (or 'code-insiders') is in your PATH:
-code --install-extension outline-plus-1.7.1.vsix
+code --install-extension outline-regions-plus-1.0.1.vsix
 ```
 
 If `code` is not recognized, use **Option B** or **Option C** below instead (recommended for Windows users).
@@ -146,7 +146,7 @@ Then press `F5` to launch the Extension Development Host. After making changes, 
 To uninstall the locally installed extension:
 
 ```bash
-code --uninstall-extension DavidBookstaber.outline-plus
+code --uninstall-extension DavidBookstaber.outline-regions-plus
 ```
 
 Or via the VS Code UI:
