@@ -3,6 +3,15 @@ import { type OutlinePlusAPI } from "./api/regionHelperAPI";
 import { registerAllCommands } from "./commands/registerCommand";
 import { createResetAutoHidePreferenceCommand } from "./commands/toggleRegionsViewSettings";
 import { initializeExtensionContext } from "./config/extensionContext";
+import {
+    CMD_DUMP_DIAGNOSTIC_STATE,
+    CMD_REGIONS_VIEW_RESET_AUTO_HIDE,
+    CMD_SHOW_DEBUG_LOG,
+    STATE_KEY_FULL_OUTLINE_COLLAPSIBLE,
+    STATE_KEY_REGIONS_COLLAPSIBLE,
+    VIEW_ID_FULL_OUTLINE,
+    VIEW_ID_REGIONS,
+} from "./constants";
 import { RegionDiagnosticsManager } from "./diagnostics/RegionDiagnosticsManager";
 import { RegionFoldingProvider } from "./lib/RegionFoldingProvider";
 import { type FlattenedRegion } from "./lib/flattenRegions";
@@ -28,12 +37,12 @@ export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
   
   const regionCollapsibleStateManager = new CollapsibleStateManager(
     workspaceState,
-    "regionsViewCollapsibleStateStoreByDocumentId",
+    STATE_KEY_REGIONS_COLLAPSIBLE,
     subscriptions
   );
   const fullOutlineCollapsibleStateManager = new CollapsibleStateManager(
     workspaceState,
-    "fullOutlineViewCollapsibleStateStoreByDocumentId",
+    STATE_KEY_FULL_OUTLINE_COLLAPSIBLE,
     subscriptions
   );
 
@@ -51,7 +60,7 @@ export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
     regionCollapsibleStateManager,
     subscriptions
   );
-  const regionTreeView = vscode.window.createTreeView("outlinePlusRegionsView", {
+  const regionTreeView = vscode.window.createTreeView(VIEW_ID_REGIONS, {
     treeDataProvider: regionTreeViewProvider,
     showCollapseAll: true,
   });
@@ -72,7 +81,7 @@ export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
     fullOutlineCollapsibleStateManager,
     subscriptions
   );
-  const fullTreeView = vscode.window.createTreeView("outlinePlusFullTreeView", {
+  const fullTreeView = vscode.window.createTreeView(VIEW_ID_FULL_OUTLINE, {
     treeDataProvider: fullTreeViewProvider,
     showCollapseAll: true,
   });
@@ -93,17 +102,17 @@ export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
 
   // Register the reset auto-hide preference command
   const resetAutoHideCommand = vscode.commands.registerCommand(
-    "outlinePlus.regionsView.resetAutoHidePreference",
+    CMD_REGIONS_VIEW_RESET_AUTO_HIDE,
     createResetAutoHidePreferenceCommand(workspaceState)
   );
   subscriptions.push(resetAutoHideCommand);
 
   // Register debug commands
   subscriptions.push(
-    vscode.commands.registerCommand("outlinePlus.showDebugLog", () => {
+    vscode.commands.registerCommand(CMD_SHOW_DEBUG_LOG, () => {
       showDebugLog();
     }),
-    vscode.commands.registerCommand("outlinePlus.dumpDiagnosticState", () => {
+    vscode.commands.registerCommand(CMD_DUMP_DIAGNOSTIC_STATE, () => {
       const activeEditor = vscode.window.activeTextEditor;
       dumpDiagnosticState({
         regionStoreVersionedDocId: regionStore.versionedDocumentId,

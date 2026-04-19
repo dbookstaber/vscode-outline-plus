@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
 import { type OutlinePlusNonClosuredCommand } from "../../commands/registerCommand";
+import { CMD_GO_TO_REGION_TREE_ITEM } from "../../constants";
 import { focusActiveEditorGroup } from "../../utils/focusEditor";
 import { moveCursorToFirstNonWhitespaceCharOfLine } from "../../utils/moveCursorToFirstNonWhitespaceOfLine";
 
 export const goToRegionTreeItemCommand: OutlinePlusNonClosuredCommand = {
-  id: "outlinePlus.goToRegionTreeItem",
+  id: CMD_GO_TO_REGION_TREE_ITEM,
   callback: goToRegionTreeItem,
   needsRegionHelperParams: false,
 };

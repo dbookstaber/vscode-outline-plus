@@ -1,4 +1,8 @@
 import {
+    CMD_FULL_OUTLINE_VIEW_EXPAND_ALL,
+    CMD_REGIONS_VIEW_EXPAND_ALL,
+} from "../constants";
+import {
     type OutlinePlusClosuredCommand,
     type OutlinePlusClosuredParams,
 } from "./registerCommand";
@@ -6,13 +10,13 @@ import {
 // #region Exported commands
 
 const expandAllRegionTreeItemsCommand: OutlinePlusClosuredCommand = {
-  id: "outlinePlus.regionsView.expandAll",
+  id: CMD_REGIONS_VIEW_EXPAND_ALL,
   callback: expandAllRegionTreeItems,
   needsRegionHelperParams: true,
 };
 
 const expandAllFullOutlineItemsCommand: OutlinePlusClosuredCommand = {
-  id: "outlinePlus.fullOutlineView.expandAll",
+  id: CMD_FULL_OUTLINE_VIEW_EXPAND_ALL,
   callback: expandAllFullOutlineItems,
   needsRegionHelperParams: true,
 };

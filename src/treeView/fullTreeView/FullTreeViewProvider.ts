@@ -1,13 +1,11 @@
 import * as vscode from "vscode";
 import { getGlobalFullOutlineViewConfigValue } from "../../config/fullOutlineViewConfig";
+import { DEBOUNCE_CURSOR_TRACKING_MS, DEBOUNCE_TREE_REFRESH_MS } from "../../constants";
 import { isCurrentActiveVersionedDocumentId } from "../../lib/getVersionedDocumentId";
 import { type CollapsibleStateManager } from "../../state/CollapsibleStateManager";
 import { type FullOutlineStore } from "../../state/FullOutlineStore";
 import { debounce } from "../../utils/debounce";
 import { type FullTreeItem } from "./FullTreeItem";
-
-const REFRESH_TREE_DEBOUNCE_DELAY_MS = 100;
-const AUTO_HIGHLIGHT_ACTIVE_ITEM_DEBOUNCE_DELAY_MS = 100;
 
 export class FullTreeViewProvider implements vscode.TreeDataProvider<FullTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<FullTreeItem | undefined>();
@@ -17,7 +15,7 @@ export class FullTreeViewProvider implements vscode.TreeDataProvider<FullTreeIte
 
   private debouncedRefreshTree = debounce(
     this.refreshTree.bind(this),
-    REFRESH_TREE_DEBOUNCE_DELAY_MS
+    DEBOUNCE_TREE_REFRESH_MS
   );
 
   private autoHighlightActiveItemTimeout: NodeJS.Timeout | undefined;
@@ -72,7 +70,7 @@ export class FullTreeViewProvider implements vscode.TreeDataProvider<FullTreeIte
     this.clearAutoHighlightActiveItemTimeoutIfExists();
     this.autoHighlightActiveItemTimeout = setTimeout(
       this.autoHighlightActiveItem.bind(this),
-      AUTO_HIGHLIGHT_ACTIVE_ITEM_DEBOUNCE_DELAY_MS
+      DEBOUNCE_CURSOR_TRACKING_MS
     );
   }
 

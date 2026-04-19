@@ -53,7 +53,7 @@ suite("getPreviousRegion", () => {
     // Ensure the sample document is active before each test
     await vscode.window.showTextDocument(sampleDocument);
     // Wait for regions to be parsed
-    await new Promise<void>((resolve) => setTimeout(resolve, 200));
+    await new Promise<void>((resolve) => setTimeout(resolve, 400));
     if (regionHelperAPI.getTopLevelRegions().length === 0) {
       await new Promise<void>((resolve) => {
         const disposable = regionHelperAPI.onDidChangeRegions(() => {

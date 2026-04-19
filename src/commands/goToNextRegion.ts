@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { CMD_GO_TO_NEXT_REGION } from "../constants";
 import { getNextRegion } from "../lib/getNextRegion";
 import { moveCursorToRegion } from "../lib/moveCursorToRegion";
 import { getActiveCursorLineIdx } from "../utils/getActiveCursorLineIdx";
@@ -8,7 +9,7 @@ import {
 } from "./registerCommand";
 
 export const goToNextRegionCommand: OutlinePlusClosuredCommand = {
-  id: "outlinePlus.goToNextRegion",
+  id: CMD_GO_TO_NEXT_REGION,
   callback: goToNextRegion,
   needsRegionHelperParams: true,
 };

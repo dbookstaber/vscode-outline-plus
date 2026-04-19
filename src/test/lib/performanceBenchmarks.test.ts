@@ -22,6 +22,12 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Wait time for debounced operations to settle.
+ * Must exceed DEBOUNCE_DOCUMENT_PARSE_MS (250ms) + a buffer for execution.
+ */
+const DEBOUNCE_SETTLE_MS = 400;
+
 suite("Performance Benchmarks", () => {
   const timeout = 60000; // 60 second timeout for performance tests
   let regionHelperAPI: OutlinePlusAPI;
@@ -113,7 +119,7 @@ const y = 2;
     const editor = await vscode.window.showTextDocument(doc);
 
     // Wait for initial parse
-    await wait(200);
+    await wait(DEBOUNCE_SETTLE_MS);
 
     // Count region change events using extension API
     let regionEventCount = 0;
@@ -136,13 +142,13 @@ const y = 2;
         await editor.edit((editBuilder) => {
           editBuilder.insert(new vscode.Position(2, 14), " ");
         });
-        await wait(150); // Wait for debounced refresh
+        await wait(DEBOUNCE_SETTLE_MS); // Wait for debounced refresh
 
         // Remove the space
         await editor.edit((editBuilder) => {
           editBuilder.delete(new vscode.Range(new vscode.Position(2, 14), new vscode.Position(2, 15)));
         });
-        await wait(150); // Wait for debounced refresh
+        await wait(DEBOUNCE_SETTLE_MS); // Wait for debounced refresh
       }
 
       console.log(`\nAfter ${editCount * 2} non-region-affecting edits:`);
@@ -195,7 +201,7 @@ const y = 2;
     const editor = await vscode.window.showTextDocument(doc);
 
     // Wait for initial parse
-    await wait(200);
+    await wait(DEBOUNCE_SETTLE_MS);
 
     let regionEventCount = 0;
     const regionDisposable = regionHelperAPI.onDidChangeRegions(() => {
@@ -211,7 +217,7 @@ const y = 2;
         );
       });
 
-      await wait(200); // Wait for debounced refresh
+      await wait(DEBOUNCE_SETTLE_MS); // Wait for debounced refresh
 
       console.log(`\nAfter adding a new region:`);
       console.log(`  Region events fired: ${regionEventCount}`);
@@ -242,7 +248,7 @@ const y = 2;
     const editor = await vscode.window.showTextDocument(doc);
 
     // Wait for initial parse
-    await wait(200);
+    await wait(DEBOUNCE_SETTLE_MS);
 
     let eventCount = 0;
     const disposable = regionHelperAPI.onDidChangeRegions(() => {
@@ -266,7 +272,7 @@ const y = 2;
       }
 
       // Wait for final debounced updates
-      await wait(200);
+      await wait(DEBOUNCE_SETTLE_MS);
 
       const totalTime = performance.now() - startTime;
 

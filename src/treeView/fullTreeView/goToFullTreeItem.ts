@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { type OutlinePlusNonClosuredCommand } from "../../commands/registerCommand";
+import { CMD_GO_TO_FULL_TREE_ITEM } from "../../constants";
 import { throwNever } from "../../utils/errorUtils";
 import { focusActiveEditorGroup } from "../../utils/focusEditor";
 import { moveCursorToFirstNonWhitespaceCharOfLine } from "../../utils/moveCursorToFirstNonWhitespaceOfLine";
@@ -7,7 +8,7 @@ import { moveCursorToPosition } from "../../utils/moveCursorToPosition";
 import { type FullTreeItemType } from "./FullTreeItem";
 
 export const goToFullTreeItemCommand: OutlinePlusNonClosuredCommand = {
-  id: "outlinePlus.goToFullTreeItem",
+  id: CMD_GO_TO_FULL_TREE_ITEM,
   callback: goToFullTreeItem,
   needsRegionHelperParams: false,
 };

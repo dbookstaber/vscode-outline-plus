@@ -17,7 +17,7 @@ This document catalogues the known limitations of the Outline++ extension, expla
    - [2.1 LRU Cache Eviction Strategy](#21-lru-cache-eviction-strategy)
    - [2.2 No Performance Metrics](#22-no-performance-metrics)
 3. [State Management & Timing](#3-state-management--timing)
-   - [3.1 Debounce Delays (100 ms)](#31-debounce-delays-100-ms)
+   - [3.1 Tiered Debounce Delays](#31-tiered-debounce-delays)
    - [3.2 Region/Symbol Version Mismatch During Rapid Edits](#32-regionsymbol-version-mismatch-during-rapid-edits)
    - [3.3 Failed Symbol Fetches Not Retried on Error](#33-failed-symbol-fetches-not-retried-on-error)
    - [3.4 Retry Delays and Attempt Counts Are Hardcoded](#34-retry-delays-and-attempt-counts-are-hardcoded)
@@ -127,13 +127,13 @@ The extension does not track cache hit/miss rates, modifier extraction time, tre
 
 ## 3. State Management & Timing
 
-### 3.1 Debounce Delays (100 ms)
+### 3.1 Tiered Debounce Delays
 
-Multiple subsystems debounce updates at **100 ms**: `DocumentSymbolStore`, `RegionStore`, `FullOutlineStore` items, and active-item highlight. During rapid typing, multiple intermediate states are collapsed into one refresh.
+Multiple subsystems debounce updates at tiered intervals: expensive parsing operations (`DocumentSymbolStore`, `RegionStore`, `FullOutlineStore` rebuild) at **250 ms**, and lightweight cursor-tracking and UI refresh at **100 ms**. During rapid typing, multiple intermediate states are collapsed into one refresh.
 
-**Why accepted:** Without debouncing, every keystroke would trigger a full region re-parse, symbol fetch, tree rebuild, and active-item recomputation — an unacceptable cost. The 100ms delay is below the threshold of human perception for most interactions.
+**Why accepted:** Without debouncing, every keystroke would trigger a full region re-parse, symbol fetch, tree rebuild, and active-item recomputation — an unacceptable cost. The tiered approach balances responsiveness for cursor movement (100 ms) against the higher cost of full re-parses (250 ms).
 
-**Possible fix — Configurable debounce:** Rejected because exposing debounce timing adds cognitive load with no clear user benefit. Power users who need lower latency can fork and adjust the constant.
+**Possible fix — Configurable debounce:** Rejected because exposing debounce timing adds cognitive load with no clear user benefit. Power users who need lower latency can fork and adjust the constants in `src/constants.ts`.
 
 ### 3.2 Region/Symbol Version Mismatch During Rapid Edits
 

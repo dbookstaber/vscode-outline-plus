@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { CMD_GO_TO_REGION_FROM_QUICK_PICK } from "../constants";
 import { getRegionDisplayName, getRegionRangeText } from "../lib/getRegionDisplayInfo";
 import { getRegionParents } from "../lib/getRegionParents";
 import { type Region } from "../models/Region";
@@ -16,7 +17,7 @@ import {
 type RegionQuickPickItem = vscode.QuickPickItem & { startLineIdx: number; endLineIdx: number };
 
 export const goToRegionFromQuickPickCommand: OutlinePlusClosuredCommand = {
-  id: "outlinePlus.goToRegionFromQuickPick",
+  id: CMD_GO_TO_REGION_FROM_QUICK_PICK,
   callback: goToRegionFromQuickPick,
   needsRegionHelperParams: true,
 };

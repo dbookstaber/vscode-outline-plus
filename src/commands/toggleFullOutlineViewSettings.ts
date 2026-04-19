@@ -4,30 +4,36 @@ import {
     getGlobalFullOutlineViewConfigValue,
     setGlobalFullOutlineViewConfigValue,
 } from "../config/fullOutlineViewConfig";
+import {
+    CMD_FULL_OUTLINE_VIEW_HIDE,
+    CMD_FULL_OUTLINE_VIEW_SHOW,
+    CMD_FULL_OUTLINE_VIEW_START_AUTO_HIGHLIGHT,
+    CMD_FULL_OUTLINE_VIEW_STOP_AUTO_HIGHLIGHT,
+} from "../constants";
 import { type OutlinePlusNonClosuredCommand } from "./registerCommand";
 
 // #region Exported commands
 
 const hideFullOutlineViewCommand: OutlinePlusNonClosuredCommand = {
-  id: "outlinePlus.fullOutlineView.hide",
+  id: CMD_FULL_OUTLINE_VIEW_HIDE,
   callback: hideFullOutlineView,
   needsRegionHelperParams: false,
 };
 
 const showFullOutlineViewCommand: OutlinePlusNonClosuredCommand = {
-  id: "outlinePlus.fullOutlineView.show",
+  id: CMD_FULL_OUTLINE_VIEW_SHOW,
   callback: showFullOutlineView,
   needsRegionHelperParams: false,
 };
 
 const stopAutoHighlightingActiveItemCommand: OutlinePlusNonClosuredCommand = {
-  id: "outlinePlus.fullOutlineView.stopAutoHighlightingActiveItem",
+  id: CMD_FULL_OUTLINE_VIEW_STOP_AUTO_HIGHLIGHT,
   callback: stopAutoHighlightingActiveItem,
   needsRegionHelperParams: false,
 };
 
 const startAutoHighlightingActiveItemCommand: OutlinePlusNonClosuredCommand = {
-  id: "outlinePlus.fullOutlineView.startAutoHighlightingActiveItem",
+  id: CMD_FULL_OUTLINE_VIEW_START_AUTO_HIGHLIGHT,
   callback: startAutoHighlightingActiveItem,
   needsRegionHelperParams: false,
 };

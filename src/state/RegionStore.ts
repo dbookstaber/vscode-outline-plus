@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { DEBOUNCE_CURSOR_TRACKING_MS, DEBOUNCE_DOCUMENT_PARSE_MS } from "../constants";
 import { type FlattenedRegion, flattenRegionsAndCountParents } from "../lib/flattenRegions";
 import { getDocumentId, getVersionedDocumentId } from "../lib/getVersionedDocumentId";
 import { type InvalidMarker, parseAllRegions } from "../lib/parseAllRegions";
@@ -6,9 +7,6 @@ import { type Region } from "../models/Region";
 import { type DebouncedFunction, debounce } from "../utils/debounce";
 import { log } from "../utils/debugLog";
 import { getActiveRegion } from "../utils/getActiveRegion";
-
-const REFRESH_REGIONS_DEBOUNCE_DELAY_MS = 100;
-const REFRESH_ACTIVE_REGION_DEBOUNCE_DELAY_MS = 100;
 
 export class RegionStore implements vscode.Disposable {
   // #region Singleton initialization
@@ -80,7 +78,7 @@ export class RegionStore implements vscode.Disposable {
 
   private debouncedRefreshRegionsAndActiveRegion: DebouncedFunction<() => void> = debounce(
     this.refreshRegionsAndActiveRegion.bind(this),
-    REFRESH_REGIONS_DEBOUNCE_DELAY_MS
+    DEBOUNCE_DOCUMENT_PARSE_MS
   );
   private isRefreshingRegions = false;
 
@@ -223,7 +221,7 @@ export class RegionStore implements vscode.Disposable {
     this.clearRefreshActiveRegionTimeoutIfExists();
     this.refreshActiveRegionTimeout = setTimeout(
       this.refreshActiveRegion.bind(this),
-      REFRESH_ACTIVE_REGION_DEBOUNCE_DELAY_MS
+      DEBOUNCE_CURSOR_TRACKING_MS
     );
   }
 

@@ -1,4 +1,8 @@
 import {
+    CMD_FULL_OUTLINE_VIEW_REFRESH,
+    CMD_REGIONS_VIEW_REFRESH,
+} from "../constants";
+import {
     type OutlinePlusClosuredCommand,
     type OutlinePlusClosuredParams,
 } from "./registerCommand";
@@ -6,13 +10,13 @@ import {
 // #region Exported commands
 
 const refreshRegionsViewCommand: OutlinePlusClosuredCommand = {
-  id: "outlinePlus.regionsView.refresh",
+  id: CMD_REGIONS_VIEW_REFRESH,
   callback: refreshRegionsView,
   needsRegionHelperParams: true,
 };
 
 const refreshFullOutlineViewCommand: OutlinePlusClosuredCommand = {
-  id: "outlinePlus.fullOutlineView.refresh",
+  id: CMD_FULL_OUTLINE_VIEW_REFRESH,
   callback: refreshFullOutlineView,
   needsRegionHelperParams: true,
 };

@@ -3,14 +3,9 @@ import {
     getGlobalRegionsViewConfigValue,
     setGlobalRegionsViewConfigValue,
 } from "../config/regionsViewConfig";
+import { STATE_KEY_USER_WANTS_REGIONS_VIEW } from "../constants";
 import { type Region } from "../models/Region";
 import { type RegionStore } from "./RegionStore";
-
-/**
- * Configuration key for persisting the user's preference for showing the regions view.
- * This is separate from the actual visibility state - it represents user *intent*.
- */
-const USER_WANTS_REGIONS_VIEW_KEY = "outlinePlus.userWantsRegionsView";
 
 /**
  * Delay before checking visibility after editor change.
@@ -92,7 +87,7 @@ export class RegionsViewAutoHideManager implements vscode.Disposable {
     private subscriptions: vscode.Disposable[]
   ) {
     // Initialize user preference from workspace state (default: true - show when relevant)
-    this.userWantsRegionsView = this.workspaceState.get<boolean>(USER_WANTS_REGIONS_VIEW_KEY, true);
+    this.userWantsRegionsView = this.workspaceState.get<boolean>(STATE_KEY_USER_WANTS_REGIONS_VIEW, true);
 
     this.registerListeners(subscriptions);
   }
@@ -204,7 +199,7 @@ export class RegionsViewAutoHideManager implements vscode.Disposable {
    * This is needed because external commands can update the workspace state.
    */
   private syncUserPreferenceFromWorkspaceState(): void {
-    this.userWantsRegionsView = this.workspaceState.get<boolean>(USER_WANTS_REGIONS_VIEW_KEY, true);
+    this.userWantsRegionsView = this.workspaceState.get<boolean>(STATE_KEY_USER_WANTS_REGIONS_VIEW, true);
   }
 
   /**
@@ -283,7 +278,7 @@ export class RegionsViewAutoHideManager implements vscode.Disposable {
   private setUserWantsRegionsView(value: boolean): void {
     if (this.userWantsRegionsView !== value) {
       this.userWantsRegionsView = value;
-      this.workspaceState.update(USER_WANTS_REGIONS_VIEW_KEY, value);
+      this.workspaceState.update(STATE_KEY_USER_WANTS_REGIONS_VIEW, value);
     }
   }
 
