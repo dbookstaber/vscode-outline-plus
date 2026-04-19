@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { CMD_SELECT_CURRENT_REGION } from "../constants";
 import { getActiveRegionInEditor } from "../utils/getActiveRegion";
 import { selectRange } from "../utils/selectionUtils";
 import {
@@ -7,7 +8,7 @@ import {
 } from "./registerCommand";
 
 export const selectCurrentRegionCommand: OutlinePlusClosuredCommand = {
-  id: "outlinePlus.selectCurrentRegion",
+  id: CMD_SELECT_CURRENT_REGION,
   callback: selectCurrentRegion,
   needsRegionHelperParams: true,
 };

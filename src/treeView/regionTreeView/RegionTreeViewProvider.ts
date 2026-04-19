@@ -1,14 +1,12 @@
 import * as vscode from "vscode";
 import { getGlobalRegionsViewConfigValue } from "../../config/regionsViewConfig";
+import { DEBOUNCE_CURSOR_TRACKING_MS, DEBOUNCE_TREE_REFRESH_MS } from "../../constants";
 import { isCurrentActiveVersionedDocumentId } from "../../lib/getVersionedDocumentId";
 import { type Region } from "../../models/Region";
 import { type CollapsibleStateManager } from "../../state/CollapsibleStateManager";
 import { type RegionStore } from "../../state/RegionStore";
 import { debounce } from "../../utils/debounce";
 import { RegionTreeItem } from "./RegionTreeItem";
-
-const REFRESH_TREE_DEBOUNCE_DELAY_MS = 100;
-const AUTO_HIGHLIGHT_ACTIVE_REGION_DEBOUNCE_DELAY_MS = 100;
 
 export class RegionTreeViewProvider implements vscode.TreeDataProvider<Region> {
   private _onDidChangeTreeData = new vscode.EventEmitter<undefined>();
@@ -18,7 +16,7 @@ export class RegionTreeViewProvider implements vscode.TreeDataProvider<Region> {
 
   private debouncedRefreshTree = debounce(
     this.refreshTree.bind(this),
-    REFRESH_TREE_DEBOUNCE_DELAY_MS
+    DEBOUNCE_TREE_REFRESH_MS
   );
 
   private autoHighlightActiveRegionTimeout: NodeJS.Timeout | undefined;
@@ -65,7 +63,7 @@ export class RegionTreeViewProvider implements vscode.TreeDataProvider<Region> {
     this.clearAutoHighlightActiveRegionTimeoutIfExists();
     this.autoHighlightActiveRegionTimeout = setTimeout(
       this.autoHighlightActiveRegion.bind(this),
-      AUTO_HIGHLIGHT_ACTIVE_REGION_DEBOUNCE_DELAY_MS
+      DEBOUNCE_CURSOR_TRACKING_MS
     );
   }
 

@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { CONFIG_KEY_ENABLE_DEBUG_LOGGING, EXTENSION_DISPLAY_NAME } from "../constants";
 
 /**
  * Centralized debug logging for Outline++.
@@ -15,21 +16,21 @@ let _outputChannel: vscode.OutputChannel | undefined;
 let _isEnabled = false;
 
 export function initializeDebugLog(subscriptions: vscode.Disposable[]): void {
-  _outputChannel = vscode.window.createOutputChannel("Outline++");
+  _outputChannel = vscode.window.createOutputChannel(EXTENSION_DISPLAY_NAME);
   subscriptions.push(_outputChannel);
 
   // Read initial setting
   _isEnabled = vscode.workspace
-    .getConfiguration("outlinePlus")
-    .get<boolean>("enableDebugLogging", false);
+    .getConfiguration()
+    .get<boolean>(CONFIG_KEY_ENABLE_DEBUG_LOGGING, false);
 
   // React to setting changes
   vscode.workspace.onDidChangeConfiguration(
     (e) => {
-      if (e.affectsConfiguration("outlinePlus.enableDebugLogging")) {
+      if (e.affectsConfiguration(CONFIG_KEY_ENABLE_DEBUG_LOGGING)) {
         _isEnabled = vscode.workspace
-          .getConfiguration("outlinePlus")
-          .get<boolean>("enableDebugLogging", false);
+          .getConfiguration()
+          .get<boolean>(CONFIG_KEY_ENABLE_DEBUG_LOGGING, false);
         if (_isEnabled) {
           log("Debug logging enabled");
         }

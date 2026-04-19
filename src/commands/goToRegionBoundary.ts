@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { CMD_GO_TO_REGION_BOUNDARY } from "../constants";
 import { goToNextTopLevelRegionBoundary } from "../lib/goToNextTopLevelRegionBoundary";
 import { type Region } from "../models/Region";
 import { getActiveCursorLineIdx } from "../utils/getActiveCursorLineIdx";
@@ -9,7 +10,7 @@ import {
 } from "./registerCommand";
 
 export const goToRegionBoundaryCommand: OutlinePlusClosuredCommand = {
-  id: "outlinePlus.goToRegionBoundary",
+  id: CMD_GO_TO_REGION_BOUNDARY,
   callback: goToRegionBoundary,
   needsRegionHelperParams: true,
 };

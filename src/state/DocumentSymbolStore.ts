@@ -1,10 +1,9 @@
 import * as vscode from "vscode";
+import { DEBOUNCE_DOCUMENT_PARSE_MS } from "../constants";
 import { fetchDocumentSymbols, fetchDocumentSymbolsAfterDelay } from "../lib/fetchDocumentSymbols";
 import { flattenDocumentSymbols } from "../lib/flattenDocumentSymbols";
 import { type DebouncedFunction, debounce } from "../utils/debounce";
 import { log } from "../utils/debugLog";
-
-const REFRESH_SYMBOLS_DEBOUNCE_DELAY_MS = 100;
 
 /**
  * Maximum number of retry attempts for fetching document symbols.
@@ -97,7 +96,7 @@ export class DocumentSymbolStore implements vscode.Disposable {
 
   private debouncedRefreshDocumentSymbols: DebouncedFunction<
     (document: vscode.TextDocument | undefined) => void
-  > = debounce(this.refreshDocumentSymbols.bind(this), REFRESH_SYMBOLS_DEBOUNCE_DELAY_MS);
+  > = debounce(this.refreshDocumentSymbols.bind(this), DEBOUNCE_DOCUMENT_PARSE_MS);
 
   private constructor(subscriptions: vscode.Disposable[]) {
     this.registerListeners(subscriptions);

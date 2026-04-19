@@ -4,33 +4,37 @@ import {
     setGlobalRegionsViewConfigValue,
     setRegionsViewVisibility,
 } from "../config/regionsViewConfig";
+import {
+    CMD_REGIONS_VIEW_HIDE,
+    CMD_REGIONS_VIEW_SHOW,
+    CMD_REGIONS_VIEW_START_AUTO_HIGHLIGHT,
+    CMD_REGIONS_VIEW_STOP_AUTO_HIGHLIGHT,
+    STATE_KEY_USER_WANTS_REGIONS_VIEW,
+} from "../constants";
 import { type OutlinePlusNonClosuredCommand } from "./registerCommand";
-
-/** Key used by RegionsViewAutoHideManager to persist user preference */
-const USER_WANTS_REGIONS_VIEW_KEY = "outlinePlus.userWantsRegionsView";
 
 // #region Exported commands
 
 const hideRegionsViewCommand: OutlinePlusNonClosuredCommand = {
-  id: "outlinePlus.regionsView.hide",
+  id: CMD_REGIONS_VIEW_HIDE,
   callback: hideRegionsView,
   needsRegionHelperParams: false,
 };
 
 const showRegionsViewCommand: OutlinePlusNonClosuredCommand = {
-  id: "outlinePlus.regionsView.show",
+  id: CMD_REGIONS_VIEW_SHOW,
   callback: showRegionsView,
   needsRegionHelperParams: false,
 };
 
 const stopAutoHighlightingActiveRegionCommand: OutlinePlusNonClosuredCommand = {
-  id: "outlinePlus.regionsView.stopAutoHighlightingActiveRegion",
+  id: CMD_REGIONS_VIEW_STOP_AUTO_HIGHLIGHT,
   callback: stopAutoHighlightingActiveRegion,
   needsRegionHelperParams: false,
 };
 
 const startAutoHighlightingActiveRegionCommand: OutlinePlusNonClosuredCommand = {
-  id: "outlinePlus.regionsView.startAutoHighlightingActiveRegion",
+  id: CMD_REGIONS_VIEW_START_AUTO_HIGHLIGHT,
   callback: startAutoHighlightingActiveRegion,
   needsRegionHelperParams: false,
 };
@@ -85,7 +89,7 @@ export function createResetAutoHidePreferenceCommand(
 ): () => Promise<void> {
   return async (): Promise<void> => {
     // Reset the user preference to true (wants to see the view)
-    await workspaceState.update(USER_WANTS_REGIONS_VIEW_KEY, true);
+    await workspaceState.update(STATE_KEY_USER_WANTS_REGIONS_VIEW, true);
     // Also show the view immediately
     await setGlobalRegionsViewConfigValue("isVisible", true);
     vscode.window.showInformationMessage(

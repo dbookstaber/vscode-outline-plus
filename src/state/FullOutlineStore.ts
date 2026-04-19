@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { DEBOUNCE_CURSOR_TRACKING_MS, DEBOUNCE_DOCUMENT_PARSE_MS } from "../constants";
 import { extractDocumentIdFromVersioned } from "../lib/getVersionedDocumentId";
 import { type FullTreeItem } from "../treeView/fullTreeView/FullTreeItem";
 import { generateFullOutlineTreeItems } from "../treeView/fullTreeView/generateTopLevelFullTreeItems";
@@ -12,9 +13,6 @@ import { log } from "../utils/debugLog";
 import { type CollapsibleStateManager } from "./CollapsibleStateManager";
 import { type DocumentSymbolStore } from "./DocumentSymbolStore";
 import { type RegionStore } from "./RegionStore";
-
-const REFRESH_FULL_OUTLINE_DEBOUNCE_DELAY_MS = 100;
-const REFRESH_ACTIVE_ITEM_DEBOUNCE_DELAY_MS = 100;
 
 export class FullOutlineStore implements vscode.Disposable {
   // #region Singleton initialization
@@ -86,7 +84,7 @@ export class FullOutlineStore implements vscode.Disposable {
 
   private debouncedRefreshFullOutline: DebouncedFunction<() => void> = debounce(
     this.refreshFullOutline.bind(this),
-    REFRESH_FULL_OUTLINE_DEBOUNCE_DELAY_MS
+    DEBOUNCE_DOCUMENT_PARSE_MS
   );
   private isRefreshingItems = false;
 
@@ -222,7 +220,7 @@ export class FullOutlineStore implements vscode.Disposable {
     this.clearRefreshActiveItemTimeoutIfExists();
     this.refreshActiveItemTimeout = setTimeout(
       this.refreshActiveItem.bind(this),
-      REFRESH_ACTIVE_ITEM_DEBOUNCE_DELAY_MS
+      DEBOUNCE_CURSOR_TRACKING_MS
     );
   }
 
