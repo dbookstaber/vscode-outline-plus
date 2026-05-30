@@ -179,7 +179,7 @@ Settings under `outlinePlus.fullOutlineView`:
 
 ### Custom Region Patterns
 
-- **Supports 50 languages** out of the box, including:
+- **Supports 50+ languages** out of the box, including:
   - **C, C++, C#, Java, Python, JavaScript, JSX, TypeScript, TSX, PHP, Ruby, Swift, Go, Rust, HTML, XML, Markdown, JSON/JSONC, YAML, SQL, and more**.
 - Define your own **custom region patterns**, or adjust the **existing default patterns**, to customize how regions are parsed.
   - Setting: `outlinePlus.regionBoundaryPatternByLanguageId`
@@ -222,4 +222,4 @@ See [detailed limitations](./docs/LIMITATIONS.md) in docs.  Some salient limitat
 
 ## Acknowledgements
 
-Outline++ builds on [vscode-region-helper](https://github.com/alythobani/vscode-region-helper) (GPL-3.0), forked 2026-03-29. The region-navigation features, tree views and extension API originated there.  Demo GIFs in this README are from the upstream project.
+Outline++ builds on [vscode-region-helper](https://github.com/alythobani/vscode-region-helper) (GPL-3.0), forked 2025-12-21. The region-navigation features, tree views and extension API originated there.  Demo GIFs in this README are from the upstream project.

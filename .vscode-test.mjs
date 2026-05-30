@@ -23,6 +23,8 @@ export default defineConfig({
     "cpylua.language-postcss",
     // Haskell - use grammar-only extension instead of full language server
     "justusadam.language-haskell",
+    // Stata - syntax/grammar only (registers languageId "stata" for .do/.ado/.mata)
+    "kylebarron.stata-enhanced",
     // Elixir - syntax only (NOT elixir-ls which has language server)
     "mjmcloug.vscode-elixir",
     // Kotlin - syntax only

@@ -12,14 +12,13 @@ type RegionParseResult = {
   invalidMarkers: InvalidMarker[];
 };
 
-const regionBoundaryPatternByLanguageId = getRegionBoundaryPatternMap();
-
 export function parseAllRegions(document: vscode.TextDocument): RegionParseResult {
   const topLevelRegions: Region[] = [];
   const invalidMarkers: InvalidMarker[] = [];
   const openRegionsStack: Region[] = [];
 
   const { languageId } = document;
+  const regionBoundaryPatternByLanguageId = getRegionBoundaryPatternMap();
   const regionBoundaryPattern = regionBoundaryPatternByLanguageId[languageId];
   if (regionBoundaryPattern === undefined) {
     return { topLevelRegions, invalidMarkers };

@@ -9,21 +9,23 @@
     "dist": true // set this to false to include "dist" folder in search results
   },
   // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
-  "typescript.tsc.autoDetect": "off",
+  "js/ts.tsc.autoDetect": "off",
+  // TypeScript and JavaScript
+  "js/ts.preferences.importModuleSpecifier": "relative",
   "[javascript][javascriptreact][typescript][typescriptreact][json][jsonc][css]": {
-    // Prettier
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.formatOnSave": true,
     "editor.tabSize": 2,
-    "editor.rulers": [100], // goes with printWidth: 100 in prettierrc
+    "editor.rulers": [
+      100
+    ], // goes with printWidth: 100 in prettierrc
     // Eslint
     "editor.codeActionsOnSave": {
       "source.fixAll.eslint": "explicit",
       "source.organizeImports": "explicit"
-    },
-    // TypeScript
-    "typescript.preferences.importModuleSpecifier": "relative"
+    }
   },
   "markdown.extension.toc.updateOnSave": false,
-  "cSpell.words": ["dockercompose"]
+  "cSpell.words": [
+    "dockercompose"
+  ]
 }

@@ -202,7 +202,7 @@ export function extractSymbolModifiers(
   }
 
   // Extract member modifiers
-  extractMemberModifiers(text, patternConfig, modifiers.memberModifiers);
+  extractMemberModifiers(text, patternConfig, modifiers.memberModifiers, languageId);
 
   return modifiers;
 }
@@ -242,12 +242,29 @@ function extractVisibility(
 
 /**
  * Extract member modifiers from text.
+ *
+ * Pattern forms tried per keyword:
+ * - Always: `\bkeyword\b` (word-bounded match).
+ * - C# only: `[keyword]` attribute form. Previously applied to every language,
+ *   which caused false positives on TypeScript computed-property names like
+ *   `{ [abstract]: true }`.
+ * - Languages with `@`-prefixed entries in `memberKeywords` (Python today): try
+ *   `@keyword` as well. Previously applied to every language, which caused
+ *   false positives wherever `@async`, `@static`, etc. appeared in non-Python
+ *   code.
+ *
+ * Keywords that themselves start with `@` (e.g. `@staticmethod`) are matched
+ * as-is regardless of language gating.
  */
 function extractMemberModifiers(
   text: string,
   config: ModifierPatternConfig,
-  memberModifiers: MemberModifiers
+  memberModifiers: MemberModifiers,
+  languageId: string
 ): void {
+  const supportsCSharpAttributes = languageId === "csharp";
+  const supportsAtDecorators = configHasAtPrefixedMemberKeyword(config);
+
   for (const [modifierKey, keywords] of Object.entries(config.memberKeywords)) {
     // Skip if no keywords defined for this modifier
     if (keywords.length === 0) continue;
@@ -260,12 +277,13 @@ function extractMemberModifiers(
         // and must not prepend another @ (would produce @@staticmethod).
         patterns = [new RegExp(escapeRegex(keyword), "i")];
       } else {
-        // Regular keyword — try plain keyword, @decorator, and [attribute] forms
-        patterns = [
-          new RegExp(`\\b${escapeRegex(keyword)}\\b`, "i"), // Regular keyword
-          new RegExp(`@${escapeRegex(keyword)}`, "i"), // Python decorator
-          new RegExp(`\\[${escapeRegex(keyword)}\\]`, "i"), // C# attribute style
-        ];
+        patterns = [new RegExp(`\\b${escapeRegex(keyword)}\\b`, "i")];
+        if (supportsAtDecorators) {
+          patterns.push(new RegExp(`@${escapeRegex(keyword)}`, "i"));
+        }
+        if (supportsCSharpAttributes) {
+          patterns.push(new RegExp(`\\[${escapeRegex(keyword)}\\]`, "i"));
+        }
       }
 
       for (const pattern of patterns) {
@@ -276,6 +294,15 @@ function extractMemberModifiers(
       }
     }
   }
+}
+
+function configHasAtPrefixedMemberKeyword(config: ModifierPatternConfig): boolean {
+  for (const keywords of Object.values(config.memberKeywords)) {
+    if (keywords.some((kw) => kw.startsWith("@"))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -444,20 +471,31 @@ function escapeRegex(str: string): string {
 }
 
 /**
- * Cache for modifier extraction results to avoid re-reading document.
- * Key: symbol id (based on position and name), Value: parsed modifiers
+ * Cache for modifier extraction results to avoid re-reading documents.
+ *
+ * Keyed first by document URI. Each per-URI entry stores the document version
+ * the cached modifiers were computed for; when the version advances, the inner
+ * map is replaced wholesale. This bounds cache size to "one entry per live
+ * symbol", instead of accumulating dead per-version entries until the LRU
+ * eviction pass kicks in (a 200-symbol file edited 25 times used to fill 5000
+ * slots with stale data).
+ *
+ * To bound memory across many open documents we also LRU-evict whole URI
+ * entries when the outer map exceeds {@link MAX_CACHED_DOCUMENTS}.
  */
-const modifierCache = new Map<string, SymbolModifiers>();
+type DocumentModifierCacheEntry = {
+  version: number;
+  entries: Map<string, SymbolModifiers>;
+};
+
+const MAX_CACHED_DOCUMENTS = 100;
+const modifierCache = new Map<string, DocumentModifierCacheEntry>();
 
 /**
- * Get a cache key for a symbol.
+ * Position-and-name key within a single document version.
  */
-function getSymbolCacheKey(
-  symbol: vscode.DocumentSymbol,
-  documentVersion: number,
-  documentUri: string
-): string {
-  return `${documentUri}:${documentVersion}:${symbol.range.start.line}:${symbol.range.start.character}:${symbol.name}`;
+function getSymbolPositionKey(symbol: vscode.DocumentSymbol): string {
+  return `${symbol.range.start.line}:${symbol.range.start.character}:${symbol.name}`;
 }
 
 /**
@@ -467,32 +505,64 @@ export function extractSymbolModifiersWithCache(
   symbol: vscode.DocumentSymbol,
   document: vscode.TextDocument
 ): SymbolModifiers {
-  const cacheKey = getSymbolCacheKey(symbol, document.version, document.uri.toString());
-  const cached = modifierCache.get(cacheKey);
+  const uri = document.uri.toString();
+  const version = document.version;
+
+  const existing = modifierCache.get(uri);
+  let docEntry: DocumentModifierCacheEntry;
+  if (existing?.version === version) {
+    // LRU: re-insert to move the URI to the end of iteration order.
+    docEntry = existing;
+    modifierCache.delete(uri);
+    modifierCache.set(uri, docEntry);
+  } else {
+    // Either a fresh URI or a newer document version — discard any prior entries
+    // for this URI and start a new map for the current version.
+    docEntry = { version, entries: new Map() };
+    modifierCache.set(uri, docEntry);
+  }
+
+  const positionKey = getSymbolPositionKey(symbol);
+  const cached = docEntry.entries.get(positionKey);
   if (cached) {
-    // LRU: move to end of Map iteration order by re-inserting
-    modifierCache.delete(cacheKey);
-    modifierCache.set(cacheKey, cached);
     return cached;
   }
 
   const modifiers = extractSymbolModifiers(symbol, document);
-  modifierCache.set(cacheKey, modifiers);
+  docEntry.entries.set(positionKey, modifiers);
 
-  // Evict oldest entries when cache exceeds limit
-  if (modifierCache.size > 5000) {
-    const keysToDelete = Array.from(modifierCache.keys()).slice(0, 1000);
-    for (const key of keysToDelete) {
-      modifierCache.delete(key);
-    }
+  // Bound the cache by URI count. When exceeded, drop the oldest URI entries.
+  while (modifierCache.size > MAX_CACHED_DOCUMENTS) {
+    const oldestKey = modifierCache.keys().next().value;
+    if (oldestKey === undefined) break;
+    modifierCache.delete(oldestKey);
   }
 
   return modifiers;
 }
 
 /**
- * Clear the modifier cache (e.g., when document changes significantly).
+ * Clear the modifier cache (e.g., when document changes significantly, or
+ * between test suites to ensure isolation).
  */
 export function clearModifierCache(): void {
   modifierCache.clear();
+}
+
+/**
+ * For tests: introspect the number of cached document entries.
+ */
+export function _getModifierCacheDocumentCount(): number {
+  return modifierCache.size;
+}
+
+/**
+ * For tests: introspect the total number of cached symbol entries across all documents.
+ */
+export function _getModifierCacheTotalEntryCount(): number {
+  let total = 0;
+  for (const entry of modifierCache.values()) {
+    total += entry.entries.size;
+  }
+  return total;
 }

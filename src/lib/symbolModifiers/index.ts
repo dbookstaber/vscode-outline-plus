@@ -9,7 +9,10 @@ export {
 } from "./SymbolModifiers";
 
 export {
-    clearModifierCache, extractSymbolModifiers,
+    _getModifierCacheDocumentCount,
+    _getModifierCacheTotalEntryCount,
+    clearModifierCache,
+    extractSymbolModifiers,
     extractSymbolModifiersWithCache
 } from "./extractSymbolModifiers";
 

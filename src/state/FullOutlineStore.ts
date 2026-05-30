@@ -88,6 +88,15 @@ export class FullOutlineStore implements vscode.Disposable {
   );
   private isRefreshingItems = false;
 
+  /**
+   * Counts consecutive convergence-failed refresh attempts. Reset to 0 on a
+   * successful (mismatch-free) refresh. Bounds the self-retry path in
+   * {@link refreshFullOutline} so a permanently-stuck downstream store cannot
+   * cause an infinite 250-ms retry loop.
+   */
+  private convergenceRetryCount = 0;
+  private static readonly MAX_CONVERGENCE_RETRIES = 3;
+
   private refreshActiveItemTimeout: NodeJS.Timeout | undefined;
 
   private constructor(
@@ -122,7 +131,7 @@ export class FullOutlineStore implements vscode.Disposable {
 
   private registerListeners(subscriptions: vscode.Disposable[]): void {
     vscode.window.onDidChangeActiveTextEditor(
-      this.debouncedRefreshFullOutline,
+      this.onActiveTextEditorChanged.bind(this),
       this,
       subscriptions
     );
@@ -138,6 +147,16 @@ export class FullOutlineStore implements vscode.Disposable {
       this,
       subscriptions
     );
+  }
+
+  /**
+   * Editor change is a fresh convergence cycle — reset the bounded-retry
+   * counter so a prior file's stuck retry state cannot prematurely make us
+   * give up on the new file's convergence.
+   */
+  private onActiveTextEditorChanged(): void {
+    this.convergenceRetryCount = 0;
+    this.debouncedRefreshFullOutline();
   }
 
   private onDocumentChange(event: vscode.TextDocumentChangeEvent): void {
@@ -160,10 +179,21 @@ export class FullOutlineStore implements vscode.Disposable {
       const symbolDocId = extractDocumentIdFromVersioned(documentSymbolStoreVersionedDocumentId);
       if (regionDocId !== symbolDocId) {
         // Stores are looking at different documents — wait for convergence.
-        log(`FullOutlineStore: skipping refresh — stores on different documents (region=${regionDocId}, symbol=${symbolDocId})`);
+        // Schedule a bounded self-retry on the debounced refresh; if we don't,
+        // the outline can stick to the previous file until the next change
+        // event. Bounded so a permanently-stuck downstream store cannot trap
+        // us in a 250-ms retry loop forever.
+        if (this.convergenceRetryCount < FullOutlineStore.MAX_CONVERGENCE_RETRIES) {
+          this.convergenceRetryCount += 1;
+          log(`FullOutlineStore: skipping refresh — stores on different documents (region=${regionDocId}, symbol=${symbolDocId}); retry ${this.convergenceRetryCount}/${FullOutlineStore.MAX_CONVERGENCE_RETRIES}`);
+          this.debouncedRefreshFullOutline();
+        } else {
+          log(`FullOutlineStore: giving up retry — stores still on different documents after ${this.convergenceRetryCount} attempts (region=${regionDocId}, symbol=${symbolDocId}); next store event will trigger refresh`);
+        }
         return;
       }
     }
+    this.convergenceRetryCount = 0;
 
     // Use whichever versioned ID is most current. The RegionStore updates synchronously
     // and is typically ahead of the async DocumentSymbolStore. We refresh with whatever

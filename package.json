@@ -22,7 +22,7 @@
   },
   "icon": "assets/icon.png",
   "license": "GPL-3.0-only",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "engines": {
     "vscode": "^1.94.0"
   },
@@ -398,6 +398,16 @@
                 "startRegex": "^\\s*--\\s*#region(?:\\s+(.*?)\\s*)?$",
                 "endRegex": "^\\s*--\\s*#endregion(?:\\s.*)?$"
               },
+              "stata": {
+                "startRegex": [
+                  "^\\s*\\*+\\s*#region(?:\\s+(.*?)\\s*)?$",
+                  "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$"
+                ],
+                "endRegex": [
+                  "^\\s*\\*+\\s*#endregion(?:\\s.*)?$",
+                  "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
+                ]
+              },
               "stylus": {
                 "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
                 "endRegex": "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$"
@@ -548,8 +558,8 @@
       },
       {
         "command": "outlinePlus.goToRegionFromQuickPick",
-        "key": "ctrl+shift+r",
-        "mac": "cmd+shift+r",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r",
         "when": "editorTextFocus"
       },
       {

@@ -16,6 +16,7 @@ import { RegionDiagnosticsManager } from "./diagnostics/RegionDiagnosticsManager
 import { RegionFoldingProvider } from "./lib/RegionFoldingProvider";
 import { type FlattenedRegion } from "./lib/flattenRegions";
 import { type InvalidMarker } from "./lib/parseAllRegions";
+import { registerRegionBoundaryPatternConfigListener } from "./lib/regionBoundaryPatterns";
 import { type Region } from "./models/Region";
 import { CollapsibleStateManager } from "./state/CollapsibleStateManager";
 import { DocumentSymbolStore } from "./state/DocumentSymbolStore";
@@ -28,9 +29,24 @@ import { RegionTreeViewProvider } from "./treeView/regionTreeView/RegionTreeView
 import { dumpDiagnosticState, initializeDebugLog, showDebugLog } from "./utils/debugLog";
 import { disposeHighlightDecorationType } from "./utils/highlightRegion";
 
+/**
+ * Pending workspace-state flushes that must complete before extension teardown.
+ * Populated during `activate()` and awaited in `deactivate()`. VSCode awaits the
+ * promise returned from `deactivate()`, so this prevents fire-and-forget writes
+ * (collapsible state, user view preference) from being cut off mid-write on
+ * shutdown — see CollapsibleStateManager.flush / RegionsViewAutoHideManager.flush.
+ */
+const pendingDeactivateFlushes: (() => Promise<void>)[] = [];
+
 export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
   const { subscriptions, workspaceState, extensionPath } = context;
-  
+
+  // Defensive reset: if the host activates twice without an intervening
+  // deactivate (uncommon, but possible in extension-development hot reload),
+  // drop any stale flushes from the prior activation so we don't double-flush
+  // disposed managers.
+  pendingDeactivateFlushes.length = 0;
+
   // Store extension path for use by icon loading
   initializeExtensionContext(extensionPath);
   initializeDebugLog(subscriptions);
@@ -45,6 +61,8 @@ export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
     STATE_KEY_FULL_OUTLINE_COLLAPSIBLE,
     subscriptions
   );
+  pendingDeactivateFlushes.push(() => regionCollapsibleStateManager.flush());
+  pendingDeactivateFlushes.push(() => fullOutlineCollapsibleStateManager.flush());
 
   const regionStore = RegionStore.initialize(subscriptions);
   const documentSymbolStore = DocumentSymbolStore.initialize(subscriptions);
@@ -75,6 +93,7 @@ export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
   );
   regionsViewAutoHideManager.setTreeView(regionTreeView);
   subscriptions.push(regionsViewAutoHideManager);
+  pendingDeactivateFlushes.push(() => regionsViewAutoHideManager.flush());
 
   const fullTreeViewProvider = new FullTreeViewProvider(
     fullOutlineStore,
@@ -94,11 +113,17 @@ export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
   registerAllCommands(subscriptions, { regionStore, fullOutlineStore, regionTreeViewProvider, fullTreeViewProvider });
 
   // Register folding range provider for region markers
-  const foldingProvider = new RegionFoldingProvider();
+  const foldingProvider = new RegionFoldingProvider(regionStore);
   subscriptions.push(
     vscode.languages.registerFoldingRangeProvider({ scheme: "file" }, foldingProvider),
     vscode.languages.registerFoldingRangeProvider({ scheme: "untitled" }, foldingProvider)
   );
+
+  // Re-parse when the user edits regionBoundaryPatternByLanguageId so changes take effect
+  // without requiring an extension reload.
+  registerRegionBoundaryPatternConfigListener(subscriptions, () => {
+    regionStore.forceRefresh();
+  });
 
   // Register the reset auto-hide preference command
   const resetAutoHideCommand = vscode.commands.registerCommand(
@@ -167,6 +192,12 @@ export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
   };
 }
 
-export function deactivate(): void {
+export async function deactivate(): Promise<void> {
   disposeHighlightDecorationType();
+  // Flush pending workspace-state writes that would otherwise race extension-host
+  // teardown. VSCode awaits the promise returned from deactivate(), so as long as
+  // we await here, the user's collapse/expand state and view preference are
+  // guaranteed persisted before the host exits.
+  const flushes = pendingDeactivateFlushes.splice(0);
+  await Promise.allSettled(flushes.map((fn) => fn()));
 }

@@ -340,4 +340,94 @@ suite("Full Outline Active Editor Switch", function() {
       "Active item displayName should match doc1's context after switching back"
     );
   });
+
+  // #region Regression: no-symbol-provider files (Stata `.do`)
+  //
+  // Bug: When switching to a document whose language has NO registered symbol
+  // provider (e.g. Stata `.do` files via the kylebarron.stata-enhanced
+  // grammar extension), `executeDocumentSymbolProvider` returns `undefined`.
+  // The DocumentSymbolStore retry chain failed on every attempt and never
+  // updated `_versionedDocumentId` — leaving FullOutlineStore convinced that
+  // the symbol-store side was still on the previous file. FullOutlineStore's
+  // mismatch retry (bounded at 3) would then give up and the Full Outline
+  // tree stuck showing the prior file's items.
+  //
+  // Repro that prompted this fix: open any TS file, then open `test.do`. The
+  // REGIONS tree updated (Stata regions parsed fine) but the FULL OUTLINE
+  // tree kept showing the TS file's outline.
+  //
+  // Fix: DocumentSymbolStore now eagerly clears stale state and advances
+  // `_versionedDocumentId` to the new doc URI at the start of every refresh
+  // when the URI changes — regardless of whether the symbol provider ever
+  // responds. See src/state/DocumentSymbolStore.ts.
+
+  test("regression: switching to a Stata `.do` file (no symbol provider) refreshes the Full Outline", async () => {
+    // --- Step 1: open a file with both regions and document symbols. ---
+    const doc1 = await openSampleDocument("sampleRegionsDocument.ts");
+    await vscode.window.showTextDocument(doc1);
+    await waitForOutlineContaining("Imports", 5000);
+
+    // Sanity: the outline has the TS file's "Imports" region.
+    const itemsBeforeSwitch = flattenOutlineItems();
+    const hasImports = itemsBeforeSwitch.some((i) => i.displayName === "Imports");
+    assert.ok(hasImports, "Pre-switch outline must contain TS region 'Imports'");
+
+    // --- Step 2: switch to the Stata sample (kylebarron.stata-enhanced
+    //     registers languageId 'stata' for `.do` but provides no symbol
+    //     provider, so executeDocumentSymbolProvider returns undefined). ---
+    const stataDoc = await openSampleDocument("validSamples", "validSample.do");
+    assert.strictEqual(
+      stataDoc.languageId,
+      "stata",
+      "validSample.do should be recognized as Stata in the test env"
+    );
+    await vscode.window.showTextDocument(stataDoc);
+
+    // --- Step 3: the outline must converge to the Stata file's regions
+    //     within a few debounce cycles. Pre-fix this would never happen
+    //     because DocumentSymbolStore stayed pinned to doc1. ---
+    await waitForOutlineContaining("FirstRegion", 6000);
+
+    // --- Step 4: verify the outline does NOT contain stale items from doc1. ---
+    const itemsAfterSwitch = flattenOutlineItems();
+    const stillHasImports = itemsAfterSwitch.some(
+      (i) => i.displayName === "Imports"
+    );
+    assert.strictEqual(
+      stillHasImports,
+      false,
+      "Post-switch outline must not retain TS region 'Imports' from the previous file"
+    );
+
+    const hasFirstRegion = itemsAfterSwitch.some(
+      (i) => i.displayName === "FirstRegion"
+    );
+    assert.ok(hasFirstRegion, "Post-switch outline should contain Stata 'FirstRegion'");
+  });
+
+  test("regression: Stata `.do` → TS round-trip converges in both directions", async () => {
+    // Start on Stata, switch to TS — verifies the convergence path also
+    // works going the other way (we want symbol-store state to advance
+    // correctly when leaving a no-provider language too).
+    const stataDoc = await openSampleDocument("validSamples", "validSample.do");
+    await vscode.window.showTextDocument(stataDoc);
+    await waitForOutlineContaining("FirstRegion", 6000);
+
+    const doc2 = await openSampleDocument("sampleRegionsDocument.ts");
+    await vscode.window.showTextDocument(doc2);
+    await waitForOutlineContaining("Imports", 6000);
+
+    const items = flattenOutlineItems();
+    assert.ok(
+      items.some((i) => i.displayName === "Imports"),
+      "After switching back to TS the outline should contain TS regions"
+    );
+    assert.strictEqual(
+      items.some((i) => i.displayName === "FirstRegion"),
+      false,
+      "Stata regions must not leak into the TS outline"
+    );
+  });
+
+  // #endregion
 });

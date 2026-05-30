@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { DEBOUNCE_DOCUMENT_PARSE_MS } from "../constants";
 import { fetchDocumentSymbols, fetchDocumentSymbolsAfterDelay } from "../lib/fetchDocumentSymbols";
 import { flattenDocumentSymbols } from "../lib/flattenDocumentSymbols";
+import { extractDocumentIdFromVersioned, getVersionedDocumentId } from "../lib/getVersionedDocumentId";
 import { type DebouncedFunction, debounce } from "../utils/debounce";
 import { log } from "../utils/debugLog";
 
@@ -131,6 +132,20 @@ export class DocumentSymbolStore implements vscode.Disposable {
       this._onDidChangeDocumentSymbols.fire();
       return;
     }
+    // Eagerly advance versionedDocumentId on URI change so a missing/slow
+    // symbol provider does not leave us stuck on the previous file.
+    // (Same rationale as the equivalent block in refreshDocumentSymbols.)
+    const newDocId = document.uri.toString();
+    const oldDocId =
+      this._versionedDocumentId !== undefined
+        ? extractDocumentIdFromVersioned(this._versionedDocumentId)
+        : undefined;
+    if (oldDocId !== newDocId) {
+      this._versionedDocumentId = getVersionedDocumentId(document);
+      this._documentSymbols = [];
+      this._flattenedDocumentSymbols = [];
+      this._onDidChangeDocumentSymbols.fire();
+    }
     try {
       const fetchResult = await fetchDocumentSymbols(document);
       if (generation !== this._refreshGeneration) {
@@ -177,11 +192,14 @@ export class DocumentSymbolStore implements vscode.Disposable {
 
   private async refreshDocumentSymbols(
     document: vscode.TextDocument | undefined,
-    attemptIdx = 0
+    attemptIdx = 0,
+    originGeneration?: number
   ): Promise<void> {
-    // Increment generation on each top-level call (not retries) so we can detect
-    // when a newer refresh has been initiated while this one was in flight.
-    const generation = attemptIdx === 0 ? ++this._refreshGeneration : this._refreshGeneration;
+    // Increment generation only on top-level calls; recursive retry calls
+    // inherit the original generation so we can detect when a newer top-level
+    // refresh has superseded this entire chain.
+    const generation =
+      attemptIdx === 0 ? ++this._refreshGeneration : (originGeneration ?? this._refreshGeneration);
 
     if (!document) {
       this._versionedDocumentId = undefined;
@@ -193,7 +211,49 @@ export class DocumentSymbolStore implements vscode.Disposable {
       }
       return;
     }
+
+    // Eagerly clear stale state when the active document's URI changes.
+    //
+    // Why this is necessary: For languages without a symbol provider (e.g.
+    // Stata `.do` files), `executeDocumentSymbolProvider` returns `undefined`
+    // on every retry. Without this clear, `_versionedDocumentId` stays
+    // pointing at the previously-viewed file forever, which traps
+    // `FullOutlineStore` in its mismatch-retry branch — the symptom: opening
+    // a Stata file leaves the Full Outline showing the prior file's items.
+    //
+    // We clear immediately at attempt 0 so consumers see "I'm now tracking
+    // the new doc, with no symbols yet" instead of "I'm still on the old
+    // doc". A subsequent successful fetch will replace the empty symbols
+    // and fire another change event.
+    if (attemptIdx === 0) {
+      const newDocId = document.uri.toString();
+      const oldDocId =
+        this._versionedDocumentId !== undefined
+          ? extractDocumentIdFromVersioned(this._versionedDocumentId)
+          : undefined;
+      if (oldDocId !== newDocId) {
+        this._versionedDocumentId = getVersionedDocumentId(document);
+        this._documentSymbols = [];
+        this._flattenedDocumentSymbols = [];
+        // Always fire — downstream stores (FullOutlineStore) need to
+        // re-evaluate convergence now that `versionedDocumentId` has
+        // advanced to the new URI, regardless of whether we had cached
+        // symbols to discard.
+        this._onDidChangeDocumentSymbols.fire();
+      }
+    }
+
     if (attemptIdx >= MAX_NUM_DOCUMENT_SYMBOLS_FETCH_ATTEMPTS) {
+      return;
+    }
+    // Before sleeping for a retry, bail out if a newer top-level refresh has
+    // been initiated. Without this, the retry chain wastes up to ~5 seconds
+    // (the longest stepped delay) sleeping before noticing it's stale.
+    // Requires `originGeneration` threading above — otherwise `generation`
+    // would just be a fresh re-read of `_refreshGeneration` and the check
+    // would be trivially false.
+    if (attemptIdx > 0 && generation !== this._refreshGeneration) {
+      log(`DocumentSymbolStore: aborting retry chain before delay (gen ${generation} vs current ${this._refreshGeneration})`);
       return;
     }
     try {
@@ -217,8 +277,10 @@ export class DocumentSymbolStore implements vscode.Disposable {
       }
       const { documentSymbols, versionedDocumentId } = fetchResult;
       if (documentSymbols === undefined) {
-        // Language server not ready yet - schedule next retry with stepped backoff
-        void this.refreshDocumentSymbols(document, attemptIdx + 1);
+        // Language server not ready yet - schedule next retry with stepped backoff.
+        // Thread the original generation so the next retry's pre-await check
+        // can detect a superseding top-level refresh.
+        void this.refreshDocumentSymbols(document, attemptIdx + 1, generation);
         return;
       }
       sortSymbolsRecursivelyByStart(documentSymbols); // By default, `executeDocumentSymbolProvider` returns symbols ordered by name

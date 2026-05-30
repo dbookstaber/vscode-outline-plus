@@ -6,7 +6,6 @@ src/**
 .gitignore
 .yarnrc
 webpack.config.*
-vsc-extension-quickstart.md
 **/tsconfig.json
 **/.eslintrc.json
 **/*.map
@@ -21,3 +20,5 @@ assets/readme-pics/**
 docs/**
 .github/**
 .mypy_cache/**
+.claude/**
+*.vsix

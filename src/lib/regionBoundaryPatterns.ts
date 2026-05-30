@@ -1,3 +1,4 @@
+import * as vscode from "vscode";
 import { getOutlinePlusConfig } from "../config/regionHelperConfig";
 import { logError } from "../utils/debugLog";
 
@@ -21,7 +22,52 @@ type RawRegionBoundaryPattern = {
 };
 type RegionBoundaryPatternsConfig = Record<LanguageId, RawRegionBoundaryPattern>;
 
+/**
+ * The fully qualified setting key that this module watches. Exported so callers
+ * (e.g. extension activation) can scope `onDidChangeConfiguration` listeners.
+ */
+export const REGION_BOUNDARY_PATTERN_CONFIG_KEY = "outlinePlus.regionBoundaryPatternByLanguageId";
+
+let cachedPatternMap: RegionBoundaryPatternMap | undefined;
+
 export function getRegionBoundaryPatternMap(): RegionBoundaryPatternMap {
+  cachedPatternMap ??= buildRegionBoundaryPatternMap();
+  return cachedPatternMap;
+}
+
+/**
+ * Invalidates the cached pattern map so the next `getRegionBoundaryPatternMap()`
+ * call re-reads and re-compiles from the workspace configuration.
+ *
+ * Used by the configuration-change listener and by tests that mutate the
+ * underlying configuration.
+ */
+export function refreshRegionBoundaryPatternMap(): RegionBoundaryPatternMap {
+  cachedPatternMap = buildRegionBoundaryPatternMap();
+  return cachedPatternMap;
+}
+
+/**
+ * Registers a `workspace.onDidChangeConfiguration` listener that refreshes the
+ * compiled pattern map whenever the user edits
+ * `outlinePlus.regionBoundaryPatternByLanguageId`, then invokes `onChange` so
+ * the caller can re-parse open documents.
+ */
+export function registerRegionBoundaryPatternConfigListener(
+  subscriptions: vscode.Disposable[],
+  onChange: () => void
+): void {
+  const disposable = vscode.workspace.onDidChangeConfiguration((event) => {
+    if (!event.affectsConfiguration(REGION_BOUNDARY_PATTERN_CONFIG_KEY)) {
+      return;
+    }
+    refreshRegionBoundaryPatternMap();
+    onChange();
+  });
+  subscriptions.push(disposable);
+}
+
+function buildRegionBoundaryPatternMap(): RegionBoundaryPatternMap {
   const rawBoundaryPatternByLanguageId = getRegionBoundaryPatternsConfig();
   return parseLanguagePatternsConfig(rawBoundaryPatternByLanguageId);
 }

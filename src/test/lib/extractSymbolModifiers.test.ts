@@ -1,6 +1,12 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { clearModifierCache, extractSymbolModifiers } from "../../lib/symbolModifiers";
+import {
+    _getModifierCacheDocumentCount,
+    _getModifierCacheTotalEntryCount,
+    clearModifierCache,
+    extractSymbolModifiers,
+    extractSymbolModifiersWithCache,
+} from "../../lib/symbolModifiers";
 
 /**
  * Tests for extractSymbolModifiers — verifying that visibility and member modifiers
@@ -635,6 +641,169 @@ suite("Extract Symbol Modifiers", function () {
     assert.strictEqual(result.visibility, "public",
       "Exact reproduction of TestHelpers.cs GetField bug");
     assert.strictEqual(result.memberModifiers.isStatic, true);
+  });
+
+  // #endregion
+
+  // #region Bracket / @-decorator language gating (CODE_REVIEW_MAY #8)
+  //
+  // Pre-fix: `[keyword]` and `@keyword` patterns were tested for every language.
+  // That produced false positives:
+  //   - `{ [abstract]: true }` in TypeScript flagged isAbstract.
+  //   - `@async` substrings in any language flagged isAsync.
+  // Post-fix: brackets are C# only; `@keyword` is gated to languages whose
+  // memberKeywords already contain an `@`-prefixed entry (i.e. Python today).
+
+  test("TypeScript: object computed-property `[abstract]` does NOT set isAbstract", async () => {
+    const doc = await makeDocument([
+      "const lookup = { [abstract]: true };",
+      "function regular(): void {}",
+    ], "typescript");
+    const symbol = createSymbol("regular", 1, vscode.SymbolKind.Function);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.memberModifiers.isAbstract, false,
+      "TypeScript computed-property `[abstract]` must not trigger isAbstract");
+  });
+
+  test("TypeScript: object computed-property `[static]` does NOT set isStatic", async () => {
+    const doc = await makeDocument([
+      "const lookup = { [static]: true };",
+      "function regular(): void {}",
+    ], "typescript");
+    const symbol = createSymbol("regular", 1, vscode.SymbolKind.Function);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.memberModifiers.isStatic, false,
+      "TypeScript computed-property `[static]` must not trigger isStatic");
+  });
+
+  test("TypeScript: literal `@async` substring does NOT set isAsync", async () => {
+    // Regression test for the @-decorator false-positive. `@async` here is just
+    // text appearing inside the declaration scan window; TS has no @async
+    // decorator concept.
+    const doc = await makeDocument([
+      "// see also: @async upstream helper",
+      "function plainFunction(): void {}",
+    ], "typescript");
+    const symbol = createSymbol("plainFunction", 1, vscode.SymbolKind.Function);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.memberModifiers.isAsync, false,
+      "TypeScript should not interpret a bare `@async` substring as isAsync");
+  });
+
+  test("Java: literal `@static` substring does NOT set isStatic", async () => {
+    // `@` prefix is the Java annotation syntax, but `@static` is not a real
+    // annotation. We previously fired isStatic on this text.
+    const doc = await makeDocument([
+      "@SomeAnnotation",
+      "public void notStatic() {}",
+    ], "java");
+    const symbol = createSymbol("notStatic", 1);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.memberModifiers.isStatic, false,
+      "Java @SomeAnnotation must not trigger isStatic via a `@${keyword}` match");
+  });
+
+  test("C#: bracket form still detected on the same line (preserved for csharp)", async () => {
+    // The bracket gate is C#-only after the fix. We test on the declaration
+    // line itself because the backward-scan stops at lines ending in `]`
+    // (see getSymbolDeclarationText), so attribute-on-prior-line scenarios
+    // are out of reach. Same-line attributes like `[Obsolete] public ...` are
+    // the realistic case the bracket form serves.
+    const doc = await makeDocument([
+      "[abstract] public void Decorated() {}",
+    ], "csharp");
+    const symbol = createSymbol("Decorated", 0);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.memberModifiers.isAbstract, true,
+      "C# bracket-form attribute match on declaration line should still fire");
+  });
+
+  test("Python: @-decorator-style member keywords still match (gating preserves Python decorators)", async () => {
+    // Sanity test — the `@${keyword}` form should still fire for Python
+    // (the language whose config has @-prefixed entries).
+    const doc = await makeDocument([
+      "@staticmethod",
+      "def factory(): pass",
+    ], "python");
+    const symbol = createSymbol("factory", 1);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.memberModifiers.isStatic, true);
+  });
+
+  // #endregion
+
+  // #region modifierCache version invalidation (CODE_REVIEW_MAY #9)
+
+  test("modifierCache: a new document version replaces the prior version's entries", async () => {
+    clearModifierCache();
+    const doc = await makeDocument(
+      ["public void Method() {}"],
+      "csharp"
+    );
+    const symbol = createSymbol("Method", 0);
+    extractSymbolModifiersWithCache(symbol, doc);
+    // After one extraction at version v, we should have exactly 1 URI entry
+    // and exactly 1 cached symbol.
+    assert.strictEqual(_getModifierCacheDocumentCount(), 1);
+    assert.strictEqual(_getModifierCacheTotalEntryCount(), 1);
+
+    // Simulate a document version bump by creating a doc that masquerades as
+    // the same URI but a different `version`. extractSymbolModifiersWithCache
+    // keys on `document.uri.toString()` + `document.version`, so we wrap the
+    // real doc and override `version` to feed in a higher one.
+    const bumpedDoc: vscode.TextDocument = new Proxy(doc, {
+      get(target, prop, receiver): unknown {
+        if (prop === "version") return doc.version + 1;
+        return Reflect.get(target, prop, receiver);
+      },
+    });
+
+    extractSymbolModifiersWithCache(symbol, bumpedDoc);
+    // The new version should have evicted the old entries — total entries
+    // stays at 1, NOT 2 (would-be 2 was the bug: stale per-version entries
+    // accumulating until the LRU's bulk eviction kicked in).
+    assert.strictEqual(_getModifierCacheDocumentCount(), 1,
+      "URI count stays 1 across versions");
+    assert.strictEqual(_getModifierCacheTotalEntryCount(), 1,
+      "Total entries stays 1 — prior-version entries should be evicted");
+  });
+
+  test("modifierCache: 25 simulated edits do NOT inflate the per-URI entry count", async () => {
+    clearModifierCache();
+    const doc = await makeDocument(
+      ["public void M1() {}", "public void M2() {}"],
+      "csharp"
+    );
+    const sym1 = createSymbol("M1", 0);
+    const sym2 = createSymbol("M2", 1);
+
+    for (let i = 0; i < 25; i++) {
+      const versionedDoc: vscode.TextDocument = new Proxy(doc, {
+        get(target, prop, receiver): unknown {
+          if (prop === "version") return doc.version + i;
+          return Reflect.get(target, prop, receiver);
+        },
+      });
+      extractSymbolModifiersWithCache(sym1, versionedDoc);
+      extractSymbolModifiersWithCache(sym2, versionedDoc);
+    }
+
+    // After 25 simulated edits × 2 symbols, the previous design would have
+    // accumulated 50 entries. The new design holds only the current version's
+    // entries: 2.
+    assert.strictEqual(_getModifierCacheDocumentCount(), 1);
+    assert.strictEqual(_getModifierCacheTotalEntryCount(), 2,
+      "Should only hold entries for the latest version (2 symbols), not 50");
+  });
+
+  test("modifierCache: separate URIs each get their own per-URI entry", async () => {
+    clearModifierCache();
+    const docA = await makeDocument(["public void A() {}"], "csharp");
+    const docB = await makeDocument(["public void B() {}"], "csharp");
+    extractSymbolModifiersWithCache(createSymbol("A", 0), docA);
+    extractSymbolModifiersWithCache(createSymbol("B", 0), docB);
+    assert.strictEqual(_getModifierCacheDocumentCount(), 2);
+    assert.strictEqual(_getModifierCacheTotalEntryCount(), 2);
   });
 
   // #endregion

@@ -74,13 +74,26 @@ export class CollapsibleStateManager implements vscode.Disposable {
 
   dispose(): void {
     this.debouncedCleanIdsAndMaybeSwitchMode.cancel();
-    // Flush pending save before shutdown, then cancel the debounce
+    // Cancel the pending save; the awaitable `flush()` below is the supported
+    // shutdown path. `dispose()` is sync per the `vscode.Disposable` contract,
+    // so any save initiated here would race extension-host teardown.
     this.debouncedSaveToWorkspaceState.cancel();
     this.renameDisposable.dispose();
     this.deleteDisposable.dispose();
     this.saveToWorkspaceState().catch((error: unknown) => {
       logError("CollapsibleStateManager: failed to save on dispose", error);
     });
+  }
+
+  /**
+   * Awaitable flush of any pending workspace-state writes. Call from the
+   * extension's async `deactivate()` so VSCode delays teardown until the
+   * collapse/expand state is persisted.
+   */
+  async flush(): Promise<void> {
+    this.debouncedCleanIdsAndMaybeSwitchMode.cancel();
+    this.debouncedSaveToWorkspaceState.cancel();
+    await this.saveToWorkspaceState();
   }
 
   private onFileRename({ oldUri, newUri }: { oldUri: vscode.Uri; newUri: vscode.Uri }): void {

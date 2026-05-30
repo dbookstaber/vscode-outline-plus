@@ -5,6 +5,7 @@ import {
 } from "../config/regionsViewConfig";
 import { STATE_KEY_USER_WANTS_REGIONS_VIEW } from "../constants";
 import { type Region } from "../models/Region";
+import { logError } from "../utils/debugLog";
 import { type RegionStore } from "./RegionStore";
 
 /**
@@ -80,6 +81,14 @@ export class RegionsViewAutoHideManager implements vscode.Disposable {
    * Timeout handle for delayed initialization after setTreeView is called.
    */
   private initializationTimeout: NodeJS.Timeout | undefined;
+
+  /**
+   * Tracks the most recent in-flight `workspaceState.update()` promise so
+   * `flush()` (called from extension `deactivate()`) can await persistence
+   * before the host tears down. Without this, fire-and-forget updates from
+   * `setUserWantsRegionsView` can race shutdown and lose the user's preference.
+   */
+  private pendingUserPreferenceUpdate: Promise<void> | undefined;
 
   constructor(
     private regionStore: RegionStore,
@@ -278,8 +287,29 @@ export class RegionsViewAutoHideManager implements vscode.Disposable {
   private setUserWantsRegionsView(value: boolean): void {
     if (this.userWantsRegionsView !== value) {
       this.userWantsRegionsView = value;
-      this.workspaceState.update(STATE_KEY_USER_WANTS_REGIONS_VIEW, value);
+      // Attach a `.catch` to the promise we *keep a reference to* so that
+      // when a later `setUserWantsRegionsView` displaces this one and the
+      // displaced write later rejects, we don't leak an unhandled rejection.
+      // `flush()` independently awaits the latest tracked promise.
+      this.pendingUserPreferenceUpdate = Promise.resolve(
+        this.workspaceState.update(STATE_KEY_USER_WANTS_REGIONS_VIEW, value)
+      ).catch((error: unknown) => {
+        logError("RegionsViewAutoHideManager: workspace state update failed", error);
+      });
     }
+  }
+
+  /**
+   * Awaits any in-flight workspace-state write of the user's preference.
+   * Called from the extension's async `deactivate()` so the preference is
+   * persisted before the host tears down.
+   */
+  async flush(): Promise<void> {
+    const pending = this.pendingUserPreferenceUpdate;
+    if (pending === undefined) return;
+    // The promise already has `.catch` attached at creation time, but await
+    // anyway so deactivate() blocks on the write completing.
+    await pending;
   }
 
   private isRegionsViewVisible(): boolean {

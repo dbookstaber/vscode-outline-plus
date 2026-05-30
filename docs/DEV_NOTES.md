@@ -191,7 +191,7 @@ The extension is platform-independent (pure JavaScript/TypeScript), so the same 
 
 ## Debugging Option
 
-(Introduced in v1.7.0)
+(Introduced in v1.0.1)
 
 When you encounter a problem, do this:
 
