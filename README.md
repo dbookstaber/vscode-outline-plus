@@ -6,7 +6,7 @@
 [![VS Code Marketplace Installs](https://vsmarketplacebadges.dev/installs/DavidBookstaber.outline-regions-plus.svg)](https://marketplace.visualstudio.com/items?itemName=DavidBookstaber.outline-regions-plus)
 [![VS Code Marketplace Rating](https://vsmarketplacebadges.dev/rating/DavidBookstaber.outline-regions-plus.svg)](https://marketplace.visualstudio.com/items?itemName=DavidBookstaber.outline-regions-plus)
 
-A Visual Studio Code extension for navigating, visualizing, and managing code regions and document outlines.
+A Visual Studio Code extension for navigating, visualizing, and managing code regions and document outlines. Forked from [Region Helper](https://github.com/alythobani/vscode-region-helper) (see [Acknowledgements](#acknowledgements)).
 
 ## Features
 
@@ -18,6 +18,8 @@ A Visual Studio Code extension for navigating, visualizing, and managing code re
 - 🔄 **Refresh & Debug** – Manual refresh buttons and built-in debug logging for diagnosing issues.
 
 ![Outline++ Demo](./assets/readme-gifs/0-main-demo.gif)
+
+> *Demo GIFs in this README are from the upstream Region Helper project.*
 
 ## 📖 Table of Contents
 
@@ -217,3 +219,7 @@ See [detailed limitations](./docs/LIMITATIONS.md) in docs.  Some salient limitat
 - **Go to Region...** only supports **camelCase matching** (not full fuzzy search) due to a [VSCode API limitation](https://github.com/microsoft/vscode/issues/34088#issuecomment-328734452).
 - The  **Regions** and **Full Outline** tree views **always highlight the cursor's last active item**, even when outside any region/symbol ([another VSCode API limitation](https://github.com/microsoft/vscode/issues/48754)).
 - **Modifier extraction** relies on parsing the document text to match language-specific keyword patterns. It does not use the Language Server Protocol's symbol tags (which are not yet widely supported). This means modifier detection may be imperfect for complex or unusual code patterns.
+
+## Acknowledgements
+
+Outline++ builds on [vscode-region-helper](https://github.com/alythobani/vscode-region-helper) (GPL-3.0), forked 2026-03-29. The region-navigation features, tree views and extension API originated there.  Demo GIFs in this README are from the upstream project.
