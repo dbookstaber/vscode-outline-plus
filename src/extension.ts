@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { type OutlinePlusAPI } from "./api/regionHelperAPI";
+import { type OutlineItem, type OutlinePlusAPI, toOutlineItem } from "./api/regionHelperAPI";
 import { registerAllCommands } from "./commands/registerCommand";
 import { createResetAutoHidePreferenceCommand } from "./commands/toggleRegionsViewSettings";
 import { initializeExtensionContext } from "./config/extensionContext";
@@ -64,14 +64,17 @@ export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
   pendingDeactivateFlushes.push(() => regionCollapsibleStateManager.flush());
   pendingDeactivateFlushes.push(() => fullOutlineCollapsibleStateManager.flush());
 
-  const regionStore = RegionStore.initialize(subscriptions);
-  const documentSymbolStore = DocumentSymbolStore.initialize(subscriptions);
-  const fullOutlineStore = FullOutlineStore.initialize(
+  const regionStore = new RegionStore(subscriptions);
+  subscriptions.push(regionStore);
+  const documentSymbolStore = new DocumentSymbolStore(subscriptions);
+  subscriptions.push(documentSymbolStore);
+  const fullOutlineStore = new FullOutlineStore(
     regionStore,
     documentSymbolStore,
     fullOutlineCollapsibleStateManager,
     subscriptions
   );
+  subscriptions.push(fullOutlineStore);
 
   const regionTreeViewProvider = new RegionTreeViewProvider(
     regionStore,
@@ -153,7 +156,19 @@ export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
     })
   );
 
+  // Internal-only handle for integration tests that need access to runtime
+  // objects (e.g. FullTreeItem.modifiers) which the public API intentionally
+  // strips at the boundary. Not part of `OutlinePlusAPI` and not documented.
+  // Cross-bundle: tests cannot reach the FullOutlineStore instance directly
+  // because the test webpack bundle ships its own module copy of the class.
+  const internalHandle = {
+    _test_getInternalFullOutlineItems: (): FullTreeItem[] =>
+      fullOutlineStore.topLevelFullOutlineItems,
+  };
+
   return {
+    ...internalHandle,
+    apiVersion: "1.0",
     // #region Region Store API
     // #region Getters
     getTopLevelRegions(): Region[] {
@@ -177,11 +192,12 @@ export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
     // #endregion
     // #region Full Outline Store API
     // #region Getters
-    getTopLevelFullOutlineItems(): FullTreeItem[] {
-      return fullOutlineStore.topLevelFullOutlineItems;
+    getTopLevelFullOutlineItems(): OutlineItem[] {
+      return fullOutlineStore.topLevelFullOutlineItems.map(toOutlineItem);
     },
-    getActiveFullOutlineItem(): FullTreeItem | undefined {
-      return fullOutlineStore.activeFullOutlineItem;
+    getActiveFullOutlineItem(): OutlineItem | undefined {
+      const active = fullOutlineStore.activeFullOutlineItem;
+      return active ? toOutlineItem(active) : undefined;
     },
     // #endregion
     // #region Events

@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import { CMD_GO_TO_REGION_BOUNDARY } from "../constants";
 import { goToNextTopLevelRegionBoundary } from "../lib/goToNextTopLevelRegionBoundary";
 import { type Region } from "../models/Region";
-import { getActiveCursorLineIdx } from "../utils/getActiveCursorLineIdx";
 import { moveCursorToFirstNonWhitespaceCharOfLine } from "../utils/moveCursorToFirstNonWhitespaceOfLine";
 import {
     type OutlinePlusClosuredCommand,
@@ -20,7 +19,7 @@ function goToRegionBoundary({ regionStore }: OutlinePlusClosuredParams): void {
   if (!activeTextEditor) {
     return;
   }
-  const cursorLine = getActiveCursorLineIdx(activeTextEditor);
+  const cursorLine = activeTextEditor.selection.active.line;
   const { topLevelRegions, activeRegion } = regionStore;
   if (!activeRegion) {
     // If there is a next region to jump to, it will be a top-level region.

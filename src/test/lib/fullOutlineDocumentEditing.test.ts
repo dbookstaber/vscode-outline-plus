@@ -128,25 +128,17 @@ suite("Full Outline Document Editing", function() {
     await waitForCondition(
       () => {
         const items = regionHelperAPI.getTopLevelFullOutlineItems();
-        return items.some(item => 
-          typeof item.label === "string" && item.label.includes("RenamedRegion")
-        );
+        return items.some(item => item.name.includes("RenamedRegion"));
       },
       3000,
       50
     );
 
     const updatedItems = regionHelperAPI.getTopLevelFullOutlineItems();
-    
+
     // Verify the name changed
-    let foundRenamedItem = false;
-    for (const item of updatedItems) {
-      if (typeof item.label === "string" && item.label.includes("RenamedRegion")) {
-        foundRenamedItem = true;
-        break;
-      }
-    }
-    
+    const foundRenamedItem = updatedItems.some(item => item.name.includes("RenamedRegion"));
+
     assert.ok(foundRenamedItem, "Full outline should reflect the renamed region");
   });
 
@@ -180,8 +172,16 @@ suite("Full Outline Document Editing", function() {
       await insertTextAtPosition("// Comment 2\n", 0, 0);
       await insertTextAtPosition("// Comment 3\n", 0, 0);
 
-      // Wait for events to settle
-      await delay(400);
+      // Wait for the debounced refresh chain to fire. The chain is RegionStore
+      // debounce (250ms) → FullOutlineStore debounce (250ms) ≈ 500ms minimum
+      // after the last edit. Use polling so the test isn't dependent on
+      // exact timing — earlier flakiness here came from a fixed 400ms delay
+      // that finished BEFORE the post-edit refresh actually ran.
+      try {
+        await waitForCondition(() => eventCount >= 1, 2000, 50);
+      } catch {
+        // Fall through to assertion for a clearer failure message.
+      }
 
       // Events should fire (debounced, so possibly fewer than 3)
       assert.ok(eventCount >= 1, "Full outline should update after rapid edits");
@@ -198,9 +198,7 @@ suite("Full Outline Document Editing", function() {
     await waitForCondition(
       () => {
         const items = regionHelperAPI.getTopLevelFullOutlineItems();
-        return items.some(item => 
-          typeof item.label === "string" && item.label.includes("Top Region")
-        );
+        return items.some(item => item.name.includes("Top Region"));
       },
       3000,
       50

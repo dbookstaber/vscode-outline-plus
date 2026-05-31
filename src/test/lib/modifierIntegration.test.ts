@@ -1,6 +1,5 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { type OutlinePlusAPI } from "../../api/regionHelperAPI";
 import { type FullTreeItem } from "../../treeView/fullTreeView/FullTreeItem";
 import { openSampleDocument } from "../utils/openSampleDocument";
 import { waitForCondition } from "../utils/waitForEvent";
@@ -13,14 +12,24 @@ import { waitForCondition } from "../utils/waitForEvent";
  * This validates the entire pipeline end-to-end: language server → DocumentSymbolStore
  * → extractSymbolModifiers → FullTreeItem.modifiers.
  *
+ * Uses the extension's internal `_test_getInternalFullOutlineItems` hook (not part
+ * of the public `OutlinePlusAPI`) because `modifiers` is intentionally stripped at
+ * the API boundary by the `OutlineItem` converter. We cannot reach the runtime
+ * `FullOutlineStore` instance directly from tests: the test webpack bundle ships
+ * its own module copy of the class.
+ *
  * IMPORTANT: These tests depend on the C# language extension being available in the
  * test host. If no C# language grammar is installed, the language server won't provide
  * DocumentSymbol data and these tests will be skipped.
  */
+type InternalHandle = {
+  _test_getInternalFullOutlineItems(): FullTreeItem[];
+};
+
 suite("Modifier Extraction Integration", function () {
   this.timeout(15000);
 
-  let regionHelperAPI: OutlinePlusAPI;
+  let internalHandle: InternalHandle;
 
   suiteSetup(async () => {
     const regionHelperExtension = vscode.extensions.getExtension("DavidBookstaber.outline-regions-plus");
@@ -28,7 +37,7 @@ suite("Modifier Extraction Integration", function () {
       throw new Error("Outline++ extension not found!");
     }
     await regionHelperExtension.activate();
-    regionHelperAPI = regionHelperExtension.exports as OutlinePlusAPI;
+    internalHandle = regionHelperExtension.exports as InternalHandle;
   });
 
   teardown(async () => {
@@ -63,7 +72,7 @@ suite("Modifier Extraction Integration", function () {
     // Wait for outline items to be populated with both regions and symbols
     await waitForCondition(
       () => {
-        const items = regionHelperAPI.getTopLevelFullOutlineItems();
+        const items = internalHandle._test_getInternalFullOutlineItems();
         const flat = flattenItems(items);
         // Require at least one symbol-type item (meaning the language server responded)
         return flat.some((i) => i.itemType === "symbol");
@@ -72,7 +81,7 @@ suite("Modifier Extraction Integration", function () {
       100
     );
 
-    const allItems = flattenItems(regionHelperAPI.getTopLevelFullOutlineItems());
+    const allItems = flattenItems(internalHandle._test_getInternalFullOutlineItems());
     const symbols = allItems.filter((i) => i.itemType === "symbol");
 
     // If no real C# symbols were produced (language server unavailable),
@@ -164,7 +173,7 @@ suite("Modifier Extraction Integration", function () {
 
     await waitForCondition(
       () => {
-        const items = regionHelperAPI.getTopLevelFullOutlineItems();
+        const items = internalHandle._test_getInternalFullOutlineItems();
         const flat = flattenItems(items);
         return flat.some((i) => i.itemType === "symbol");
       },
@@ -172,7 +181,7 @@ suite("Modifier Extraction Integration", function () {
       100
     );
 
-    const allItems = flattenItems(regionHelperAPI.getTopLevelFullOutlineItems());
+    const allItems = flattenItems(internalHandle._test_getInternalFullOutlineItems());
 
     // If no real C# symbols are available, skip this test.
     if (!findSymbol(allItems, "PublicAfterPrivateComment")) {

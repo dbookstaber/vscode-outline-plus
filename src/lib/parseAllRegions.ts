@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { type Region } from "../models/Region";
+import { log } from "../utils/debugLog";
 import { getRegionBoundaryPatternMap, type RegexOrArray } from "./regionBoundaryPatterns";
 
 export type InvalidMarker = {
@@ -12,10 +13,21 @@ type RegionParseResult = {
   invalidMarkers: InvalidMarker[];
 };
 
+// Bail out on very large files to keep the host responsive; full scan would
+// blow past the parse debounce window and stall the UI thread.
+const LARGE_FILE_LINE_THRESHOLD = 100_000;
+
 export function parseAllRegions(document: vscode.TextDocument): RegionParseResult {
   const topLevelRegions: Region[] = [];
   const invalidMarkers: InvalidMarker[] = [];
   const openRegionsStack: Region[] = [];
+
+  if (document.lineCount > LARGE_FILE_LINE_THRESHOLD) {
+    log(
+      `parseAllRegions: skipping ${document.uri.toString()} (${document.lineCount} lines exceeds threshold ${LARGE_FILE_LINE_THRESHOLD})`
+    );
+    return { topLevelRegions, invalidMarkers };
+  }
 
   const { languageId } = document;
   const regionBoundaryPatternByLanguageId = getRegionBoundaryPatternMap();
@@ -27,9 +39,13 @@ export function parseAllRegions(document: vscode.TextDocument): RegionParseResul
   const regionCountByEffectiveName = new Map<string, number>();
 
   const { startRegex, endRegex } = regionBoundaryPattern;
+  // Single getText() + split avoids hundreds of thousands of TextLine allocations
+  // that document.lineAt() would create on large files.
+  const lines = document.getText().split(/\r?\n/);
+  const lineCount = lines.length;
   let regionIdx = 0;
-  for (let lineIdx = 0; lineIdx < document.lineCount; lineIdx++) {
-    const lineText = document.lineAt(lineIdx).text;
+  for (let lineIdx = 0; lineIdx < lineCount; lineIdx++) {
+    const lineText = lines[lineIdx] ?? "";
     const startMatch = matchLineWithRegexOrArray(lineText, startRegex);
     if (startMatch) {
       const newRegion = makeNewOpenRegion({

@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { type Region } from "../models/Region";
-import { getActiveCursorLineIdx } from "./getActiveCursorLineIdx";
 
 export function getActiveRegion(topLevelRegions: Region[]): Region | undefined {
   const { activeTextEditor } = vscode.window;
@@ -14,7 +13,7 @@ export function getActiveRegionInEditor(
   topLevelRegions: Region[],
   activeTextEditor: vscode.TextEditor
 ): Region | undefined {
-  const cursorLine = getActiveCursorLineIdx(activeTextEditor);
+  const cursorLine = activeTextEditor.selection.active.line;
   return getActiveRegionAtLine(topLevelRegions, cursorLine);
 }
 

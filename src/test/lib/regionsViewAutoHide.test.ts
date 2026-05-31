@@ -1,8 +1,15 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
 import { type OutlinePlusAPI } from "../../api/regionHelperAPI";
+import { DEBOUNCE_DOCUMENT_PARSE_MS } from "../../constants";
 import { openSampleDocument } from "../utils/openSampleDocument";
 import { delay } from "../utils/waitForEvent";
+
+/**
+ * Settle window must exceed EDITOR_CHANGE_VISIBILITY_DELAY_MS (~250ms,
+ * tracked by DEBOUNCE_DOCUMENT_PARSE_MS) plus config-update round-trip.
+ */
+const AUTO_HIDE_SETTLE_MS = DEBOUNCE_DOCUMENT_PARSE_MS + 250;
 
 /**
  * Tests for the REGIONS view auto-hide feature.
@@ -16,6 +23,17 @@ import { delay } from "../utils/waitForEvent";
  */
 suite("Regions View Auto-Hide", () => {
   let regionHelperAPI: OutlinePlusAPI;
+  // Snapshot suite-level originals so a thrown test cannot leak Global
+  // settings across runs. The per-suite teardowns below already restore
+  // these on the happy path; suiteTeardown is the safety net for the
+  // crash-before-teardown case.
+  //
+  // We write to Global (not Workspace) because the production code path
+  // (setGlobalOutlinePlusConfigValue → ConfigurationTarget.Global) also
+  // writes Global; mixing scopes makes the merged read order Workspace
+  // > Global so extension-side writes look like they're ignored.
+  let suiteOriginalAutoHide: boolean | undefined;
+  let suiteOriginalVisible: boolean | undefined;
 
   suiteSetup(async () => {
     const regionHelperExtension = vscode.extensions.getExtension("DavidBookstaber.outline-regions-plus");
@@ -24,15 +42,27 @@ suite("Regions View Auto-Hide", () => {
     }
     await regionHelperExtension.activate();
     regionHelperAPI = regionHelperExtension.exports as OutlinePlusAPI;
+
+    const cfg = vscode.workspace.getConfiguration("outlinePlus.regionsView");
+    suiteOriginalAutoHide = cfg.get<boolean>("shouldAutoHide");
+    suiteOriginalVisible = cfg.get<boolean>("isVisible");
+  });
+
+  suiteTeardown(async () => {
+    // Safety net: restore originals even if a test threw before its teardown.
+    const cfg = vscode.workspace.getConfiguration("outlinePlus.regionsView");
+    await cfg.update("shouldAutoHide", suiteOriginalAutoHide, vscode.ConfigurationTarget.Global);
+    await cfg.update("isVisible", suiteOriginalVisible, vscode.ConfigurationTarget.Global);
   });
 
   // #region Helper Functions
 
   /**
    * Waits for auto-hide processing to complete.
-   * Must be longer than EDITOR_CHANGE_VISIBILITY_DELAY_MS (250ms) + config update time + buffer.
+   * Default derived from DEBOUNCE_DOCUMENT_PARSE_MS so changes to the
+   * debounce constant don't silently break these tests.
    */
-  async function waitForAutoHideProcessing(ms = 500): Promise<void> {
+  async function waitForAutoHideProcessing(ms = AUTO_HIDE_SETTLE_MS): Promise<void> {
     await delay(ms);
   }
 

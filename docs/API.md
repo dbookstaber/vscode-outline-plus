@@ -31,16 +31,18 @@ async function logRegions() {
 
 ### Regions API
 
-| Method                  | Description                                             |
-| ----------------------- | ------------------------------------------------------- |
-| `getTopLevelRegions()`  | Returns a list of top-level regions in the active file. |
-| `getFlattenedRegions()` | Returns all regions in a flat, ordered list.            |
-| `getActiveRegion()`     | Returns the cursor's active region, if any.            |
+| Method                  | Description                                                             |
+| ----------------------- | ----------------------------------------------------------------------- |
+| `getTopLevelRegions()`  | Returns a list of top-level regions in the active file.                 |
+| `getFlattenedRegions()` | Returns all regions in a flat, ordered list.                            |
+| `getActiveRegion()`     | Returns the cursor's active region, if any.                             |
+| `getInvalidMarkers()`   | Returns the list of unmatched region boundary markers (`InvalidMarker[]`). |
 
-| Event                     | Description                                    |
-| ------------------------- | ---------------------------------------------- |
-| `onDidChangeRegions`      | Fires when the list of regions changes.        |
-| `onDidChangeActiveRegion` | Fires when the cursor's active region changes. |
+| Event                        | Description                                              |
+| ---------------------------- | -------------------------------------------------------- |
+| `onDidChangeRegions`         | Fires when the list of regions changes.                  |
+| `onDidChangeActiveRegion`    | Fires when the cursor's active region changes.           |
+| `onDidChangeInvalidMarkers`  | Fires when the list of invalid region markers changes.   |
 
 ### Full Outline API
 

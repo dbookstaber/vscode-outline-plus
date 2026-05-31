@@ -37,12 +37,17 @@ function goToFullTreeItem(startLineIdx: number, startCharacter: number | undefin
 
 export function makeGoToFullTreeItemCommand(
   itemType: FullTreeItemType,
-  range: vscode.Range
+  range: vscode.Range,
+  selectionRange?: vscode.Range
 ): vscode.Command {
+  // For symbols, prefer `selectionRange.start` (the name's location) over `range.start`
+  // (which for decorated definitions like Python `@staticmethod\ndef foo()` points at the
+  // decorator line, not the `def`). Regions don't supply a selectionRange.
+  const navRange = itemType === "symbol" && selectionRange !== undefined ? selectionRange : range;
   return {
     command: goToFullTreeItemCommand.id,
     title: "Go to Item",
-    arguments: [range.start.line, getTargetCharacter(itemType, range)],
+    arguments: [navRange.start.line, getTargetCharacter(itemType, navRange)],
   };
 }
 

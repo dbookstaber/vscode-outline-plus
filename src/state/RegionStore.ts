@@ -9,31 +9,6 @@ import { log } from "../utils/debugLog";
 import { getActiveRegion } from "../utils/getActiveRegion";
 
 export class RegionStore implements vscode.Disposable {
-  // #region Singleton initialization
-  private static _instance: RegionStore | undefined = undefined;
-
-  static initialize(subscriptions: vscode.Disposable[]): RegionStore {
-    if (this._instance) {
-      throw new Error("RegionStore is already initialized! Only one instance is allowed.");
-    }
-    this._instance = new RegionStore(subscriptions);
-    subscriptions.push(this._instance);
-    return this._instance;
-  }
-
-  static getInstance(): RegionStore {
-    if (!this._instance) {
-      throw new Error("RegionStore is not initialized! Call `initialize()` first.");
-    }
-    return this._instance;
-  }
-
-  /** For testing only: resets the singleton instance. */
-  static _resetInstance(): void {
-    this._instance = undefined;
-  }
-  // #endregion
-
   // #region Public properties
   private _topLevelRegions: Region[] = [];
   private _flattenedRegions: FlattenedRegion[] = [];
@@ -84,7 +59,7 @@ export class RegionStore implements vscode.Disposable {
 
   private refreshActiveRegionTimeout: NodeJS.Timeout | undefined;
 
-  private constructor(subscriptions: vscode.Disposable[]) {
+  constructor(subscriptions: vscode.Disposable[]) {
     this.registerListeners(subscriptions);
     this.debouncedRefreshRegionsAndActiveRegion();
   }
@@ -174,6 +149,16 @@ export class RegionStore implements vscode.Disposable {
       const activeDocument = vscode.window.activeTextEditor?.document;
       const activeDocumentId = activeDocument ? getDocumentId(activeDocument) : undefined;
       const versionedDocumentId = activeDocument ? getVersionedDocumentId(activeDocument) : undefined;
+
+      // Same versioned id ⇒ same doc revision ⇒ region parse guaranteed
+      // identical; skip the reparse + deep-equality walk entirely.
+      if (
+        activeDocument !== undefined &&
+        versionedDocumentId !== undefined &&
+        versionedDocumentId === this._versionedDocumentId
+      ) {
+        return;
+      }
 
       const oldFlattenedRegions = this._flattenedRegions;
       const oldInvalidMarkers = this._invalidMarkers;

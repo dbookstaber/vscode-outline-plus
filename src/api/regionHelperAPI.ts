@@ -5,7 +5,33 @@ import { type InvalidMarker } from "../lib/parseAllRegions";
 import { type Region } from "../models/Region";
 import { type FullTreeItem } from "../treeView/fullTreeView/FullTreeItem";
 
+/** Discriminates {@link OutlineItem} entries between region markers and language-server symbols. */
+export type OutlineItemKind = "region" | "symbol";
+
+/**
+ * Plain-data outline item exposed via the public API. Does NOT extend `vscode.TreeItem` —
+ * consumers should not rely on internal UI properties (icon, tooltip, collapsibleState, etc.).
+ * Only the fields declared here are guaranteed under the current `apiVersion`.
+ */
+export type OutlineItem = {
+  readonly kind: OutlineItemKind;
+  /** Display name (region name or symbol name). */
+  readonly name: string;
+  /** Source range covered by this item. */
+  readonly range: vscode.Range;
+  readonly children: readonly OutlineItem[];
+};
+
+/**
+ * Public API surface returned from `activate()`. Follows semver:
+ * - `apiVersion` major bumps on breaking changes to existing fields/methods.
+ * - Adding new fields/methods is non-breaking and does NOT bump the major.
+ *
+ * Consumers should check `apiVersion` to detect incompatible changes.
+ */
 export type OutlinePlusAPI = {
+  /** Semver-ish version of this API surface. Major bumps on breaking changes. */
+  readonly apiVersion: "1.0";
   // #region Regions API
   // #region Getters
   /** Returns an up-to-date list of top-level regions in the current active editor. This is used to
@@ -32,8 +58,10 @@ export type OutlinePlusAPI = {
   // #endregion
   // #region Full Outline API
   // #region Getters
-  getTopLevelFullOutlineItems(): FullTreeItem[];
-  getActiveFullOutlineItem(): FullTreeItem | undefined;
+  /** Returns the top-level outline items (regions + symbols, merged) for the active editor. */
+  getTopLevelFullOutlineItems(): OutlineItem[];
+  /** Returns the outline item containing the cursor in the active editor, if any. */
+  getActiveFullOutlineItem(): OutlineItem | undefined;
   // #endregion
   // #region Events
   onDidChangeFullOutlineItems: vscode.Event<void>;
@@ -41,3 +69,18 @@ export type OutlinePlusAPI = {
   // #endregion
   // #endregion
 };
+
+/**
+ * Converts an internal {@link FullTreeItem} (a `vscode.TreeItem` subclass) into the plain
+ * {@link OutlineItem} shape exposed by the public API. Strips UI-only properties (icon,
+ * tooltip, collapsibleState, contextValue, modifiers, command, label prefix, etc.) so
+ * consumers don't accidentally couple to internals.
+ */
+export function toOutlineItem(item: FullTreeItem): OutlineItem {
+  return {
+    kind: item.itemType,
+    name: item.displayName,
+    range: item.range,
+    children: item.children.map(toOutlineItem),
+  };
+}

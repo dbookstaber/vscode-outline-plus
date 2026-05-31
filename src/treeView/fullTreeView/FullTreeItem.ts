@@ -28,6 +28,7 @@ export class FullTreeItem extends vscode.TreeItem {
     id,
     displayName,
     range,
+    selectionRange,
     itemType,
     parent,
     children,
@@ -39,6 +40,8 @@ export class FullTreeItem extends vscode.TreeItem {
     id: string;
     displayName: string;
     range: vscode.Range;
+    /** For symbols, the name's range (preferred for goto). Undefined for regions. */
+    selectionRange?: vscode.Range | undefined;
     itemType: FullTreeItemType;
     parent: FullTreeItem | undefined;
     children: FullTreeItem[];
@@ -53,30 +56,43 @@ export class FullTreeItem extends vscode.TreeItem {
       modifierLabelPrefix !== undefined && modifierLabelPrefix !== ""
         ? modifierLabelPrefix + displayName
         : displayName;
-    super(label, getInitialCollapsibleState(children));
+    // Initial collapsible state is always overridden later by generateFullOutlineTreeItems
+    // (which resets to None then sets parent states) and by FullTreeViewProvider.getTreeItem.
+    super(label, vscode.TreeItemCollapsibleState.None);
     this.id = id;
     this.displayName = displayName;
     this.itemType = itemType;
     this.modifiers = modifiers ?? getDefaultModifiers();
-    this.command = makeGoToFullTreeItemCommand(itemType, range);
+    this.command = makeGoToFullTreeItemCommand(itemType, range, selectionRange);
     this.parent = parent;
     this.children = children;
     this.range = range;
     if (icon !== undefined) this.iconPath = icon;
 
-    // Enhanced tooltip with modifier information
-    const baseTooltip = `${displayName}: ${getRangeText(range)}`;
-    this.tooltip = createModifierTooltip(baseTooltip, this.modifiers);
-
     // Description appears to the right of the label
     if (modifierDescription !== undefined && modifierDescription !== "") {
       this.description = modifierDescription;
     }
-  }
-}
 
-function getInitialCollapsibleState(children: FullTreeItem[]): vscode.TreeItemCollapsibleState {
-  return children.length > 0
-    ? vscode.TreeItemCollapsibleState.Expanded
-    : vscode.TreeItemCollapsibleState.None;
+    // Lazy tooltip: VS Code reads tooltip on hover; createModifierTooltip
+    // builds a MarkdownString — wasted work for items never hovered.
+    // Defined as an own-property accessor via defineProperty since TS forbids
+    // overriding the base class's `tooltip` data property with an accessor.
+    const resolvedModifiers = this.modifiers;
+    let cachedTooltip: string | vscode.MarkdownString | undefined;
+    Object.defineProperty(this, "tooltip", {
+      configurable: true,
+      enumerable: true,
+      get(): string | vscode.MarkdownString {
+        if (cachedTooltip === undefined) {
+          const baseTooltip = `${displayName}: ${getRangeText(range)}`;
+          cachedTooltip = createModifierTooltip(baseTooltip, resolvedModifiers);
+        }
+        return cachedTooltip;
+      },
+      set(value: string | vscode.MarkdownString | undefined) {
+        cachedTooltip = value;
+      },
+    });
+  }
 }

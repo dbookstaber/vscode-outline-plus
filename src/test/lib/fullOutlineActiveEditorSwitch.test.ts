@@ -1,7 +1,6 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { type OutlinePlusAPI } from "../../api/regionHelperAPI";
-import { type FullTreeItem } from "../../treeView/fullTreeView/FullTreeItem";
+import { type OutlineItem, type OutlinePlusAPI } from "../../api/regionHelperAPI";
 import { openSampleDocument } from "../utils/openSampleDocument";
 import { delay, waitForCondition } from "../utils/waitForEvent";
 
@@ -62,11 +61,11 @@ suite("Full Outline Active Editor Switch", function() {
   }
 
   /**
-   * Recursively flatten all FullTreeItems (depth-first).
+   * Recursively flatten all OutlineItems (depth-first).
    */
-  function flattenOutlineItems(): FullTreeItem[] {
-    const result: FullTreeItem[] = [];
-    function walk(items: FullTreeItem[]): void {
+  function flattenOutlineItems(): OutlineItem[] {
+    const result: OutlineItem[] = [];
+    function walk(items: readonly OutlineItem[]): void {
       for (const item of items) {
         result.push(item);
         if (item.children.length > 0) {
@@ -86,7 +85,7 @@ suite("Full Outline Active Editor Switch", function() {
    */
   async function waitForOutlineContaining(regionName: string, timeoutMs = 5000): Promise<void> {
     await waitForCondition(
-      () => flattenOutlineItems().some((i) => i.displayName === regionName),
+      () => flattenOutlineItems().some((i) => i.name === regionName),
       timeoutMs,
       100
     );
@@ -204,11 +203,11 @@ suite("Full Outline Active Editor Switch", function() {
 
     // Wait for active item to reflect the new file's context
     // The active item should either be undefined (if not resolved yet)
-    // or have a different displayName than doc1's active item
+    // or have a different name than doc1's active item
     await waitForCondition(
       () => {
         const active = regionHelperAPI.getActiveFullOutlineItem();
-        return active !== undefined && active.displayName !== activeItem1.displayName;
+        return active !== undefined && active.name !== activeItem1.name;
       },
       5000,
       50
@@ -217,8 +216,8 @@ suite("Full Outline Active Editor Switch", function() {
     const activeItem2 = regionHelperAPI.getActiveFullOutlineItem();
     assert.ok(activeItem2 !== undefined, "Should have an active item in second document");
     assert.notStrictEqual(
-      activeItem2.displayName,
-      activeItem1.displayName,
+      activeItem2.name,
+      activeItem1.name,
       "Active items should have different display names when switching files"
     );
   });
@@ -310,7 +309,7 @@ suite("Full Outline Active Editor Switch", function() {
     await waitForCondition(
       () => {
         const active = regionHelperAPI.getActiveFullOutlineItem();
-        return active !== undefined && active.displayName !== activeItem1.displayName;
+        return active !== undefined && active.name !== activeItem1.name;
       },
       5000,
       100
@@ -326,7 +325,7 @@ suite("Full Outline Active Editor Switch", function() {
     await waitForCondition(
       () => {
         const active = regionHelperAPI.getActiveFullOutlineItem();
-        return active?.displayName === activeItem1.displayName;
+        return active?.name === activeItem1.name;
       },
       5000,
       100
@@ -335,9 +334,9 @@ suite("Full Outline Active Editor Switch", function() {
     const activeItemBack = regionHelperAPI.getActiveFullOutlineItem();
     assert.ok(activeItemBack !== undefined, "Should have active item after switching back to doc1");
     assert.strictEqual(
-      activeItemBack.displayName,
-      activeItem1.displayName,
-      "Active item displayName should match doc1's context after switching back"
+      activeItemBack.name,
+      activeItem1.name,
+      "Active item name should match doc1's context after switching back"
     );
   });
 
@@ -369,7 +368,7 @@ suite("Full Outline Active Editor Switch", function() {
 
     // Sanity: the outline has the TS file's "Imports" region.
     const itemsBeforeSwitch = flattenOutlineItems();
-    const hasImports = itemsBeforeSwitch.some((i) => i.displayName === "Imports");
+    const hasImports = itemsBeforeSwitch.some((i) => i.name === "Imports");
     assert.ok(hasImports, "Pre-switch outline must contain TS region 'Imports'");
 
     // --- Step 2: switch to the Stata sample (kylebarron.stata-enhanced
@@ -391,7 +390,7 @@ suite("Full Outline Active Editor Switch", function() {
     // --- Step 4: verify the outline does NOT contain stale items from doc1. ---
     const itemsAfterSwitch = flattenOutlineItems();
     const stillHasImports = itemsAfterSwitch.some(
-      (i) => i.displayName === "Imports"
+      (i) => i.name === "Imports"
     );
     assert.strictEqual(
       stillHasImports,
@@ -400,7 +399,7 @@ suite("Full Outline Active Editor Switch", function() {
     );
 
     const hasFirstRegion = itemsAfterSwitch.some(
-      (i) => i.displayName === "FirstRegion"
+      (i) => i.name === "FirstRegion"
     );
     assert.ok(hasFirstRegion, "Post-switch outline should contain Stata 'FirstRegion'");
   });
@@ -419,11 +418,11 @@ suite("Full Outline Active Editor Switch", function() {
 
     const items = flattenOutlineItems();
     assert.ok(
-      items.some((i) => i.displayName === "Imports"),
+      items.some((i) => i.name === "Imports"),
       "After switching back to TS the outline should contain TS regions"
     );
     assert.strictEqual(
-      items.some((i) => i.displayName === "FirstRegion"),
+      items.some((i) => i.name === "FirstRegion"),
       false,
       "Stata regions must not leak into the TS outline"
     );

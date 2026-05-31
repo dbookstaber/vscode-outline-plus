@@ -3,7 +3,6 @@ import { getDocumentIdFromUri } from "../lib/getVersionedDocumentId";
 import { debounce } from "../utils/debounce";
 import { log, logError } from "../utils/debugLog";
 import { throwNever } from "../utils/errorUtils";
-import { isEmptyObject } from "../utils/objectUtils";
 
 const CLEAN_IDS_AND_MAYBE_SWITCH_MODE_DEBOUNCE_DELAY_MS = 2000;
 const SAVE_TO_WORKSPACE_STATE_DEBOUNCE_DELAY_MS = 15000;
@@ -313,7 +312,7 @@ export class CollapsibleStateManager implements vscode.Disposable {
         }
         serializedStoreByDocId[docId] = { storageMode, itemIds: Array.from(itemIds) };
       }
-      if (isEmptyObject(serializedStoreByDocId)) {
+      if (Object.keys(serializedStoreByDocId).length === 0) {
         await this.workspaceState.update(this.storageKey, undefined);
         return;
       }

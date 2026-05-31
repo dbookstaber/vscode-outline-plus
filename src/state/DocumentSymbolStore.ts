@@ -49,29 +49,6 @@ function getRetryDelayMs(attemptIdx: number): number {
 }
 
 export class DocumentSymbolStore implements vscode.Disposable {
-  private static _instance: DocumentSymbolStore | undefined = undefined;
-
-  static initialize(subscriptions: vscode.Disposable[]): DocumentSymbolStore {
-    if (this._instance) {
-      throw new Error("DocumentSymbolStore is already initialized! Only one instance is allowed.");
-    }
-    this._instance = new DocumentSymbolStore(subscriptions);
-    subscriptions.push(this._instance);
-    return this._instance;
-  }
-
-  static getInstance(): DocumentSymbolStore {
-    if (!this._instance) {
-      throw new Error("DocumentSymbolStore is not initialized! Call `initialize()` first.");
-    }
-    return this._instance;
-  }
-
-  /** For testing only: resets the singleton instance. */
-  static _resetInstance(): void {
-    this._instance = undefined;
-  }
-
   private _documentSymbols: vscode.DocumentSymbol[] = [];
   private _flattenedDocumentSymbols: vscode.DocumentSymbol[] = [];
   private _onDidChangeDocumentSymbols = new vscode.EventEmitter<void>();
@@ -99,7 +76,7 @@ export class DocumentSymbolStore implements vscode.Disposable {
     (document: vscode.TextDocument | undefined) => void
   > = debounce(this.refreshDocumentSymbols.bind(this), DEBOUNCE_DOCUMENT_PARSE_MS);
 
-  private constructor(subscriptions: vscode.Disposable[]) {
+  constructor(subscriptions: vscode.Disposable[]) {
     this.registerListeners(subscriptions);
     if (vscode.window.activeTextEditor?.document) {
       this.debouncedRefreshDocumentSymbols(vscode.window.activeTextEditor.document);
@@ -284,6 +261,16 @@ export class DocumentSymbolStore implements vscode.Disposable {
         return;
       }
       sortSymbolsRecursivelyByStart(documentSymbols); // By default, `executeDocumentSymbolProvider` returns symbols ordered by name
+
+      // Short-circuit: if we already have symbols stored for this exact
+      // versioned id, the new fetch is guaranteed identical. Skip the
+      // deep-equality walk + replacement. We must still allow the path
+      // through when `_documentSymbols` is empty (the URI-change branch
+      // above eagerly advances `_versionedDocumentId` before symbols
+      // arrive — without this guard the first real fetch would be dropped).
+      if (this._versionedDocumentId === versionedDocumentId && this._documentSymbols.length > 0) {
+        return;
+      }
 
       const oldDocumentSymbols = this._documentSymbols;
       this._versionedDocumentId = versionedDocumentId;

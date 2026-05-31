@@ -22,7 +22,7 @@
   },
   "icon": "assets/icon.png",
   "license": "GPL-3.0-only",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "engines": {
     "vscode": "^1.94.0"
   },
@@ -44,7 +44,7 @@
     "code-structure"
   ],
   "activationEvents": [
-    "onLanguage"
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -637,8 +637,9 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile && npm run lint",
+    "vscode:prepublish": "npm run pretest && npm run test && npm run compile:prod",
     "compile": "webpack --config webpack.config.ts",
+    "compile:prod": "webpack --config webpack.config.ts --mode=production",
     "watch": "webpack --config webpack.config.ts --watch",
     "compile-tests": "npx rimraf dist-tests && webpack --config webpack.test.config.ts",
     "watch-tests": "webpack --config webpack.test.config.ts --watch",

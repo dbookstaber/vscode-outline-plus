@@ -1,8 +1,13 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
 import { type OutlinePlusAPI } from "../../api/regionHelperAPI";
+import { DEBOUNCE_DOCUMENT_PARSE_MS } from "../../constants";
 import { openSampleDocument } from "../utils/openSampleDocument";
 import { delay, waitForCondition } from "../utils/waitForEvent";
+
+// Settle window must exceed one full parse-debounce so any spurious event
+// would have had time to fire before we assert `count === 0`.
+const POST_DEBOUNCE_SETTLE_MS = DEBOUNCE_DOCUMENT_PARSE_MS + 150;
 
 /**
  * Tests for event firing precision optimization.
@@ -122,8 +127,20 @@ suite("Event Firing Precision", function() {
         // We'll modify this line without changing line count
         await replaceTextAtLine(5, "// import { ModifiedModule } from \"example\";");
 
-        // Wait for any potential event firing (debounce is 100ms)
-        await delay(400);
+        // Poll until the document text reflects the edit AND the debounced
+        // parse cycle has had a chance to run. The assertion below is that
+        // counter.count stayed at 0; we wait for the conditions that would
+        // have caused the event to fire (region structure change) to be
+        // observably stable before checking.
+        await waitForCondition(
+          () => editor.document.lineAt(5).text.includes("ModifiedModule"),
+          2000,
+          25
+        );
+        // Allow one full debounce window past the edit so any spurious
+        // event would have fired by now. Plain `delay(150)` is shorter than
+        // the parse debounce and would let a real event slip past unobserved.
+        await delay(POST_DEBOUNCE_SETTLE_MS);
 
         // The event should NOT have fired since region structure is unchanged
         // (same regions, same line numbers, just different content within)
@@ -299,10 +316,18 @@ suite("Event Firing Precision", function() {
 
         counter.reset();
 
+        const linesBefore = editor.document.lineCount;
         // Edit inside a region (not creating any invalid state)
         await insertTextAtPosition("// harmless comment\n", 5, 0);
 
-        await delay(300);
+        // Wait for the edit to land plus one debounce window so any
+        // spurious event would have fired by now.
+        await waitForCondition(
+          () => editor.document.lineCount > linesBefore,
+          2000,
+          25
+        );
+        await delay(POST_DEBOUNCE_SETTLE_MS);
 
         assert.strictEqual(
           counter.count,

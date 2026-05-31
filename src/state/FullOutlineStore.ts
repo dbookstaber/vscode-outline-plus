@@ -5,8 +5,8 @@ import { type FullTreeItem } from "../treeView/fullTreeView/FullTreeItem";
 import { generateFullOutlineTreeItems } from "../treeView/fullTreeView/generateTopLevelFullTreeItems";
 import { getActiveFullTreeItem } from "../treeView/fullTreeView/getActiveFullTreeItem";
 import {
-    getFlattenedRegionFullTreeItems,
-    getFlattenedSymbolFullTreeItems,
+  getFlattenedRegionFullTreeItems,
+  getFlattenedSymbolFullTreeItems,
 } from "../treeView/fullTreeView/getFlattenedFullTreeItems";
 import { type DebouncedFunction, debounce } from "../utils/debounce";
 import { log } from "../utils/debugLog";
@@ -15,41 +15,6 @@ import { type DocumentSymbolStore } from "./DocumentSymbolStore";
 import { type RegionStore } from "./RegionStore";
 
 export class FullOutlineStore implements vscode.Disposable {
-  // #region Singleton initialization
-  private static _instance: FullOutlineStore | undefined = undefined;
-
-  static initialize(
-    regionStore: RegionStore,
-    documentSymbolStore: DocumentSymbolStore,
-    collapsibleStateManager: CollapsibleStateManager,
-    subscriptions: vscode.Disposable[]
-  ): FullOutlineStore {
-    if (this._instance) {
-      throw new Error("FullOutlineStore is already initialized! Only one instance is allowed.");
-    }
-    this._instance = new FullOutlineStore(
-      regionStore,
-      documentSymbolStore,
-      collapsibleStateManager,
-      subscriptions
-    );
-    subscriptions.push(this._instance);
-    return this._instance;
-  }
-
-  static getInstance(): FullOutlineStore {
-    if (!this._instance) {
-      throw new Error("FullOutlineStore is not initialized! Call `initialize()` first.");
-    }
-    return this._instance;
-  }
-
-  /** For testing only: resets the singleton instance. */
-  static _resetInstance(): void {
-    this._instance = undefined;
-  }
-  // #endregion
-
   // #region Public properties
   private _topLevelItems: FullTreeItem[] = [];
   private _onDidChangeFullOutlineItems = new vscode.EventEmitter<void>();
@@ -99,7 +64,7 @@ export class FullOutlineStore implements vscode.Disposable {
 
   private refreshActiveItemTimeout: NodeJS.Timeout | undefined;
 
-  private constructor(
+  constructor(
     private regionStore: RegionStore,
     private documentSymbolStore: DocumentSymbolStore,
     private collapsibleStateManager: CollapsibleStateManager,
@@ -119,14 +84,20 @@ export class FullOutlineStore implements vscode.Disposable {
   /**
    * Forces a complete refresh of both underlying stores and the full outline.
    * This is the nuclear option for recovering from stuck/stale state.
+   *
+   * We do NOT synchronously call `refreshFullOutline()` here. Both store
+   * `forceRefresh()` calls fire `onDidChange*` events that trigger
+   * `debouncedRefreshFullOutline`; running a sync refresh in between would
+   * proceed with stale symbol data (DocumentSymbolStore's fetch is async),
+   * fire `onDidChangeFullOutlineItems`, then fire again when the symbols
+   * arrive — a double-fire visible as two tree refreshes on each Refresh
+   * button click. Relying on the event chain gives one refresh with current
+   * data once both stores have settled.
    */
   forceRefresh(): void {
+    this.debouncedRefreshFullOutline.cancel();
     this.regionStore.forceRefresh();
     this.documentSymbolStore.forceRefresh();
-    // The above fire events that trigger debouncedRefreshFullOutline, but we also
-    // schedule an immediate refresh in case events don't propagate fast enough.
-    this.debouncedRefreshFullOutline.cancel();
-    this.refreshFullOutline();
   }
 
   private registerListeners(subscriptions: vscode.Disposable[]): void {
@@ -227,9 +198,18 @@ export class FullOutlineStore implements vscode.Disposable {
         collapsibleStateManager: this.collapsibleStateManager,
         documentId: this._documentId,
       });
+      const oldTopLevelItems = this._topLevelItems;
       this._topLevelItems = topLevelItems;
       this._allParentIds = allParentIds;
-      this._onDidChangeFullOutlineItems.fire();
+      // Mirror RegionStore's change-detection: skip the event when the
+      // recomputed outline is structurally identical. Without this, every
+      // debounced edit-tick fires a tree refresh even when nothing the
+      // user cares about changed (e.g. a no-op reparse after a transient
+      // versionedDocumentId mismatch). VS Code re-runs getChildren +
+      // getTreeItem on every node when the event fires.
+      if (didTopLevelItemsChange(oldTopLevelItems, topLevelItems)) {
+        this._onDidChangeFullOutlineItems.fire();
+      }
     } finally {
       this.isRefreshingItems = false;
     }
@@ -285,6 +265,49 @@ export class FullOutlineStore implements vscode.Disposable {
  */
 function sortFullTreeItemsByStart(items: FullTreeItem[]): void {
   items.sort((a, b) => a.range.start.compareTo(b.range.start));
+}
+
+/**
+ * Recursive structural equality on the tree: id, displayName, range, and
+ * children. We need to walk into children because nested edits (e.g. a
+ * symbol added inside a class) are invisible from the top level alone.
+ * Items are rebuilt from scratch on every refresh, so reference equality
+ * never holds — this comparison is on content only.
+ *
+ * Level-2 granular firing (only invalidating the changed subtree) would
+ * require reusing item references when content matches; deferred — see
+ * v1.0.5 perf-improvements notes.
+ */
+function didTopLevelItemsChange(
+  oldItems: FullTreeItem[],
+  newItems: FullTreeItem[]
+): boolean {
+  if (oldItems.length !== newItems.length) {
+    return true;
+  }
+  for (let i = 0; i < oldItems.length; i++) {
+    const oldItem = oldItems[i];
+    const newItem = newItems[i];
+    if (oldItem === undefined || newItem === undefined) {
+      return true;
+    }
+    if (!areFullTreeItemsEqual(oldItem, newItem)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function areFullTreeItemsEqual(a: FullTreeItem, b: FullTreeItem): boolean {
+  if (
+    a.id !== b.id ||
+    a.displayName !== b.displayName ||
+    a.itemType !== b.itemType ||
+    !a.range.isEqual(b.range)
+  ) {
+    return false;
+  }
+  return !didTopLevelItemsChange(a.children, b.children);
 }
 
 // #endregion

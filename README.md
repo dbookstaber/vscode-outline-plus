@@ -29,14 +29,14 @@ A Visual Studio Code extension for navigating, visualizing, and managing code re
    1. [Regions View](#regions-view)
    2. [Full Outline View](#full-outline-view)
    3. [Modifier-Aware Icons](#modifier-aware-icons)
-   4. [Region Diagnostics](#️region-diagnostics)
+   4. [Region Diagnostics](#region-diagnostics)
    5. [Go to Region...](#go-to-region)
    6. [Go to Region Boundary](#go-to-region-boundary)
-   7. [Go to Next / Previous Region](#go-to-next--previous-region)
+   7. [Go to Next / Previous Region](#go-to-next-previous-region)
    8. [Select Current Region](#select-current-region)
-4. [Settings](#️settings)
-   1. [Show/Hide Views](#showhide-views)
-   2. [Toggling Auto-Highlighting in Views](#toggling-auto-highlightingrevealing-in-tree-views)
+4. [Settings](#settings)
+   1. [Show/Hide Views](#show-hide-views)
+   2. [Toggling Auto-Highlighting in Views](#toggling-auto-highlighting)
    3. [Modifier Display Settings](#modifier-display-settings)
    4. [Custom Region Patterns](#custom-region-patterns)
 5. [Troubleshooting](#troubleshooting)
@@ -109,12 +109,14 @@ Controlled by `outlinePlus.fullOutlineView.modifierDisplay`:
 > **Tooltips** are always enhanced to show `[modifier list] SymbolName: line range`, regardless of display mode.
 
 
+<a id="region-diagnostics"></a>
 ### Region Diagnostics
 
 - Detects **unmatched region boundaries** and adds warnings in both the editor (blue squiggles) and the Problems panel, helping you **catch incomplete or misplaced** regions quickly.
 
 ![Region Diagnostics Demo](./assets/readme-gifs/3-diagnostics.gif)
 
+<a id="go-to-region"></a>
 ### Go to Region...
 
 - Like VSCode’s built-in **"Go to Symbol..."**, but for regions:
@@ -134,6 +136,7 @@ Controlled by `outlinePlus.fullOutlineView.modifierDisplay`:
 
 ![Go to Region Boundary Demo](./assets/readme-gifs/5-go-to-boundary.gif)
 
+<a id="go-to-next-previous-region"></a>
 ### Go to Next / Previous Region
 
 - Jumps to the **next or previous region** in the file.
@@ -150,8 +153,10 @@ Controlled by `outlinePlus.fullOutlineView.modifierDisplay`:
 
 ![Select Current Region Demo](./assets/readme-gifs/7-select-region.gif)
 
+<a id="settings"></a>
 ## Settings
 
+<a id="show-hide-views"></a>
 ### Show/Hide Views
 
 To quickly show or hide the **Regions** or **Full Outline** views, you can use the following commands and associated settings:
@@ -163,6 +168,7 @@ To quickly show or hide the **Regions** or **Full Outline** views, you can use t
   - Commands: `Show Full Outline View` / `Hide Full Outline View`
   - Setting: `outlinePlus.fullOutlineView.isVisible`
 
+<a id="toggling-auto-highlighting"></a>
 ### Toggling Auto-Highlighting/Revealing in Tree Views
 
 - By default, the Regions and Full Outline views will **automatically reveal and highlight** the cursor's active region or symbol as you navigate the editor.

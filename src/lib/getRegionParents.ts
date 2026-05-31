@@ -6,9 +6,11 @@ import { type Region } from "../models/Region";
 export function getRegionParents(region: Region): Region[] {
   const parents = [];
   let { parent } = region;
+  // Push then reverse: O(n) total vs. O(n²) for repeated unshift on deep nests.
   while (parent) {
-    parents.unshift(parent);
+    parents.push(parent);
     parent = parent.parent;
   }
+  parents.reverse();
   return parents;
 }

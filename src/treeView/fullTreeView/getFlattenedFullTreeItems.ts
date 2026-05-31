@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import { getExtensionPath } from "../../config/extensionContext";
 import { getGlobalFullOutlineViewConfigValue } from "../../config/fullOutlineViewConfig";
 import { getRegionDisplayName } from "../../lib/getRegionDisplayInfo";
-import { getRegionRange } from "../../lib/getRegionRange";
 import {
     createModifierAwareIcon,
     createModifierDescription,
@@ -35,7 +34,7 @@ export function getFlattenedRegionFullTreeItems(flattenedRegions: Region[]): Ful
     return getFlattenedFullTreeItem({
       id,
       displayName,
-      range: getRegionRange(region),
+      range: region.range,
       itemType,
       icon: new vscode.ThemeIcon("symbol-namespace"),
       modifiers: getDefaultModifiers(),
@@ -108,6 +107,7 @@ export function getFlattenedSymbolFullTreeItems(
       id,
       displayName: symbol.name,
       range: symbol.range,
+      selectionRange: symbol.selectionRange,
       itemType: "symbol",
       icon,
       modifiers,
@@ -179,6 +179,7 @@ function getFlattenedFullTreeItem({
   itemType,
   displayName,
   range,
+  selectionRange,
   icon,
   modifiers,
   modifierLabelPrefix,
@@ -188,6 +189,7 @@ function getFlattenedFullTreeItem({
   itemType: FullTreeItemType;
   displayName: string;
   range: vscode.Range;
+  selectionRange?: vscode.Range | undefined;
   icon: TreeItemIcon;
   modifiers: SymbolModifiers;
   modifierLabelPrefix?: string | undefined;
@@ -199,6 +201,7 @@ function getFlattenedFullTreeItem({
     id,
     displayName,
     range,
+    selectionRange,
     itemType,
     parent,
     children,

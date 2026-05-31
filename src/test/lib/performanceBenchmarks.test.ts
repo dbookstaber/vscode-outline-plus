@@ -11,6 +11,7 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
 import { type OutlinePlusAPI } from "../../api/regionHelperAPI";
+import { DEBOUNCE_DOCUMENT_PARSE_MS } from "../../constants";
 import { flattenRegionsAndCountParents } from "../../lib/flattenRegions";
 import { parseAllRegions } from "../../lib/parseAllRegions";
 import { generateLargeTestFile, printEventCountResults, type EventCountResult } from "../utils/benchmarkUtils";
@@ -24,9 +25,10 @@ function wait(ms: number): Promise<void> {
 
 /**
  * Wait time for debounced operations to settle.
- * Must exceed DEBOUNCE_DOCUMENT_PARSE_MS (250ms) + a buffer for execution.
+ * Derived from DEBOUNCE_DOCUMENT_PARSE_MS so a future debounce tweak does
+ * not silently break this test.
  */
-const DEBOUNCE_SETTLE_MS = 400;
+const DEBOUNCE_SETTLE_MS = DEBOUNCE_DOCUMENT_PARSE_MS + 150;
 
 suite("Performance Benchmarks", () => {
   const timeout = 60000; // 60 second timeout for performance tests
@@ -95,10 +97,13 @@ suite("Performance Benchmarks", () => {
   });
 
   /**
-   * Test event firing precision - how many events fire vs edits made.
-   * This tests the optimized event firing in RegionStore.
+   * Regression smoke test — events should fire only occasionally during
+   * rapid edits (not on every keystroke). Strict precision (event count
+   * exactly zero when region structure is unchanged) is verified in
+   * eventFiringPrecision.test.ts; this test just guards against an
+   * obvious regression where every edit fires an event.
    */
-  test("Event firing precision - identical content edits", async function () {
+  test("Regression smoke — events should fire occasionally during rapid edits", async function () {
     this.timeout(timeout);
 
     const content = `

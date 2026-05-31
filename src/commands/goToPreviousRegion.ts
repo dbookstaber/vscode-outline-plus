@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import { CMD_GO_TO_PREVIOUS_REGION } from "../constants";
 import { getPreviousRegion } from "../lib/getPreviousRegion";
 import { moveCursorToRegion } from "../lib/moveCursorToRegion";
-import { getActiveCursorLineIdx } from "../utils/getActiveCursorLineIdx";
 import {
     type OutlinePlusClosuredCommand,
     type OutlinePlusClosuredParams,
@@ -20,7 +19,7 @@ function goToPreviousRegion({ regionStore }: OutlinePlusClosuredParams): void {
   if (!activeTextEditor) {
     return;
   }
-  const cursorLineIdx = getActiveCursorLineIdx(activeTextEditor);
+  const cursorLineIdx = activeTextEditor.selection.active.line;
   const maybePreviousRegion = getPreviousRegion(flattenedRegions, cursorLineIdx);
   if (!maybePreviousRegion) {
     return;

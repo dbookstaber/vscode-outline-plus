@@ -4,6 +4,45 @@ All notable changes to the Outline++ extension will be documented in this file.
 
 This changelog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is structured for clarity and readability, inspired by [Common Changelog](https://common-changelog.org/) and [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+---
+
+## [1.0.5] - 2026-05-31
+
+### Performance
+- Region tree refresh skips when the parsed region structure is identical (`FullOutlineStore.refreshItems` now mirrors `RegionStore`'s change-check). Eliminates redundant tree invalidations on every debounced edit when nothing the user cares about changed.
+- `parseAllRegions` now reads the document via a single `getText().split(/\r?\n/)` instead of allocating a `TextLine` per line via `document.lineAt(i)`. Saves hundreds of thousands of allocations on large files.
+- `parseAllRegions` bails out above 100,000 lines (logs to the debug channel). Prevents the host from stalling past the parse-debounce window on very large generated files.
+- `RegionStore.refreshRegions` and `DocumentSymbolStore.refreshDocumentSymbols` short-circuit when the new `versionedDocumentId` matches the cached one — same document version means identical results, so the parse + deep-equality walk are skipped.
+- SVG modifier icons are memoized at module scope; previously each symbol allocated a fresh `vscode.Uri.file(...)` per refresh even though only ~18 distinct icon combinations exist.
+- `getRegionParents` switched from `unshift`-in-loop (O(n²)) to `push` + final `.reverse()` (O(n)) — relevant for deeply nested region trees.
+- Tooltips on `RegionTreeItem` and `FullTreeItem` are now built lazily via an instance accessor; constructors no longer eagerly compute tooltip strings for items the user never hovers.
+- `FullOutlineStore.forceRefresh` no longer runs a synchronous `refreshFullOutline` in addition to triggering the store force-refreshes. The Refresh title-bar button used to double-fire the tree refresh; it now fires once with current data.
+- Webpack `vscode:prepublish` now runs in production mode (minified). Published `dist/extension.js` is ~58% smaller (266 KB → 112 KB).
+
+### Changed
+- Internal API hardening: `getTopLevelFullOutlineItems()` and `getActiveFullOutlineItem()` now return a plain-data `OutlineItem` shape (`{ kind, name, range, children }`) instead of leaking the internal `FullTreeItem` UI class. Field rename: `displayName` → `name`.
+- `goToFullTreeItem` now jumps to `selectionRange.start` instead of `range.start` for symbol-backed items. For decorator-heavy Python (`@staticmethod\ndef foo():`), the cursor lands on the `def foo` line rather than the decorator above it.
+- `activationEvents` narrowed from `["onLanguage"]` (effectively `*` — activated on every language file open) to `["onStartupFinished"]`. The extension now activates once after VS Code finishes startup rather than on each editor session.
+- `vscode:prepublish` now runs `npm run pretest && npm run test && npm run compile:prod` so failing tests block `vsce publish`.
+
+### Internal
+- Removed the hybrid singleton pattern (`_instance`, `getInstance`, `_resetInstance`, static `initialize`) from `RegionStore`, `DocumentSymbolStore`, and `FullOutlineStore`. Stores are now plain classes with public constructors and constructor injection.
+- Dead code cleanup: removed `src/lib/getRegionRange.ts`, `src/utils/getActiveCursorLineIdx.ts`, `src/utils/timeoutUtils.ts`, `src/utils/objectUtils.ts`, and the unreachable `getInitialCollapsibleState` branch in `FullTreeItem`.
+
+### Documentation
+- README Table of Contents anchors are now stable across GitHub's slugifier (added explicit `<a id="..."></a>` anchors before headings containing emoji).
+- `docs/API.md` now documents `getInvalidMarkers()` and `onDidChangeInvalidMarkers`.
+
+### Tests
+- Replaced fixed-delay flake patterns with `waitForCondition` polling in `eventFiringPrecision.test.ts` and `getPreviousRegion.test.ts`.
+- `performanceBenchmarks.test.ts` and `regionsViewAutoHide.test.ts` derive their settle windows from `DEBOUNCE_DOCUMENT_PARSE_MS` so a future debounce tune doesn't silently break them.
+- `regionsViewAutoHide.test.ts` snapshots Global settings in `suiteSetup` and restores them in `suiteTeardown` as a safety net against tests that throw before per-suite teardown.
+- New regression tests:
+  - Two `Full Outline Active Editor Switch` tests for the Stata `.do` no-symbol-provider scenario (round-trip TS ↔ Stata).
+  - Two `DocumentSymbolStore` tests for no-provider document switching.
+
+---
+
 ## [1.0.4] - 2026-05-30
 
 ### Added
@@ -28,6 +67,8 @@ This changelog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Documentation
 - Added Acknowledgements section to README crediting [vscode-region-helper](https://github.com/alythobani/vscode-region-helper) as the upstream project from which Outline++ was forked.
+
+---
 
 ## [1.0.2] - 2026-04-19
 

@@ -83,14 +83,14 @@ suite("DocumentSymbolStore: no-symbol-provider document switching", function () 
     await waitForCondition(
       () => {
         const items = outlinePlusAPI.getTopLevelFullOutlineItems();
-        return items.some((i) => i.displayName === "FirstRegion");
+        return items.some((i) => i.name === "FirstRegion");
       },
       6000,
       100
     );
 
     const items = outlinePlusAPI.getTopLevelFullOutlineItems();
-    const names = items.map((i) => i.displayName);
+    const names = items.map((i) => i.name);
     assert.ok(
       names.includes("FirstRegion"),
       `Outline should include 'FirstRegion'; got: ${JSON.stringify(names)}`

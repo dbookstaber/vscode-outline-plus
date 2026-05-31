@@ -5,6 +5,7 @@ import { getPreviousRegion } from "../../lib/getPreviousRegion";
 import { type Region } from "../../models/Region";
 import { assertExists } from "../../utils/assertUtils";
 import { openSampleDocument } from "../utils/openSampleDocument";
+import { waitForCondition } from "../utils/waitForEvent";
 
 type RegionNameAndLine = {
   name: string | undefined;
@@ -52,16 +53,17 @@ suite("getPreviousRegion", () => {
   setup(async () => {
     // Ensure the sample document is active before each test
     await vscode.window.showTextDocument(sampleDocument);
-    // Wait for regions to be parsed
-    await new Promise<void>((resolve) => setTimeout(resolve, 400));
-    if (regionHelperAPI.getTopLevelRegions().length === 0) {
-      await new Promise<void>((resolve) => {
-        const disposable = regionHelperAPI.onDidChangeRegions(() => {
-          disposable.dispose();
-          resolve();
-        });
-      });
-    }
+    // Wait until regions for THIS sample have been parsed. The prior test
+    // may have left a different document's regions in the API, so polling
+    // on length>0 isn't sufficient — assert the expected first region too.
+    await waitForCondition(
+      () => {
+        const regions = regionHelperAPI.getTopLevelRegions();
+        return regions.length > 0 && regions[0]?.name === importsRegion.name;
+      },
+      3000,
+      50
+    );
   });
 
   async function openAndShowSampleDocument(sampleFileName: string): Promise<void> {
