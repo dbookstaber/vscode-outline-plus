@@ -42,8 +42,7 @@ A Visual Studio Code extension for navigating, visualizing, and managing code re
 5. [Troubleshooting](#troubleshooting)
    1. [Manual Refresh](#manual-refresh)
    2. [Debug Logging](#debug-logging)
-6. [Extension API](#extension-api)
-7. [Known Limitations](#known-limitations)
+6. [Known Limitations](#known-limitations)
 
 ## Detailed Features
 
@@ -211,21 +210,14 @@ If the outline gets stuck or stops updating, you can capture diagnostic informat
 
 The log captures editor switches, symbol fetches, discarded stale fetches, and version mismatches — all the data needed to diagnose refresh issues.
 
-## Extension API
-
-Outline++ provides an API for accessing **parsed code regions** and **full outline symbols** programmatically. You can use it to build your own VS Code extension without worrying about writing a region parser from scratch!
-
-**See the full [API documentation](./docs/API.md) for details and examples.**
-
-
 ## Known Limitations
 
 See [detailed limitations](./docs/LIMITATIONS.md) in docs.  Some salient limitations:
 
 - **Go to Region...** only supports **camelCase matching** (not full fuzzy search) due to a [VSCode API limitation](https://github.com/microsoft/vscode/issues/34088#issuecomment-328734452).
-- The  **Regions** and **Full Outline** tree views **always highlight the cursor's last active item**, even when outside any region/symbol ([another VSCode API limitation](https://github.com/microsoft/vscode/issues/48754)).
+- The  **Regions** and **Outline++** tree views **always highlight the cursor's last active item**, even when outside any region/symbol ([another VSCode API limitation](https://github.com/microsoft/vscode/issues/48754)).
 - **Modifier extraction** relies on parsing the document text to match language-specific keyword patterns. It does not use the Language Server Protocol's symbol tags (which are not yet widely supported). This means modifier detection may be imperfect for complex or unusual code patterns.
 
 ## Acknowledgements
 
-Outline++ builds on [vscode-region-helper](https://github.com/alythobani/vscode-region-helper) (GPL-3.0), forked 2025-12-21. The region-navigation features, tree views and extension API originated there.  Demo GIFs in this README are from the upstream project.
+Outline++ builds on [vscode-region-helper](https://github.com/alythobani/vscode-region-helper) (GPL-3.0), forked 2025-12-21. The region-navigation features and tree views originated there.  Demo GIFs in this README are from the upstream project.

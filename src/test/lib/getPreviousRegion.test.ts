@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { type OutlinePlusAPI } from "../../api/regionHelperAPI";
+import { type OutlineInternalAPI } from "../../api/regionHelperAPI";
 import { getPreviousRegion } from "../../lib/getPreviousRegion";
 import { type Region } from "../../models/Region";
 import { assertExists } from "../../utils/assertUtils";
@@ -35,7 +35,7 @@ const sampleRegions: RegionNameAndLine[] = [
 ];
 
 suite("getPreviousRegion", () => {
-  let regionHelperAPI: OutlinePlusAPI;
+  let regionHelperAPI: OutlineInternalAPI;
   let mockCursorLineIdx = 0;
   let sampleDocument: vscode.TextDocument;
 
@@ -45,7 +45,7 @@ suite("getPreviousRegion", () => {
       throw new Error("Outline++ extension not found!");
     }
     await regionHelperExtension.activate();
-    regionHelperAPI = regionHelperExtension.exports as OutlinePlusAPI;
+    regionHelperAPI = regionHelperExtension.exports as OutlineInternalAPI;
 
     sampleDocument = await openSampleDocument("sampleRegionsDocument.ts");
   });

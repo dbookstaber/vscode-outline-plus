@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { type OutlineItem, type OutlinePlusAPI, toOutlineItem } from "./api/regionHelperAPI";
+import { type OutlineInternalAPI, type OutlineItem, toOutlineItem } from "./api/regionHelperAPI";
 import { registerAllCommands } from "./commands/registerCommand";
 import { createResetAutoHidePreferenceCommand } from "./commands/toggleRegionsViewSettings";
 import { initializeExtensionContext } from "./config/extensionContext";
@@ -38,7 +38,7 @@ import { disposeHighlightDecorationType } from "./utils/highlightRegion";
  */
 const pendingDeactivateFlushes: (() => Promise<void>)[] = [];
 
-export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
+export function activate(context: vscode.ExtensionContext): OutlineInternalAPI {
   const { subscriptions, workspaceState, extensionPath } = context;
 
   // Defensive reset: if the host activates twice without an intervening
@@ -157,54 +157,34 @@ export function activate(context: vscode.ExtensionContext): OutlinePlusAPI {
   );
 
   // Internal-only handle for integration tests that need access to runtime
-  // objects (e.g. FullTreeItem.modifiers) which the public API intentionally
-  // strips at the boundary. Not part of `OutlinePlusAPI` and not documented.
-  // Cross-bundle: tests cannot reach the FullOutlineStore instance directly
+  // objects (e.g. FullTreeItem.modifiers) which `OutlineInternalAPI` strips at
+  // the boundary. Tests cannot reach the FullOutlineStore instance directly
   // because the test webpack bundle ships its own module copy of the class.
   const internalHandle = {
     _test_getInternalFullOutlineItems: (): FullTreeItem[] =>
       fullOutlineStore.topLevelFullOutlineItems,
   };
 
+  // NOT a public API. This shape exists so the integration test suite can
+  // observe stores across the test/extension bundle boundary. External
+  // consumers should not depend on these methods — see regionHelperAPI.ts.
   return {
     ...internalHandle,
-    apiVersion: "1.0",
-    // #region Region Store API
-    // #region Getters
-    getTopLevelRegions(): Region[] {
-      return regionStore.topLevelRegions;
-    },
-    getFlattenedRegions(): FlattenedRegion[] {
-      return regionStore.flattenedRegions;
-    },
-    getActiveRegion(): Region | undefined {
-      return regionStore.activeRegion;
-    },
-    getInvalidMarkers(): InvalidMarker[] {
-      return regionStore.invalidMarkers;
-    },
-    // #endregion
-    // #region Events
+    getTopLevelRegions: (): Region[] => regionStore.topLevelRegions,
+    getFlattenedRegions: (): FlattenedRegion[] => regionStore.flattenedRegions,
+    getActiveRegion: (): Region | undefined => regionStore.activeRegion,
+    getInvalidMarkers: (): InvalidMarker[] => regionStore.invalidMarkers,
     onDidChangeRegions: regionStore.onDidChangeRegions,
     onDidChangeActiveRegion: regionStore.onDidChangeActiveRegion,
     onDidChangeInvalidMarkers: regionStore.onDidChangeInvalidMarkers,
-    // #endregion
-    // #endregion
-    // #region Full Outline Store API
-    // #region Getters
-    getTopLevelFullOutlineItems(): OutlineItem[] {
-      return fullOutlineStore.topLevelFullOutlineItems.map(toOutlineItem);
-    },
-    getActiveFullOutlineItem(): OutlineItem | undefined {
+    getTopLevelFullOutlineItems: (): OutlineItem[] =>
+      fullOutlineStore.topLevelFullOutlineItems.map(toOutlineItem),
+    getActiveFullOutlineItem: (): OutlineItem | undefined => {
       const active = fullOutlineStore.activeFullOutlineItem;
       return active ? toOutlineItem(active) : undefined;
     },
-    // #endregion
-    // #region Events
     onDidChangeFullOutlineItems: fullOutlineStore.onDidChangeFullOutlineItems,
     onDidChangeActiveFullOutlineItem: fullOutlineStore.onDidChangeActiveFullOutlineItem,
-    // #endregion
-    // #endregion
   };
 }
 

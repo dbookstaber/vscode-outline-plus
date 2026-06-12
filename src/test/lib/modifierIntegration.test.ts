@@ -12,11 +12,11 @@ import { waitForCondition } from "../utils/waitForEvent";
  * This validates the entire pipeline end-to-end: language server → DocumentSymbolStore
  * → extractSymbolModifiers → FullTreeItem.modifiers.
  *
- * Uses the extension's internal `_test_getInternalFullOutlineItems` hook (not part
- * of the public `OutlinePlusAPI`) because `modifiers` is intentionally stripped at
- * the API boundary by the `OutlineItem` converter. We cannot reach the runtime
- * `FullOutlineStore` instance directly from tests: the test webpack bundle ships
- * its own module copy of the class.
+ * Uses the extension's internal `_test_getInternalFullOutlineItems` hook because
+ * `modifiers` is intentionally stripped at the `OutlineInternalAPI` boundary by
+ * the `OutlineItem` converter. We cannot reach the runtime `FullOutlineStore`
+ * instance directly from tests: the test webpack bundle ships its own module
+ * copy of the class.
  *
  * IMPORTANT: These tests depend on the C# language extension being available in the
  * test host. If no C# language grammar is installed, the language server won't provide

@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { type OutlineItem, type OutlinePlusAPI } from "../../api/regionHelperAPI";
+import { type OutlineItem, type OutlineInternalAPI } from "../../api/regionHelperAPI";
 import { openSampleDocument } from "../utils/openSampleDocument";
 import { delay, waitForCondition } from "../utils/waitForEvent";
 
@@ -20,7 +20,7 @@ suite("Full Outline Active Editor Switch", function() {
   // each requiring debounce cycles + language server round-trips.
   this.timeout(20000);
 
-  let regionHelperAPI: OutlinePlusAPI;
+  let regionHelperAPI: OutlineInternalAPI;
 
   suiteSetup(async () => {
     const regionHelperExtension = vscode.extensions.getExtension("DavidBookstaber.outline-regions-plus");
@@ -28,7 +28,7 @@ suite("Full Outline Active Editor Switch", function() {
       throw new Error("Outline++ extension not found!");
     }
     await regionHelperExtension.activate();
-    regionHelperAPI = regionHelperExtension.exports as OutlinePlusAPI;
+    regionHelperAPI = regionHelperExtension.exports as OutlineInternalAPI;
   });
 
   teardown(async () => {

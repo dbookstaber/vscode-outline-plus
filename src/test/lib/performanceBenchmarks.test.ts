@@ -10,7 +10,7 @@
 
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { type OutlinePlusAPI } from "../../api/regionHelperAPI";
+import { type OutlineInternalAPI } from "../../api/regionHelperAPI";
 import { DEBOUNCE_DOCUMENT_PARSE_MS } from "../../constants";
 import { flattenRegionsAndCountParents } from "../../lib/flattenRegions";
 import { parseAllRegions } from "../../lib/parseAllRegions";
@@ -32,7 +32,7 @@ const DEBOUNCE_SETTLE_MS = DEBOUNCE_DOCUMENT_PARSE_MS + 150;
 
 suite("Performance Benchmarks", () => {
   const timeout = 60000; // 60 second timeout for performance tests
-  let regionHelperAPI: OutlinePlusAPI;
+  let regionHelperAPI: OutlineInternalAPI;
 
   // Ensure extension is activated before tests
   suiteSetup(async () => {
@@ -41,7 +41,7 @@ suite("Performance Benchmarks", () => {
       throw new Error("Outline++ extension not found!");
     }
     await ext.activate();
-    regionHelperAPI = ext.exports as OutlinePlusAPI;
+    regionHelperAPI = ext.exports as OutlineInternalAPI;
   });
 
   /**

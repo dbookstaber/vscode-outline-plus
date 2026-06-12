@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { type OutlinePlusAPI } from "../../api/regionHelperAPI";
+import { type OutlineInternalAPI } from "../../api/regionHelperAPI";
 import { DEBOUNCE_DOCUMENT_PARSE_MS } from "../../constants";
 import { openSampleDocument } from "../utils/openSampleDocument";
 import { delay } from "../utils/waitForEvent";
@@ -22,7 +22,7 @@ const AUTO_HIDE_SETTLE_MS = DEBOUNCE_DOCUMENT_PARSE_MS + 250;
  * The feature is controlled by the `outlinePlus.regionsView.shouldAutoHide` setting.
  */
 suite("Regions View Auto-Hide", () => {
-  let regionHelperAPI: OutlinePlusAPI;
+  let regionHelperAPI: OutlineInternalAPI;
   // Snapshot suite-level originals so a thrown test cannot leak Global
   // settings across runs. The per-suite teardowns below already restore
   // these on the happy path; suiteTeardown is the safety net for the
@@ -41,7 +41,7 @@ suite("Regions View Auto-Hide", () => {
       throw new Error("Outline++ extension not found!");
     }
     await regionHelperExtension.activate();
-    regionHelperAPI = regionHelperExtension.exports as OutlinePlusAPI;
+    regionHelperAPI = regionHelperExtension.exports as OutlineInternalAPI;
 
     const cfg = vscode.workspace.getConfiguration("outlinePlus.regionsView");
     suiteOriginalAutoHide = cfg.get<boolean>("shouldAutoHide");

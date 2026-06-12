@@ -6,6 +6,17 @@ This changelog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ---
 
+## [1.1.0] - 2026-06-12
+
+### Removed
+- **Public Extension API.** `docs/API.md` is deleted and the "Extension API" section is removed from the README. The methods previously listed (`getTopLevelRegions`, `getFlattenedRegions`, `getActiveRegion`, `getInvalidMarkers`, `getTopLevelFullOutlineItems`, `getActiveFullOutlineItem`, and their change events) remain on `extension.exports` as internal test infrastructure but are no longer documented, no longer expose an `apiVersion` field, and carry no compatibility promise — they may change or disappear in any future release without notice. The internal type was renamed `OutlinePlusAPI` → `OutlineInternalAPI`. External consumers should not depend on these methods.
+
+### Changed
+- **Sidebar view renamed:** the second Explorer tree view is now labeled **"Outline++"** instead of "Full Outline" (both the view header and the contextual title). The underlying view ID (`outlinePlusFullTreeView`), command IDs (`outlinePlus.fullOutlineView.*`), and configuration keys (`outlinePlus.fullOutlineView.*`) are unchanged, so existing keybindings and `settings.json` entries continue to work.
+- Updated dependencies.
+
+---
+
 ## [1.0.5] - 2026-05-31
 
 ### Performance

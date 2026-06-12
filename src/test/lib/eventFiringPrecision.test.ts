@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { type OutlinePlusAPI } from "../../api/regionHelperAPI";
+import { type OutlineInternalAPI } from "../../api/regionHelperAPI";
 import { DEBOUNCE_DOCUMENT_PARSE_MS } from "../../constants";
 import { openSampleDocument } from "../utils/openSampleDocument";
 import { delay, waitForCondition } from "../utils/waitForEvent";
@@ -20,7 +20,7 @@ suite("Event Firing Precision", function() {
   // Increase timeout for all tests in this suite to accommodate polling
   this.timeout(10000);
 
-  let regionHelperAPI: OutlinePlusAPI;
+  let regionHelperAPI: OutlineInternalAPI;
   let editor: vscode.TextEditor;
 
   suiteSetup(async () => {
@@ -29,7 +29,7 @@ suite("Event Firing Precision", function() {
       throw new Error("Outline++ extension not found!");
     }
     await regionHelperExtension.activate();
-    regionHelperAPI = regionHelperExtension.exports as OutlinePlusAPI;
+    regionHelperAPI = regionHelperExtension.exports as OutlineInternalAPI;
   });
 
   setup(async () => {

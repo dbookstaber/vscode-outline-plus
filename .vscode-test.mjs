@@ -21,8 +21,12 @@ export default defineConfig({
     "chee.vscode-perl6-atom-grammar",
     // PostCSS - syntax only
     "cpylua.language-postcss",
-    // Haskell - use grammar-only extension instead of full language server
-    "justusadam.language-haskell",
+    // Haskell - the grammar-only `justusadam.language-haskell` was removed from
+    // the marketplace, so we fall back to the official HLS extension. The
+    // language server will fail to start in the test host (no ghc/cabal), but
+    // `.hs` files still get languageId "haskell" registered, which is all the
+    // tests need.
+    "haskell.haskell",
     // Stata - syntax/grammar only (registers languageId "stata" for .do/.ado/.mata)
     "kylebarron.stata-enhanced",
     // Elixir - syntax only (NOT elixir-ls which has language server)

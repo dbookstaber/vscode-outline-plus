@@ -22,7 +22,7 @@
   },
   "icon": "assets/icon.png",
   "license": "GPL-3.0-only",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "engines": {
     "vscode": "^1.94.0"
   },
@@ -628,8 +628,8 @@
         },
         {
           "id": "outlinePlusFullTreeView",
-          "name": "Full Outline",
-          "contextualTitle": "Full Outline",
+          "name": "Outline++",
+          "contextualTitle": "Outline++",
           "when": "config.outlinePlus.fullOutlineView.isVisible",
           "icon": "./assets/full-outline-view-icon.svg"
         }
@@ -658,8 +658,8 @@
     "@types/webpack": "^5.28.5",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
-    "@vscode/vsce": "^3.9.1",
-    "copy-webpack-plugin": "^12.0.2",
+    "@vscode/vsce": "^3.9.2",
+    "copy-webpack-plugin": "^14.0.0",
     "eslint": "^9.20.1",
     "rimraf": "^6.0.1",
     "ts-loader": "^9.5.1",

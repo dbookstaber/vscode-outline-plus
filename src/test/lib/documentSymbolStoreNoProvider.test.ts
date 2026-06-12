@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { type OutlinePlusAPI } from "../../api/regionHelperAPI";
+import { type OutlineInternalAPI } from "../../api/regionHelperAPI";
 import { openSampleDocument } from "../utils/openSampleDocument";
 import { waitForCondition } from "../utils/waitForEvent";
 
@@ -27,7 +27,7 @@ import { waitForCondition } from "../utils/waitForEvent";
 suite("DocumentSymbolStore: no-symbol-provider document switching", function () {
   this.timeout(15000);
 
-  let outlinePlusAPI: OutlinePlusAPI;
+  let outlinePlusAPI: OutlineInternalAPI;
 
   suiteSetup(async () => {
     const extension = vscode.extensions.getExtension("DavidBookstaber.outline-regions-plus");
@@ -35,7 +35,7 @@ suite("DocumentSymbolStore: no-symbol-provider document switching", function () 
       throw new Error("Outline++ extension not found!");
     }
     await extension.activate();
-    outlinePlusAPI = extension.exports as OutlinePlusAPI;
+    outlinePlusAPI = extension.exports as OutlineInternalAPI;
   });
 
   teardown(async () => {
