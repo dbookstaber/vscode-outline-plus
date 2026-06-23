@@ -7,7 +7,6 @@ import {
 export type ModifierDisplayMode = "off" | "colorOnly" | "colorAndBadge" | "colorAndSvgOverlay" | "colorAndDescription";
 
 export type FullOutlineViewConfig = Readonly<{
-  isVisible: boolean;
   shouldAutoHighlightActiveItem: boolean;
   /** Controls how symbol modifiers (visibility, static, etc.) are displayed */
   modifierDisplay: ModifierDisplayMode;
@@ -18,7 +17,6 @@ export type FullOutlineViewConfig = Readonly<{
 type RawFullOutlineViewConfigKey = keyof FullOutlineViewConfig;
 
 const defaultFullOutlineViewConfig = {
-  isVisible: true,
   shouldAutoHighlightActiveItem: true,
   modifierDisplay: "colorAndBadge",
   useDistinctModifierColors: true,

@@ -30,16 +30,11 @@ export const CMD_GO_TO_REGION_FROM_QUICK_PICK = "outlinePlus.goToRegionFromQuick
 export const CMD_GO_TO_NEXT_REGION = "outlinePlus.goToNextRegion";
 export const CMD_GO_TO_PREVIOUS_REGION = "outlinePlus.goToPreviousRegion";
 
-export const CMD_REGIONS_VIEW_HIDE = "outlinePlus.regionsView.hide";
-export const CMD_REGIONS_VIEW_SHOW = "outlinePlus.regionsView.show";
-export const CMD_REGIONS_VIEW_RESET_AUTO_HIDE = "outlinePlus.regionsView.resetAutoHidePreference";
 export const CMD_REGIONS_VIEW_STOP_AUTO_HIGHLIGHT = "outlinePlus.regionsView.stopAutoHighlightingActiveRegion";
 export const CMD_REGIONS_VIEW_START_AUTO_HIGHLIGHT = "outlinePlus.regionsView.startAutoHighlightingActiveRegion";
 export const CMD_REGIONS_VIEW_EXPAND_ALL = "outlinePlus.regionsView.expandAll";
 export const CMD_REGIONS_VIEW_REFRESH = "outlinePlus.regionsView.refresh";
 
-export const CMD_FULL_OUTLINE_VIEW_HIDE = "outlinePlus.fullOutlineView.hide";
-export const CMD_FULL_OUTLINE_VIEW_SHOW = "outlinePlus.fullOutlineView.show";
 export const CMD_FULL_OUTLINE_VIEW_STOP_AUTO_HIGHLIGHT = "outlinePlus.fullOutlineView.stopAutoHighlightingActiveItem";
 export const CMD_FULL_OUTLINE_VIEW_START_AUTO_HIGHLIGHT = "outlinePlus.fullOutlineView.startAutoHighlightingActiveItem";
 export const CMD_FULL_OUTLINE_VIEW_EXPAND_ALL = "outlinePlus.fullOutlineView.expandAll";
@@ -63,7 +58,6 @@ export const CONFIG_KEY_ENABLE_DEBUG_LOGGING = "outlinePlus.enableDebugLogging";
 
 export const STATE_KEY_REGIONS_COLLAPSIBLE = "regionsViewCollapsibleStateStoreByDocumentId";
 export const STATE_KEY_FULL_OUTLINE_COLLAPSIBLE = "fullOutlineViewCollapsibleStateStoreByDocumentId";
-export const STATE_KEY_USER_WANTS_REGIONS_VIEW = "outlinePlus.userWantsRegionsView";
 
 // #endregion
 

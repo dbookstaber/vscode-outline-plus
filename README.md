@@ -10,24 +10,34 @@ A Visual Studio Code extension for navigating, visualizing, and managing code re
 
 ## Features
 
-- 📁 **Regions View** – Interactive tree for viewing and navigating regions.
-- 🏛 **Full Outline View** – Like VSCode's built-in Outline view, but incorporates regions.
-- 🎨 **Modifier-Aware Icons** – Color-coded icons showing visibility and member modifiers for C++, C#, Java, TypeScript, Python, and more.
-- 🐇 **Quick Navigation** – Jump, search, and select regions with commands and keyboard shortcuts.
-- ⚠️ **Diagnostics** – Detects unmatched region boundaries.
-- 🔄 **Refresh & Debug** – Manual refresh buttons and built-in debug logging for diagnosing issues.
+-  **Regions View** – Interactive tree for viewing and navigating regions.
+-  **Outline++ View** – Like VSCode's built-in Outline view, but incorporates regions and modifiers.
+-  **Modifier-Aware Icons** – Color-coded icons showing visibility and member modifiers for C++, C#, Java, TypeScript, Python, and more.
+-  **Quick Navigation** – Jump, search, and select regions with commands and keyboard shortcuts.
+-  **Diagnostics** – Detects unmatched region boundaries.
+-  **Refresh & Debug** – Manual refresh buttons and built-in debug logging for diagnosing issues.
 
-![Outline++ Demo](./assets/readme-gifs/0-main-demo.gif)
+![Outline++ Demo](./assets/readme-gifs/OutlinePlus.gif)
 
-> *Demo GIFs in this README are from the upstream Region Helper project.*
+## Keybindings (Hotkeys)
 
-## 📖 Table of Contents
+| Action | Windows / Linux | macOS |
+|--------|-----------------|-------|
+| Go to Region… (quick pick) | `Ctrl + Alt + R` | `Cmd + Alt + R` |
+| Go to Region Boundary | `Alt + M` | `Alt + M` |
+| Go to Next Region | `Ctrl + Alt + N` | `Ctrl + Alt + N` |
+| Go to Previous Region | `Ctrl + Alt + P` | `Ctrl + Alt + P` |
+| Select Current Region | `Alt + Shift + M` | `Alt + Shift + M` |
+
+> All shortcuts are active when the editor has focus, and can be remapped in VS Code's **Keyboard Shortcuts** editor.
+
+## Table of Contents
 
 1. [Features](#features)
 2. [Table of Contents](#table-of-contents)
 3. [Detailed Features](#detailed-features)
    1. [Regions View](#regions-view)
-   2. [Full Outline View](#full-outline-view)
+   2. [Outline++ View](#full-outline-view)
    3. [Modifier-Aware Icons](#modifier-aware-icons)
    4. [Region Diagnostics](#region-diagnostics)
    5. [Go to Region...](#go-to-region)
@@ -48,39 +58,24 @@ A Visual Studio Code extension for navigating, visualizing, and managing code re
 
 ### Regions View
 
-- Displays a **structured tree view** of all regions in the current file.
-- **Automatically reveals and highlights** the cursor’s active region (this can be toggled on/off with commands/settings).
-- Click a region to **instantly navigate** to it.
+- Tree view of all regions in the current editor.
+- Highlights the cursor’s active region (this can be toggled with commands/settings).
+- Click a region to jump to it in the editor.
 
-![Regions View Demo](./assets/readme-gifs/1-regions-view.gif)
+### Outline++ View
 
-### Full Outline View
-
-- Combines all **regions and language symbols** (classes, methods, variables, etc) into a **unified tree view** for the current file.
-- Just like the Regions View, the cursor's active region/symbol is **automatically revealed and highlighted**, and this behavior can be toggled on/off.
-- Click any item to **instantly navigate** to it.
-
-![Full Outline View Demo](./assets/readme-gifs/2-full-outline-view.gif)
+- Merges the VSCode `Outline` and `Regions` views.
+- Highlights the cursor’s location.
+- Click any item to jump to it in the editor.
 
 ### Modifier-Aware Icons
 
-The Full Outline view can display **color-coded icons** that indicate the visibility and characteristics of symbols — similar to Visual Studio's Document Outline.
+The Outline++ view can display color-coded icons that indicate the visibility and characteristics of symbols — similar to Visual Studio's Document Outline.
 
-**Custom SVG overlay icons** are provided for common combinations (e.g., a private static method shows a distinct icon). When overlay icons aren't available, the standard VS Code symbol icon is tinted with a color representing the symbol's visibility.  Implemented icons:
+Additional modifier icons:
    - 🔒 for private/private-protected members
    - 🛡️ for protected/protected-internal members  
    - ˢ for static members
-
-#### Supported Languages
-
-| Language | Visibility Modifiers | Member Modifiers |
-|----------|---------------------|------------------|
-| **C#** | `public`, `private`, `protected`, `internal`, `protected internal`, `private protected` | `static`, `readonly`, `const`, `abstract`, `virtual`, `override`, `async`, `sealed`, `extern`, `volatile`, `new` |
-| **Java** | `public`, `private`, `protected` | `static`, `final`, `abstract`, `volatile`, `sealed` |
-| **Kotlin** | `public`, `private`, `protected`, `internal` | `const`, `val`, `abstract`, `override`, `sealed` |
-| **TypeScript/JavaScript** | `public`, `private`, `protected` | `static`, `readonly`, `const`, `abstract`, `async`, `override` |
-| **C/C++** | `public`, `private`, `protected` | `static`, `const`, `constexpr`, `virtual`, `override`, `volatile`, `extern` |
-| **Python** | (via naming conventions: `_name` = protected, `__name` = private) | `@staticmethod`, `@classmethod`, `@abstractmethod`, `async` |
 
 #### Color Legend
 
@@ -93,6 +88,17 @@ The Full Outline view can display **color-coded icons** that indicate the visibi
 | 🟠 Orange | `protected internal` |
 | 🟣 Purple | `private protected` |
 
+#### Supported Languages
+
+| Language | Visibility Modifiers | Member Modifiers |
+|----------|---------------------|------------------|
+| **C#** | `public`, `private`, `protected`, `internal`, `protected internal`, `private protected` | `static`, `readonly`, `const`, `abstract`, `virtual`, `override`, `async`, `sealed`, `extern`, `volatile`, `new` |
+| **Java** | `public`, `private`, `protected` | `static`, `final`, `abstract`, `volatile`, `sealed` |
+| **Kotlin** | `public`, `private`, `protected`, `internal` | `const`, `val`, `abstract`, `override`, `sealed` |
+| **TypeScript/JavaScript** | `public`, `private`, `protected` | `static`, `readonly`, `const`, `abstract`, `async`, `override` |
+| **C/C++** | `public`, `private`, `protected` | `static`, `const`, `constexpr`, `virtual`, `override`, `volatile`, `extern` |
+| **Python** | (via naming conventions: `_name` = protected, `__name` = private) | `@staticmethod`, `@classmethod`, `@abstractmethod`, `async` |
+
 #### Display Modes
 
 Controlled by `outlinePlus.fullOutlineView.modifierDisplay`:
@@ -102,7 +108,7 @@ Controlled by `outlinePlus.fullOutlineView.modifierDisplay`:
 | `"off"` | Standard VS Code symbol icons only |
 | `"colorOnly"` | Icon colors reflect visibility |
 | `"colorAndBadge"` | Colors + emoji badge prefixes on labels (default) |
-| `"colorAndSvgOverlay"` | Colors + custom SVG overlay icons for methods/fields/properties |
+| `"colorAndSvgOverlay"` | Colors + overlay icons for methods/fields/properties |
 | `"colorAndDescription"` | Colors + text descriptions to the right of symbol names (e.g., "static", "readonly") |
 
 > **Tooltips** are always enhanced to show `[modifier list] SymbolName: line range`, regardless of display mode.
@@ -111,46 +117,33 @@ Controlled by `outlinePlus.fullOutlineView.modifierDisplay`:
 <a id="region-diagnostics"></a>
 ### Region Diagnostics
 
-- Detects **unmatched region boundaries** and adds warnings in both the editor (blue squiggles) and the Problems panel, helping you **catch incomplete or misplaced** regions quickly.
-
-![Region Diagnostics Demo](./assets/readme-gifs/3-diagnostics.gif)
+- Detects unmatched region boundaries and adds warnings in both the editor (squiggles) and the Problems panel, helping you catch incomplete or broken regions quickly.
 
 <a id="go-to-region"></a>
 ### Go to Region...
 
-- Like VSCode’s built-in **"Go to Symbol..."**, but for regions:
-  - Opens a **fuzzy-searchable dropdown** to jump to any region in the current file.
-- 📌 **Default Keybinding**:
-  - **Windows/Linux**: `Ctrl + Shift + R`
-  - **Mac**: `Cmd + Shift + R`
-
-![Go to Region Demo](./assets/readme-gifs/4-go-to-region.gif)
+- Like VSCode’s built-in **"Go to Symbol..."**, but for regions: Opens a fuzzy-searchable dropdown to jump to any region in the current file.  **Default Keybinding**:
+  - **Windows/Linux**: `Ctrl + Alt + R`
+  - **Mac**: `Cmd + Alt + R`
 
 ### Go to Region Boundary
 
 - Like VSCode’s built-in **"Go to Bracket"**, but for regions:
-  - Jumps between **matching start and end region boundaries**.
-  - Jumps to the **next region** if the cursor is not already inside a region.
-- 📌 **Default Keybinding**: `Alt + M`
-
-![Go to Region Boundary Demo](./assets/readme-gifs/5-go-to-boundary.gif)
+  - Jumps between matching start and end region boundaries.
+  - Jumps to the next region if the cursor is not already inside a region.
+- **Default Keybinding**: `Alt + M`
 
 <a id="go-to-next-previous-region"></a>
 ### Go to Next / Previous Region
 
-- Jumps to the **next or previous region** in the file.
-- 📌 **Default Keybindings**:
+- Jumps to the next or previous region in the file. **Default Keybindings**:
   - **Next Region**: `Ctrl + Alt + N`
   - **Previous Region**: `Ctrl + Alt + P`
 
-![Go to Next / Previous Region Demo](./assets/readme-gifs/6-go-to-next-previous-region.gif)
-
 ### Select Current Region
 
-- Selects the **entire active region** containing the cursor.
-- 📌 **Default Keybinding**: `Alt + Shift + M`
-
-![Select Current Region Demo](./assets/readme-gifs/7-select-region.gif)
+- Selects the active region containing the cursor.
+- **Default Keybinding**: `Alt + Shift + M`
 
 <a id="settings"></a>
 ## Settings
@@ -158,20 +151,15 @@ Controlled by `outlinePlus.fullOutlineView.modifierDisplay`:
 <a id="show-hide-views"></a>
 ### Show/Hide Views
 
-To quickly show or hide the **Regions** or **Full Outline** views, you can use the following commands and associated settings:
-
-- **Show/Hide Region View**
-  - Commands: `Show Regions View` / `Hide Regions View`
-  - Setting: `outlinePlus.regionsView.isVisible`
-- **Show/Hide Full Outline View**
-  - Commands: `Show Full Outline View` / `Hide Full Outline View`
-  - Setting: `outlinePlus.fullOutlineView.isVisible`
+Both the **Regions** and **Outline++** views behave like the built-in **Outline** and **Timeline** views: they're always available from the Explorer's right-click "Views" menu, where you can show or hide them. When the active document has nothing to show (no regions, or no outline symbols), the view displays a brief placeholder message instead of disappearing.
 
 <a id="toggling-auto-highlighting"></a>
-### Toggling Auto-Highlighting/Revealing in Tree Views
+### Toggling Auto-Highlighting in Tree Views
 
-- By default, the Regions and Full Outline views will **automatically reveal and highlight** the cursor's active region or symbol as you navigate the editor.
-- If you ever want to **disable this auto-revealing behavior** (e.g. for a more stable scroll position), you can use the `{Stop/Start} Auto-Highlighting Active {Region/Item}` commands, or click the tree view's **title bar action** (the sync icon) to toggle it on/off.
+- By default, the Regions and Outline views will highlight the cursor's active region or symbol as you navigate the editor.
+- To toggle this feature:
+  - Use the `{Stop/Start} Auto-Highlighting Active {Region/Item}` commands, or
+  - Click the `🗘` icon in the tree view's title bar.
 
 ### Modifier Display Settings
 
@@ -186,9 +174,7 @@ Settings under `outlinePlus.fullOutlineView`:
 
 - **Supports 50+ languages** out of the box, including:
   - **C, C++, C#, Java, Python, JavaScript, JSX, TypeScript, TSX, PHP, Ruby, Swift, Go, Rust, HTML, XML, Markdown, JSON/JSONC, YAML, SQL, and more**.
-- Define your own **custom region patterns**, or adjust the **existing default patterns**, to customize how regions are parsed.
-  - Setting: `outlinePlus.regionBoundaryPatternByLanguageId`
-    - Note: you may need to restart the extension after changing this setting for it to take effect.
+- Define custom region patterns, or adjust the existing default patterns, to customize how regions are parsed.  Setting: `outlinePlus.regionBoundaryPatternByLanguageId`
 
 ## Troubleshooting
 
@@ -220,4 +206,4 @@ See [detailed limitations](./docs/LIMITATIONS.md) in docs.  Some salient limitat
 
 ## Acknowledgements
 
-Outline++ builds on [vscode-region-helper](https://github.com/alythobani/vscode-region-helper) (GPL-3.0), forked 2025-12-21. The region-navigation features and tree views originated there.  Demo GIFs in this README are from the upstream project.
+Outline++ builds on [vscode-region-helper](https://github.com/alythobani/vscode-region-helper) (GPL-3.0), forked 2025-11-30. The region-navigation features and tree views originated there.  Demo GIFs in this README are from the upstream project.

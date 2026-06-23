@@ -1,11 +1,9 @@
 import * as vscode from "vscode";
 import { type OutlineInternalAPI, type OutlineItem, toOutlineItem } from "./api/regionHelperAPI";
 import { registerAllCommands } from "./commands/registerCommand";
-import { createResetAutoHidePreferenceCommand } from "./commands/toggleRegionsViewSettings";
 import { initializeExtensionContext } from "./config/extensionContext";
 import {
     CMD_DUMP_DIAGNOSTIC_STATE,
-    CMD_REGIONS_VIEW_RESET_AUTO_HIDE,
     CMD_SHOW_DEBUG_LOG,
     STATE_KEY_FULL_OUTLINE_COLLAPSIBLE,
     STATE_KEY_REGIONS_COLLAPSIBLE,
@@ -22,7 +20,6 @@ import { CollapsibleStateManager } from "./state/CollapsibleStateManager";
 import { DocumentSymbolStore } from "./state/DocumentSymbolStore";
 import { FullOutlineStore } from "./state/FullOutlineStore";
 import { RegionStore } from "./state/RegionStore";
-import { RegionsViewAutoHideManager } from "./state/RegionsViewAutoHideManager";
 import { type FullTreeItem } from "./treeView/fullTreeView/FullTreeItem";
 import { FullTreeViewProvider } from "./treeView/fullTreeView/FullTreeViewProvider";
 import { RegionTreeViewProvider } from "./treeView/regionTreeView/RegionTreeViewProvider";
@@ -33,8 +30,8 @@ import { disposeHighlightDecorationType } from "./utils/highlightRegion";
  * Pending workspace-state flushes that must complete before extension teardown.
  * Populated during `activate()` and awaited in `deactivate()`. VSCode awaits the
  * promise returned from `deactivate()`, so this prevents fire-and-forget writes
- * (collapsible state, user view preference) from being cut off mid-write on
- * shutdown — see CollapsibleStateManager.flush / RegionsViewAutoHideManager.flush.
+ * (collapsible state) from being cut off mid-write on shutdown — see
+ * CollapsibleStateManager.flush.
  */
 const pendingDeactivateFlushes: (() => Promise<void>)[] = [];
 
@@ -88,16 +85,6 @@ export function activate(context: vscode.ExtensionContext): OutlineInternalAPI {
   regionTreeViewProvider.setTreeView(regionTreeView, subscriptions);
   subscriptions.push(regionTreeView);
 
-  // Initialize auto-hide manager for the REGIONS view
-  const regionsViewAutoHideManager = new RegionsViewAutoHideManager(
-    regionStore,
-    workspaceState,
-    subscriptions
-  );
-  regionsViewAutoHideManager.setTreeView(regionTreeView);
-  subscriptions.push(regionsViewAutoHideManager);
-  pendingDeactivateFlushes.push(() => regionsViewAutoHideManager.flush());
-
   const fullTreeViewProvider = new FullTreeViewProvider(
     fullOutlineStore,
     fullOutlineCollapsibleStateManager,
@@ -127,13 +114,6 @@ export function activate(context: vscode.ExtensionContext): OutlineInternalAPI {
   registerRegionBoundaryPatternConfigListener(subscriptions, () => {
     regionStore.forceRefresh();
   });
-
-  // Register the reset auto-hide preference command
-  const resetAutoHideCommand = vscode.commands.registerCommand(
-    CMD_REGIONS_VIEW_RESET_AUTO_HIDE,
-    createResetAutoHidePreferenceCommand(workspaceState)
-  );
-  subscriptions.push(resetAutoHideCommand);
 
   // Register debug commands
   subscriptions.push(
@@ -192,8 +172,8 @@ export async function deactivate(): Promise<void> {
   disposeHighlightDecorationType();
   // Flush pending workspace-state writes that would otherwise race extension-host
   // teardown. VSCode awaits the promise returned from deactivate(), so as long as
-  // we await here, the user's collapse/expand state and view preference are
-  // guaranteed persisted before the host exits.
+  // we await here, the user's collapse/expand state is guaranteed persisted
+  // before the host exits.
   const flushes = pendingDeactivateFlushes.splice(0);
   await Promise.allSettled(flushes.map((fn) => fn()));
 }

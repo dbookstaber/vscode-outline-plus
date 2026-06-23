@@ -5,26 +5,12 @@ import {
     setGlobalFullOutlineViewConfigValue,
 } from "../config/fullOutlineViewConfig";
 import {
-    CMD_FULL_OUTLINE_VIEW_HIDE,
-    CMD_FULL_OUTLINE_VIEW_SHOW,
     CMD_FULL_OUTLINE_VIEW_START_AUTO_HIGHLIGHT,
     CMD_FULL_OUTLINE_VIEW_STOP_AUTO_HIGHLIGHT,
 } from "../constants";
 import { type OutlinePlusNonClosuredCommand } from "./registerCommand";
 
 // #region Exported commands
-
-const hideFullOutlineViewCommand: OutlinePlusNonClosuredCommand = {
-  id: CMD_FULL_OUTLINE_VIEW_HIDE,
-  callback: hideFullOutlineView,
-  needsRegionHelperParams: false,
-};
-
-const showFullOutlineViewCommand: OutlinePlusNonClosuredCommand = {
-  id: CMD_FULL_OUTLINE_VIEW_SHOW,
-  callback: showFullOutlineView,
-  needsRegionHelperParams: false,
-};
 
 const stopAutoHighlightingActiveItemCommand: OutlinePlusNonClosuredCommand = {
   id: CMD_FULL_OUTLINE_VIEW_STOP_AUTO_HIGHLIGHT,
@@ -39,8 +25,6 @@ const startAutoHighlightingActiveItemCommand: OutlinePlusNonClosuredCommand = {
 };
 
 export const allFullOutlineViewConfigCommands = [
-  hideFullOutlineViewCommand,
-  showFullOutlineViewCommand,
   stopAutoHighlightingActiveItemCommand,
   startAutoHighlightingActiveItemCommand,
 ];
@@ -48,24 +32,6 @@ export const allFullOutlineViewConfigCommands = [
 // #endregion
 
 // #region Command implementations
-
-function hideFullOutlineView(): void {
-  const isAlreadyVisible = getGlobalFullOutlineViewConfigValue("isVisible");
-  if (!isAlreadyVisible) {
-    vscode.window.showInformationMessage("Outline++: Full Outline view is already hidden.");
-    return;
-  }
-  void setGlobalFullOutlineViewConfigValue("isVisible", false);
-}
-
-function showFullOutlineView(): void {
-  const isAlreadyVisible = getGlobalFullOutlineViewConfigValue("isVisible");
-  if (isAlreadyVisible) {
-    vscode.window.showInformationMessage("Outline++: Full Outline view is already visible.");
-    return;
-  }
-  void setGlobalFullOutlineViewConfigValue("isVisible", true);
-}
 
 function stopAutoHighlightingActiveItem(): void {
   const isAlreadyAutoHighlightingActiveItem = getGlobalFullOutlineViewConfigValue(

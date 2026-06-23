@@ -4,16 +4,14 @@ import { CollapsibleStateManager } from "../../state/CollapsibleStateManager";
 import { delay } from "../utils/waitForEvent";
 
 /**
- * Tests for CODE_REVIEW_MAY #10 — pending workspace-state writes must be
- * persisted before extension teardown. Both `CollapsibleStateManager` and
- * `RegionsViewAutoHideManager` previously made fire-and-forget
- * `workspaceState.update()` calls, allowing up to ~15 seconds of state to
- * be lost on host shutdown.
+ * Pending workspace-state writes must be persisted before extension teardown.
+ * `CollapsibleStateManager` previously made fire-and-forget `workspaceState.update()`
+ * calls, allowing up to ~15 seconds of state to be lost on host shutdown.
  *
  * `flush()` exposes an awaitable persistence path that the extension's async
  * `deactivate()` invokes.
  */
-suite("CollapsibleStateManager.flush (CODE_REVIEW_MAY #10)", function () {
+suite("CollapsibleStateManager.flush", function () {
   this.timeout(10000);
 
   /**

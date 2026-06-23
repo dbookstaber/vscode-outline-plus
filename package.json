@@ -70,30 +70,6 @@
         "title": "Outline++: Go to Previous Region"
       },
       {
-        "command": "outlinePlus.regionsView.hide",
-        "title": "Outline++: Hide Regions View",
-        "when": "config.outlinePlus.regionsView.isVisible"
-      },
-      {
-        "command": "outlinePlus.regionsView.show",
-        "title": "Outline++: Show Regions View",
-        "when": "!config.outlinePlus.regionsView.isVisible"
-      },
-      {
-        "command": "outlinePlus.regionsView.resetAutoHidePreference",
-        "title": "Outline++: Reset Regions View Auto-Hide Preference"
-      },
-      {
-        "command": "outlinePlus.fullOutlineView.hide",
-        "title": "Outline++: Hide Full Outline View",
-        "when": "config.outlinePlus.fullOutlineView.isVisible"
-      },
-      {
-        "command": "outlinePlus.fullOutlineView.show",
-        "title": "Outline++: Show Full Outline View",
-        "when": "!config.outlinePlus.fullOutlineView.isVisible"
-      },
-      {
         "command": "outlinePlus.regionsView.stopAutoHighlightingActiveRegion",
         "title": "Outline++: Regions View: Stop Auto-Highlighting Active Region",
         "when": "config.outlinePlus.regionsView.shouldAutoHighlightActiveRegion",
@@ -476,16 +452,6 @@
         "title": "Regions View",
         "order": 1,
         "properties": {
-          "outlinePlus.regionsView.isVisible": {
-            "type": "boolean",
-            "default": true,
-            "description": "Show the Regions view."
-          },
-          "outlinePlus.regionsView.shouldAutoHide": {
-            "type": "boolean",
-            "default": true,
-            "description": "Automatically hide the Regions view when the active document has no regions, and show it when switching to a document with regions."
-          },
           "outlinePlus.regionsView.shouldAutoHighlightActiveRegion": {
             "type": "boolean",
             "default": true,
@@ -497,11 +463,6 @@
         "title": "Full Outline View",
         "order": 2,
         "properties": {
-          "outlinePlus.fullOutlineView.isVisible": {
-            "type": "boolean",
-            "default": true,
-            "description": "Show the Full Outline view."
-          },
           "outlinePlus.fullOutlineView.shouldAutoHighlightActiveItem": {
             "type": "boolean",
             "default": true,
@@ -623,18 +584,26 @@
           "id": "outlinePlusRegionsView",
           "name": "Regions",
           "contextualTitle": "Regions",
-          "when": "config.outlinePlus.regionsView.isVisible",
           "icon": "./assets/regions-view-icon.svg"
         },
         {
           "id": "outlinePlusFullTreeView",
           "name": "Outline++",
           "contextualTitle": "Outline++",
-          "when": "config.outlinePlus.fullOutlineView.isVisible",
           "icon": "./assets/full-outline-view-icon.svg"
         }
       ]
-    }
+    },
+    "viewsWelcome": [
+      {
+        "view": "outlinePlusRegionsView",
+        "contents": "No regions found in the active document.\nRegions are created with #region / #endregion comments (syntax varies by language)."
+      },
+      {
+        "view": "outlinePlusFullTreeView",
+        "contents": "No outline available for the active document."
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run pretest && npm run test && npm run compile:prod",

@@ -5,22 +5,14 @@ import {
 } from "./regionHelperConfig";
 
 export type RegionsViewConfig = Readonly<{
-  isVisible: boolean;
-  shouldAutoHide: boolean;
   shouldAutoHighlightActiveRegion: boolean;
 }>;
 
 type RawRegionsViewConfigKey = keyof RegionsViewConfig;
 
 const defaultRegionsViewConfig = {
-  isVisible: true,
-  shouldAutoHide: true,
   shouldAutoHighlightActiveRegion: true,
 } as const satisfies RegionsViewConfig;
-
-export function setRegionsViewVisibility(isVisible: boolean): Thenable<void> {
-  return setGlobalRegionsViewConfigValue("isVisible", isVisible);
-}
 
 export function setGlobalRegionsViewConfigValue<K extends RawRegionsViewConfigKey>(
   key: K,

@@ -10,10 +10,15 @@ This changelog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Removed
 - **Public Extension API.** `docs/API.md` is deleted and the "Extension API" section is removed from the README. The methods previously listed (`getTopLevelRegions`, `getFlattenedRegions`, `getActiveRegion`, `getInvalidMarkers`, `getTopLevelFullOutlineItems`, `getActiveFullOutlineItem`, and their change events) remain on `extension.exports` as internal test infrastructure but are no longer documented, no longer expose an `apiVersion` field, and carry no compatibility promise — they may change or disappear in any future release without notice. The internal type was renamed `OutlinePlusAPI` → `OutlineInternalAPI`. External consumers should not depend on these methods.
+- The programmatic auto-hide implementation and the manual show/hide surface for both views: the `outlinePlus.regionsView.isVisible`, `outlinePlus.regionsView.shouldAutoHide`, and `outlinePlus.fullOutlineView.isVisible` settings, plus the `Show`/`Hide Regions View`, `Show`/`Hide Full Outline View`, and `Reset Regions View Auto-Hide Preference` commands. View visibility is now handled through VS Code's native view show/hide (the right-click "Views" menu). The `shouldAutoHighlightActive*` settings and the auto-highlight toggle commands are unchanged.
 
 ### Changed
-- **Sidebar view renamed:** the second Explorer tree view is now labeled **"Outline++"** instead of "Full Outline" (both the view header and the contextual title). The underlying view ID (`outlinePlusFullTreeView`), command IDs (`outlinePlus.fullOutlineView.*`), and configuration keys (`outlinePlus.fullOutlineView.*`) are unchanged, so existing keybindings and `settings.json` entries continue to work.
 - Updated dependencies.
+- **Sidebar view renamed:** the second Explorer tree view is now labeled **"Outline++"** instead of "Full Outline" (both the view header and the contextual title). The underlying view ID (`outlinePlusFullTreeView`), command IDs (`outlinePlus.fullOutlineView.*`), and configuration keys (`outlinePlus.fullOutlineView.*`) are unchanged, so existing keybindings and `settings.json` entries continue to work.
+- **Both tree views now behave like the built-in Outline/Timeline views.** The **Regions** and **Outline++** views are always registered, so they always appear in the Explorer's right-click "Views" menu and can be shown or hidden there — previously, once hidden a view vanished from that menu and could only be restored from Settings. When the active document has nothing to show, the view displays a brief placeholder ("No regions found" / "No outline available") instead of disappearing entirely.
+
+### Fixed
+- **Collapsing the Regions view no longer strands it.** Collapsing the view, then visiting a document with no regions, then returning to one with regions, previously left the view permanently gone (recoverable only via Settings). Collapse/hide state is now managed natively by VS Code, which remembers it across documents.
 
 ---
 
