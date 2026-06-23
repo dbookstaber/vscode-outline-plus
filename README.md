@@ -97,7 +97,7 @@ Additional modifier icons:
 | **C#** | `public`, `private`, `protected`, `internal`, `protected internal`, `private protected` | `static`, `readonly`, `const`, `abstract`, `virtual`, `override`, `async`, `sealed`, `extern`, `volatile`, `new` |
 | **Java** | `public`, `private`, `protected` | `static`, `final`, `abstract`, `volatile`, `sealed` |
 | **Kotlin** | `public`, `private`, `protected`, `internal` | `const`, `val`, `abstract`, `override`, `sealed` |
-| **TypeScript/JavaScript** | `public`, `private`, `protected` | `static`, `readonly`, `const`, `abstract`, `async`, `override` |
+| **TypeScript/JS** | `public`, `private`, `protected` | `static`, `readonly`, `const`, `abstract`, `async`, `override` |
 | **C/C++** | `public`, `private`, `protected` | `static`, `const`, `constexpr`, `virtual`, `override`, `volatile`, `extern` |
 | **Python** | (via naming conventions: `_name` = protected, `__name` = private) | `@staticmethod`, `@classmethod`, `@abstractmethod`, `async` |
 
