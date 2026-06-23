@@ -31,11 +31,11 @@ export const allExpandAllCommands = [
 // #region Command implementations
 
 function expandAllRegionTreeItems({ regionTreeViewProvider }: OutlinePlusClosuredParams): void {
-  regionTreeViewProvider.expandAllTreeItems();
+  void regionTreeViewProvider.expandAllTreeItems();
 }
 
 function expandAllFullOutlineItems({ fullTreeViewProvider }: OutlinePlusClosuredParams): void {
-  fullTreeViewProvider.expandAllTreeItems();
+  void fullTreeViewProvider.expandAllTreeItems();
 }
 
 // #endregion

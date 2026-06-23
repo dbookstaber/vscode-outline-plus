@@ -6,7 +6,7 @@ This changelog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ---
 
-## [1.1.0] - 2026-06-12
+## [1.1.0] - 2026-06-23
 
 ### Removed
 - **Public Extension API.** `docs/API.md` is deleted and the "Extension API" section is removed from the README. The methods previously listed (`getTopLevelRegions`, `getFlattenedRegions`, `getActiveRegion`, `getInvalidMarkers`, `getTopLevelFullOutlineItems`, `getActiveFullOutlineItem`, and their change events) remain on `extension.exports` as internal test infrastructure but are no longer documented, no longer expose an `apiVersion` field, and carry no compatibility promise — they may change or disappear in any future release without notice. The internal type was renamed `OutlinePlusAPI` → `OutlineInternalAPI`. External consumers should not depend on these methods.
@@ -19,6 +19,8 @@ This changelog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Fixed
 - **Collapsing the Regions view no longer strands it.** Collapsing the view, then visiting a document with no regions, then returning to one with regions, previously left the view permanently gone (recoverable only via Settings). Collapse/hide state is now managed natively by VS Code, which remembers it across documents.
+- **Outline++ now highlights the correct item when a region marker sits inside a symbol.** A region's range extends to its `#endregion` marker, which can fall outside the enclosing symbol's range, making the region and symbol overlapping siblings in the merged tree. Clicking such a region (or moving the cursor onto its marker line) used to highlight the broader parent symbol; the active-item search now picks the most specific (smallest) range containing the cursor.
+- **Outline++ "Expand All" now expands trees deeper than 3 levels.** VS Code's `reveal` API expands at most 3 levels per call, so deeply nested outlines (e.g. C# `namespace > class > region > member`) left their lowest level collapsed. Expand All now reveals an anchor every 3 levels to fully expand the tree. The Regions view's Expand All got the same fix.
 
 ---
 

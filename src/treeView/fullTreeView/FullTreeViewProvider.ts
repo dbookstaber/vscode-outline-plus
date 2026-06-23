@@ -5,6 +5,7 @@ import { isCurrentActiveVersionedDocumentId } from "../../lib/getVersionedDocume
 import { type CollapsibleStateManager } from "../../state/CollapsibleStateManager";
 import { type FullOutlineStore } from "../../state/FullOutlineStore";
 import { debounce } from "../../utils/debounce";
+import { collectExpandAnchors } from "../collectExpandAnchors";
 import { type FullTreeItem } from "./FullTreeItem";
 
 export class FullTreeViewProvider implements vscode.TreeDataProvider<FullTreeItem> {
@@ -175,18 +176,18 @@ export class FullTreeViewProvider implements vscode.TreeDataProvider<FullTreeIte
     this.collapsibleStateManager.onExpandTreeItem({ itemId, documentId, allParentIds });
   }
 
-  expandAllTreeItems(): void {
+  async expandAllTreeItems(): Promise<void> {
     if (!this.treeView) {
       return;
     }
     const { documentId, topLevelFullOutlineItems } = this.fullOutlineStore;
     this.collapsibleStateManager.onExpandAllTreeItems({ documentId });
-    for (const topLevelItem of topLevelFullOutlineItems) {
-      this.treeView.reveal(topLevelItem, {
-        select: false,
-        focus: false,
-        expand: 3, // Max depth
-      });
+    // `reveal`'s `expand` caps at 3 levels, so reveal an anchor every 3 levels
+    // to fully expand subtrees deeper than that (e.g. namespace > class > region
+    // > member). Reveal shallow anchors first so deeper ones are already visible.
+    const anchors = collectExpandAnchors(topLevelFullOutlineItems);
+    for (const anchor of anchors) {
+      await this.treeView.reveal(anchor, { select: false, focus: false, expand: 3 });
     }
     // Finish by highlighting the cursor's active item. We do this regardless of the
     // `shouldAutoHighlightActiveItem` setting, since the view is open anyway when/after calling

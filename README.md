@@ -11,7 +11,7 @@ A Visual Studio Code extension for navigating, visualizing, and managing code re
 ## Features
 
 -  **Regions View** – Interactive tree for viewing and navigating regions.
--  **Outline++ View** – Like VSCode's built-in Outline view, but incorporates regions and modifiers.
+-  **Outline++ View** – Like VS Code's built-in Outline view, but incorporates regions and modifiers.
 -  **Modifier-Aware Icons** – Color-coded icons showing visibility and member modifiers for C++, C#, Java, TypeScript, Python, and more.
 -  **Quick Navigation** – Jump, search, and select regions with commands and keyboard shortcuts.
 -  **Diagnostics** – Detects unmatched region boundaries.
@@ -46,13 +46,14 @@ A Visual Studio Code extension for navigating, visualizing, and managing code re
    8. [Select Current Region](#select-current-region)
 4. [Settings](#settings)
    1. [Show/Hide Views](#show-hide-views)
-   2. [Toggling Auto-Highlighting in Views](#toggling-auto-highlighting)
+   2. [Toggling Auto-Highlighting in Tree Views](#toggling-auto-highlighting)
    3. [Modifier Display Settings](#modifier-display-settings)
    4. [Custom Region Patterns](#custom-region-patterns)
 5. [Troubleshooting](#troubleshooting)
    1. [Manual Refresh](#manual-refresh)
    2. [Debug Logging](#debug-logging)
 6. [Known Limitations](#known-limitations)
+7. [Acknowledgements](#acknowledgements)
 
 ## Detailed Features
 
@@ -62,9 +63,10 @@ A Visual Studio Code extension for navigating, visualizing, and managing code re
 - Highlights the cursor’s active region (this can be toggled with commands/settings).
 - Click a region to jump to it in the editor.
 
+<a id="full-outline-view"></a>
 ### Outline++ View
 
-- Merges the VSCode `Outline` and `Regions` views.
+- Merges the VS Code `Outline` and `Regions` views.
 - Highlights the cursor’s location.
 - Click any item to jump to it in the editor.
 
@@ -122,13 +124,13 @@ Controlled by `outlinePlus.fullOutlineView.modifierDisplay`:
 <a id="go-to-region"></a>
 ### Go to Region...
 
-- Like VSCode’s built-in **"Go to Symbol..."**, but for regions: Opens a fuzzy-searchable dropdown to jump to any region in the current file.  **Default Keybinding**:
+- Like VS Code’s built-in **"Go to Symbol..."**, but for regions: Opens a fuzzy-searchable dropdown to jump to any region in the current file.  **Default Keybinding**:
   - **Windows/Linux**: `Ctrl + Alt + R`
   - **Mac**: `Cmd + Alt + R`
 
 ### Go to Region Boundary
 
-- Like VSCode’s built-in **"Go to Bracket"**, but for regions:
+- Like VS Code’s built-in **"Go to Bracket"**, but for regions:
   - Jumps between matching start and end region boundaries.
   - Jumps to the next region if the cursor is not already inside a region.
 - **Default Keybinding**: `Alt + M`
@@ -156,10 +158,10 @@ Both the **Regions** and **Outline++** views behave like the built-in **Outline*
 <a id="toggling-auto-highlighting"></a>
 ### Toggling Auto-Highlighting in Tree Views
 
-- By default, the Regions and Outline views will highlight the cursor's active region or symbol as you navigate the editor.
+- By default, the Regions and Outline++ views will highlight the cursor's active region or symbol as you navigate the editor.
 - To toggle this feature:
   - Use the `{Stop/Start} Auto-Highlighting Active {Region/Item}` commands, or
-  - Click the `🗘` icon in the tree view's title bar.
+  - Click the `🔄` icon in the tree view's title bar.
 
 ### Modifier Display Settings
 
@@ -180,7 +182,7 @@ Settings under `outlinePlus.fullOutlineView`:
 
 ### Manual Refresh
 
-Both the **Regions** and **Full Outline** views have a **Refresh** button (↻) in the view's title bar. Click it to force a complete re-fetch of all data, bypassing any caching or change-detection. You can also run the commands from the Command Palette:
+Both the **Regions** and **Outline++** views have a **Refresh** button (↻) in the view's title bar. Click it to force a complete re-fetch of all data, bypassing any caching or change-detection. You can also run the commands from the Command Palette:
 
 - **Outline++: Refresh Regions View**
 - **Outline++: Refresh Full Outline**
@@ -200,10 +202,10 @@ The log captures editor switches, symbol fetches, discarded stale fetches, and v
 
 See [detailed limitations](./docs/LIMITATIONS.md) in docs.  Some salient limitations:
 
-- **Go to Region...** only supports **camelCase matching** (not full fuzzy search) due to a [VSCode API limitation](https://github.com/microsoft/vscode/issues/34088#issuecomment-328734452).
-- The  **Regions** and **Outline++** tree views **always highlight the cursor's last active item**, even when outside any region/symbol ([another VSCode API limitation](https://github.com/microsoft/vscode/issues/48754)).
+- **Go to Region...** only supports **camelCase matching** (not full fuzzy search) due to a [VS Code API limitation](https://github.com/microsoft/vscode/issues/34088#issuecomment-328734452).
+- The  **Regions** and **Outline++** tree views **always highlight the cursor's last active item**, even when outside any region/symbol ([another VS Code API limitation](https://github.com/microsoft/vscode/issues/48754)).
 - **Modifier extraction** relies on parsing the document text to match language-specific keyword patterns. It does not use the Language Server Protocol's symbol tags (which are not yet widely supported). This means modifier detection may be imperfect for complex or unusual code patterns.
 
 ## Acknowledgements
 
-Outline++ builds on [vscode-region-helper](https://github.com/alythobani/vscode-region-helper) (GPL-3.0), forked 2025-11-30. The region-navigation features and tree views originated there.  Demo GIFs in this README are from the upstream project.
+Outline++ builds on [vscode-region-helper](https://github.com/alythobani/vscode-region-helper) (GPL-3.0), forked 2025-11-30. The region-navigation features and tree views originated there.

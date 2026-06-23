@@ -6,6 +6,7 @@ import { type Region } from "../../models/Region";
 import { type CollapsibleStateManager } from "../../state/CollapsibleStateManager";
 import { type RegionStore } from "../../state/RegionStore";
 import { debounce } from "../../utils/debounce";
+import { collectExpandAnchors } from "../collectExpandAnchors";
 import { RegionTreeItem } from "./RegionTreeItem";
 
 export class RegionTreeViewProvider implements vscode.TreeDataProvider<Region> {
@@ -167,17 +168,17 @@ export class RegionTreeViewProvider implements vscode.TreeDataProvider<Region> {
     );
   }
 
-  expandAllTreeItems(): void {
+  async expandAllTreeItems(): Promise<void> {
     if (!this.treeView) {
       return;
     }
     this.collapsibleStateManager.onExpandAllTreeItems({ documentId: this.regionStore.documentId });
-    for (const topLevelRegion of this.regionStore.topLevelRegions) {
-      this.treeView.reveal(topLevelRegion, {
-        select: false,
-        focus: false,
-        expand: 3, // Max depth
-      });
+    // `reveal`'s `expand` caps at 3 levels, so reveal an anchor every 3 levels
+    // to fully expand region trees nested deeper than that. Reveal shallow
+    // anchors first so deeper ones are already visible.
+    const anchors = collectExpandAnchors(this.regionStore.topLevelRegions);
+    for (const anchor of anchors) {
+      await this.treeView.reveal(anchor, { select: false, focus: false, expand: 3 });
     }
     // Finish by highlighting the cursor's active region. We do this regardless of the
     // `shouldAutoHighlightActiveRegion` setting, since the view is open anyway when/after calling
