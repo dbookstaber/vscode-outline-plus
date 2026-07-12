@@ -1,11 +1,13 @@
 /**
- * Benchmark tests for Outline++ extension performance.
+ * Timing benchmarks for Outline++ extension performance.
  *
- * This file tests:
- * 1. Region parsing performance across different file sizes
- * 2. Event firing precision (ratio of events fired to edits made)
+ * These print timing tables and stress the parser; they are NOT part of the
+ * correctness gate (behavioral event-precision guarantees live in
+ * `eventFiringPrecision.test.ts`). They sleep real timers for many seconds, so
+ * the whole suite is OPT-IN: it only runs when the `OUTLINE_PLUS_BENCH`
+ * environment variable is set, and is otherwise skipped.
  *
- * Run with: npm run test (when vscode test environment is available)
+ * Run with: `npm run bench` (or set OUTLINE_PLUS_BENCH=1 before `npm test`).
  */
 
 import * as assert from "assert";
@@ -14,7 +16,7 @@ import { type OutlineInternalAPI } from "../../api/regionHelperAPI";
 import { DEBOUNCE_DOCUMENT_PARSE_MS } from "../../constants";
 import { flattenRegionsAndCountParents } from "../../lib/flattenRegions";
 import { parseAllRegions } from "../../lib/parseAllRegions";
-import { generateLargeTestFile, printEventCountResults, type EventCountResult } from "../utils/benchmarkUtils";
+import { generateLargeTestFile } from "../utils/benchmarkUtils";
 
 /**
  * Helper to wait for a short duration (for debounced operations to settle).
@@ -30,12 +32,16 @@ function wait(ms: number): Promise<void> {
  */
 const DEBOUNCE_SETTLE_MS = DEBOUNCE_DOCUMENT_PARSE_MS + 150;
 
-suite("Performance Benchmarks", () => {
+suite("Performance Benchmarks", function () {
   const timeout = 60000; // 60 second timeout for performance tests
   let regionHelperAPI: OutlineInternalAPI;
 
-  // Ensure extension is activated before tests
-  suiteSetup(async () => {
+  // Opt-in only: skip the entire (slow) benchmark suite unless explicitly
+  // requested. Keeps the default `npm test` gate fast and network-free.
+  suiteSetup(async function () {
+    if (process.env["OUTLINE_PLUS_BENCH"] === undefined) {
+      this.skip();
+    }
     const ext = vscode.extensions.getExtension("DavidBookstaber.outline-regions-plus");
     if (!ext) {
       throw new Error("Outline++ extension not found!");
@@ -93,101 +99,6 @@ suite("Performance Benchmarks", () => {
 
       // Basic assertion - parsing should complete in reasonable time
       assert.ok(avgParseTime < 5000, `Parsing took too long for ${size.name}: ${avgParseTime}ms`);
-    }
-  });
-
-  /**
-   * Regression smoke test — events should fire only occasionally during
-   * rapid edits (not on every keystroke). Strict precision (event count
-   * exactly zero when region structure is unchanged) is verified in
-   * eventFiringPrecision.test.ts; this test just guards against an
-   * obvious regression where every edit fires an event.
-   */
-  test("Regression smoke — events should fire occasionally during rapid edits", async function () {
-    this.timeout(timeout);
-
-    const content = `
-// #region TestRegion1
-const x = 1;
-// #endregion
-
-// #region TestRegion2
-const y = 2;
-// #endregion
-`;
-
-    // Create a document and open it in an editor to trigger RegionStore updates
-    const doc = await vscode.workspace.openTextDocument({
-      content,
-      language: "typescript",
-    });
-    const editor = await vscode.window.showTextDocument(doc);
-
-    // Wait for initial parse
-    await wait(DEBOUNCE_SETTLE_MS);
-
-    // Count region change events using extension API
-    let regionEventCount = 0;
-    const regionDisposable = regionHelperAPI.onDidChangeRegions(() => {
-      regionEventCount++;
-    });
-
-    // Count invalid marker events using extension API
-    let invalidMarkerEventCount = 0;
-    const invalidDisposable = regionHelperAPI.onDidChangeInvalidMarkers(() => {
-      invalidMarkerEventCount++;
-    });
-
-    const editCount = 10;
-
-    try {
-      // Make edits that don't change regions (add/remove whitespace in non-region areas)
-      for (let i = 0; i < editCount; i++) {
-        // Add a space at the end of a non-region line
-        await editor.edit((editBuilder) => {
-          editBuilder.insert(new vscode.Position(2, 14), " ");
-        });
-        await wait(DEBOUNCE_SETTLE_MS); // Wait for debounced refresh
-
-        // Remove the space
-        await editor.edit((editBuilder) => {
-          editBuilder.delete(new vscode.Range(new vscode.Position(2, 14), new vscode.Position(2, 15)));
-        });
-        await wait(DEBOUNCE_SETTLE_MS); // Wait for debounced refresh
-      }
-
-      console.log(`\nAfter ${editCount * 2} non-region-affecting edits:`);
-      console.log(`  Region events fired: ${regionEventCount}`);
-      console.log(`  Invalid marker events fired: ${invalidMarkerEventCount}`);
-
-      const results: EventCountResult[] = [
-        {
-          eventName: "onDidChangeRegions",
-          editCount: editCount * 2,
-          eventsFired: regionEventCount,
-          ratio: regionEventCount / (editCount * 2),
-        },
-        {
-          eventName: "onDidChangeInvalidMarkers",
-          editCount: editCount * 2,
-          eventsFired: invalidMarkerEventCount,
-          ratio: invalidMarkerEventCount / (editCount * 2),
-        },
-      ];
-
-      printEventCountResults(results);
-
-      // With precision event firing, minimal events should fire for non-region edits
-      // Note: Some events may fire during initial stabilization, so we check for low ratio
-      const regionRatio = regionEventCount / (editCount * 2);
-      assert.ok(
-        regionRatio <= 0.5,
-        `Expected low region event ratio for non-region edits, got ${(regionRatio * 100).toFixed(1)}%`
-      );
-    } finally {
-      regionDisposable.dispose();
-      invalidDisposable.dispose();
-      await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
     }
   });
 

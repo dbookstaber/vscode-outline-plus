@@ -1,8 +1,16 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { type OutlineInternalAPI } from "../../api/regionHelperAPI";
+import { type OutlineInternalAPI, type OutlineItem } from "../../api/regionHelperAPI";
+import { DEBOUNCE_DOCUMENT_PARSE_MS, DEBOUNCE_FULL_OUTLINE_PAIRING_MS } from "../../constants";
 import { openSampleDocument } from "../utils/openSampleDocument";
 import { delay, waitForCondition } from "../utils/waitForEvent";
+
+// The full-outline refresh chain is the RegionStore parse debounce followed by
+// FullOutlineStore's short pairing debounce (plan 4.3: the latter is no longer a
+// second full parse debounce). Derive the settle window from both constants plus
+// a margin so any spurious event would have fired before we assert it did not.
+const FULL_OUTLINE_SETTLE_MS =
+  DEBOUNCE_DOCUMENT_PARSE_MS + DEBOUNCE_FULL_OUTLINE_PAIRING_MS + 250;
 
 /**
  * Tests for Full Outline tree view updating when editing documents.
@@ -44,8 +52,12 @@ suite("Full Outline Document Editing", function() {
   });
 
   teardown(async () => {
-    // Close the document without saving to avoid pollution
-    await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
+    // Plan 5.9: REVERT then close. Plain closeActiveEditor discards the tab but
+    // leaves the underlying (dirty) TextDocument buffer intact for a tick, so an
+    // in-flight debounced refresh — or the next test reopening the same sample —
+    // could observe this test's edits. revertAndCloseActiveEditor restores the
+    // on-disk content first, killing that cross-test bleed.
+    await vscode.commands.executeCommand("workbench.action.revertAndCloseActiveEditor");
   });
 
   // #region Helper Functions
@@ -75,48 +87,65 @@ suite("Full Outline Document Editing", function() {
     });
   }
 
+  /** Depth-first flatten of the full outline items (regions + symbols). */
+  function flattenOutlineItems(): OutlineItem[] {
+    const result: OutlineItem[] = [];
+    function walk(items: readonly OutlineItem[]): void {
+      for (const item of items) {
+        result.push(item);
+        walk(item.children);
+      }
+    }
+    walk(regionHelperAPI.getTopLevelFullOutlineItems());
+    return result;
+  }
+
   // #endregion
 
   test("should update full outline items when a new region is added", async () => {
+    // Precondition: the new region is not present before the edit.
+    assert.ok(
+      !flattenOutlineItems().some((i) => i.name === "UniqueNewTestRegion123"),
+      "Sanity: the unique region must not exist before it is inserted"
+    );
+
     // Add a new region with a unique name
     await insertTextAtPosition("// #region UniqueNewTestRegion123\n// content\n// #endregion\n", 0, 0);
 
-    // Wait for the full outline to contain the new region (by checking all items, not just top-level)
-    // Use a more lenient check - just wait for the region store to update
+    // Wait for the FULL OUTLINE (not just the region store) to contain the new
+    // region item — this is the view the test title claims to exercise.
     await waitForCondition(
-      () => {
-        const regions = regionHelperAPI.getTopLevelRegions();
-        return regions.some(region => region.name === "UniqueNewTestRegion123");
-      },
+      () => flattenOutlineItems().some((i) => i.kind === "region" && i.name === "UniqueNewTestRegion123"),
       3000,
       50
     );
 
-    // Verify the region was added
-    const regions = regionHelperAPI.getTopLevelRegions();
-    const newRegion = regions.find(region => region.name === "UniqueNewTestRegion123");
-    assert.ok(newRegion !== undefined, "Should find the newly added region");
+    const newItem = flattenOutlineItems().find(
+      (i) => i.kind === "region" && i.name === "UniqueNewTestRegion123"
+    );
+    assert.ok(newItem !== undefined, "Full outline should contain the newly added region item");
   });
 
   test("should update full outline items when a region is deleted", async () => {
-    const initialRegions = regionHelperAPI.getTopLevelRegions();
-    const initialRegionCount = initialRegions.length;
-    assert.ok(initialRegionCount > 0, "Should have regions initially");
+    // Precondition: the full outline contains the "Imports" region item.
+    assert.ok(
+      flattenOutlineItems().some((i) => i.kind === "region" && i.name === "Imports"),
+      "Sanity: the full outline should contain the 'Imports' region before deletion"
+    );
 
     // Delete the Imports region (lines 4-7 in sampleRegionsDocument.ts)
     await deleteLineRange(4, 7);
 
-    // Wait for the region count to decrease
+    // Wait for the FULL OUTLINE to drop the deleted region item.
     await waitForCondition(
-      () => regionHelperAPI.getTopLevelRegions().length < initialRegionCount,
+      () => !flattenOutlineItems().some((i) => i.kind === "region" && i.name === "Imports"),
       3000,
       50
     );
 
-    const updatedRegions = regionHelperAPI.getTopLevelRegions();
     assert.ok(
-      updatedRegions.length < initialRegionCount,
-      "Should have fewer regions after deleting a region"
+      !flattenOutlineItems().some((i) => i.kind === "region" && i.name === "Imports"),
+      "Full outline should no longer contain the deleted 'Imports' region"
     );
   });
 
@@ -143,21 +172,31 @@ suite("Full Outline Document Editing", function() {
   });
 
   test("should update when document symbols change (e.g., new function added)", async () => {
-    // Add a new function to the document
+    // Precondition: the new symbol is not present before the edit.
+    assert.ok(
+      !flattenOutlineItems().some((i) => i.kind === "symbol" && i.name === "newTestFunction"),
+      "Sanity: 'newTestFunction' must not exist before it is added"
+    );
+
+    // Add a new function to the document (TS language server is available in the
+    // test host, so this must surface as a symbol item in the outline).
     await insertTextAtPosition(
       "\nfunction newTestFunction() {\n  return true;\n}\n",
       editor.document.lineCount,
       0
     );
 
-    // Wait for the outline to potentially update (allow time for symbol parsing)
-    await delay(500);
+    // Wait for the newly added function to appear as a symbol in the full outline.
+    await waitForCondition(
+      () => flattenOutlineItems().some((i) => i.kind === "symbol" && i.name === "newTestFunction"),
+      5000,
+      50
+    );
 
-    const updatedItems = regionHelperAPI.getTopLevelFullOutlineItems();
-    
-    // The outline may have more items or the same items with updated positions
-    // We just verify that we have a valid outline
-    assert.ok(updatedItems.length >= 0, "Full outline should update when symbols change");
+    assert.ok(
+      flattenOutlineItems().some((i) => i.kind === "symbol" && i.name === "newTestFunction"),
+      "Full outline should contain the newly added function symbol"
+    );
   });
 
   test("should handle rapid successive edits correctly", async () => {
@@ -173,10 +212,10 @@ suite("Full Outline Document Editing", function() {
       await insertTextAtPosition("// Comment 3\n", 0, 0);
 
       // Wait for the debounced refresh chain to fire. The chain is RegionStore
-      // debounce (250ms) → FullOutlineStore debounce (250ms) ≈ 500ms minimum
-      // after the last edit. Use polling so the test isn't dependent on
-      // exact timing — earlier flakiness here came from a fixed 400ms delay
-      // that finished BEFORE the post-edit refresh actually ran.
+      // debounce (250ms) → FullOutlineStore pairing debounce (50ms; plan 4.3)
+      // ≈ 300ms minimum after the last edit. Use polling so the test isn't
+      // dependent on exact timing — earlier flakiness here came from a fixed
+      // 400ms delay that finished BEFORE the post-edit refresh actually ran.
       try {
         await waitForCondition(() => eventCount >= 1, 2000, 50);
       } catch {
@@ -222,40 +261,76 @@ suite("Full Outline Document Editing", function() {
   });
 
   test("should handle editing that affects region boundaries", async () => {
-    // Insert lines at the beginning, shifting all regions down
+    // The clean sample's top-level regions that must survive a boundary shift.
+    const coreRegions = ["Imports", "Classes", "Type Definitions"];
+    const hasAllCoreRegions = (): boolean => {
+      const names = new Set(
+        flattenOutlineItems()
+          .filter((i) => i.kind === "region")
+          .map((i) => i.name)
+      );
+      return coreRegions.every((name) => names.has(name));
+    };
+
+    assert.ok(hasAllCoreRegions(), "Sanity: outline should contain the sample's core regions before the edit");
+
+    // Insert 3 comment lines at the beginning, shifting every region down. This
+    // changes region positions but not the region structure, so the outline
+    // must continue to expose the sample's regions (edit handled gracefully,
+    // no regions dropped or corrupted).
+    //
+    // We assert on presence of the known core regions rather than exact set
+    // equality: this suite does not revert edits between tests, so a stale
+    // debounced refresh from a prior test can transiently inject an extra
+    // region name. Requiring the core regions to be present is robust to that
+    // while still failing if the boundary edit drops or corrupts them.
     await insertTextAtPosition("// Line 1\n// Line 2\n// Line 3\n", 0, 0);
 
-    // Wait for the outline to update (allow time for processing)
-    await delay(300);
-
-    const updatedItems = regionHelperAPI.getTopLevelFullOutlineItems();
-    
-    // Items may change count if document symbols are affected, but we should have some items
-    // The key is that the outline updated correctly after the edit
+    await waitForCondition(hasAllCoreRegions, 6000, 50);
     assert.ok(
-      updatedItems.length >= 0,
-      "Full outline should update after shifting boundaries"
+      hasAllCoreRegions(),
+      "The full outline should still contain the sample's core regions after a boundary-shifting edit"
     );
   });
 
-  test("should fire minimal events when editing inside a region", async () => {
+  test("should NOT fire outline events when editing a comment inside a region", async () => {
+    // Line 5 (0-indexed) is a comment line inside the Imports region — editing
+    // it changes neither the region structure nor any document symbol, so the
+    // full outline must not change and no event should fire.
+
+    // Let any in-flight refresh from setup() settle before we start counting.
+    await delay(FULL_OUTLINE_SETTLE_MS);
+
+    const namesBefore = flattenOutlineItems().map((i) => i.name);
+
     let eventCount = 0;
     const disposable = regionHelperAPI.onDidChangeFullOutlineItems(() => {
       eventCount++;
     });
 
     try {
-      // Edit inside a region without changing structure (modify existing line)
       await replaceTextAtLine(5, "// Modified comment inside region");
 
-      // Wait to see if event fires
-      await delay(300);
+      // Wait for the edit to land, then past the full-outline debounce so any
+      // spurious event would already have fired.
+      await waitForCondition(
+        () => editor.document.lineAt(5).text.includes("Modified comment"),
+        2000,
+        25
+      );
+      await delay(FULL_OUTLINE_SETTLE_MS);
 
-      // Full Outline may fire if document symbols change (e.g., if the line is inside a function)
-      // We just verify the system doesn't crash and handles edits properly
-      assert.ok(
-        eventCount >= 0,
-        "Full outline should handle edits gracefully"
+      assert.strictEqual(
+        eventCount,
+        0,
+        "onDidChangeFullOutlineItems should not fire for a comment edit inside a region"
+      );
+
+      const namesAfter = flattenOutlineItems().map((i) => i.name);
+      assert.deepStrictEqual(
+        namesAfter,
+        namesBefore,
+        "Full outline structure should be unchanged by a comment edit inside a region"
       );
     } finally {
       disposable.dispose();

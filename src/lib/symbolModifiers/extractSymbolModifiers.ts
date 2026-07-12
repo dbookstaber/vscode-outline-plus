@@ -18,6 +18,14 @@ type ModifierPatternConfig = {
   memberKeywords: Partial<Record<keyof MemberModifiers, string[]>>;
   /** Regex to detect parent type declarations (used as a boundary when scanning backwards) */
   typeDeclarationPattern?: RegExp;
+  /**
+   * When true, keyword matching is case-insensitive for this language. Defaults
+   * to false (case-sensitive) — the correct behavior for every C-family language.
+   * Only set this for genuinely case-insensitive languages (e.g. Visual Basic),
+   * so that identifiers like `Static`/`Override`/`Async` in case-sensitive
+   * languages are NOT mistaken for modifier keywords.
+   */
+  caseInsensitive?: boolean;
 };
 
 /**
@@ -110,7 +118,10 @@ const typescriptPatterns: ModifierPatternConfig = {
 };
 
 const cppPatterns: ModifierPatternConfig = {
-  languages: ["cpp", "c"],
+  // C is intentionally excluded: it has no access specifiers (and no classes),
+  // so there is nothing for visibility extraction to do. C++ visibility is
+  // handled by a dedicated access-section scan (see extractCppSectionVisibility).
+  languages: ["cpp"],
   visibilityKeywords: {
     public: "public",
     private: "private",
@@ -162,6 +173,85 @@ function getPatternConfig(languageId: string): ModifierPatternConfig | undefined
 }
 
 /**
+ * Precompiled form of a {@link ModifierPatternConfig}.
+ *
+ * Plan 4.2: previously every extraction call built O(symbols × keywords) fresh
+ * `RegExp` objects (one per visibility keyword plus 1–3 per member keyword), and
+ * the result cache was invalidated on every keystroke — so a single edit tick
+ * recompiled dozens of regexes per symbol. These patterns depend only on the
+ * (static) language config, so we compile them exactly once at module load and
+ * reuse the objects forever. The hot path (`extractVisibility` /
+ * `extractMemberModifiers`) now constructs zero `RegExp` objects.
+ */
+type CompiledVisibilityKeyword = {
+  visibility: VisibilityModifier;
+  /** Length of the source keyword, used to break earliest-position ties. */
+  keywordLength: number;
+  /** `\bkeyword\b`, non-global so `String.search`/`test` are stateless. */
+  regex: RegExp;
+};
+
+type CompiledMemberKeyword = {
+  modifierKey: string;
+  regexes: RegExp[];
+};
+
+type CompiledPatternConfig = {
+  visibility: CompiledVisibilityKeyword[];
+  memberKeywords: CompiledMemberKeyword[];
+};
+
+function compilePatternConfig(config: ModifierPatternConfig): CompiledPatternConfig {
+  const flags = config.caseInsensitive === true ? "i" : "";
+  const supportsCSharpAttributes = config.languages.includes("csharp");
+  const supportsAtDecorators = configHasAtPrefixedMemberKeyword(config);
+
+  const visibility: CompiledVisibilityKeyword[] = [];
+  for (const [keyword, vis] of Object.entries(config.visibilityKeywords)) {
+    visibility.push({
+      visibility: vis,
+      keywordLength: keyword.length,
+      regex: new RegExp(`\\b${escapeRegex(keyword)}\\b`, flags),
+    });
+  }
+
+  const memberKeywords: CompiledMemberKeyword[] = [];
+  for (const [modifierKey, keywords] of Object.entries(config.memberKeywords)) {
+    if (keywords.length === 0) continue;
+    for (const keyword of keywords) {
+      const regexes: RegExp[] = [];
+      if (keyword.startsWith("@")) {
+        // Decorator keyword (e.g., @staticmethod) — match as-is. Cannot use \b
+        // (@ is not a word char) and must not prepend another @.
+        regexes.push(new RegExp(escapeRegex(keyword), flags));
+      } else {
+        regexes.push(new RegExp(`\\b${escapeRegex(keyword)}\\b`, flags));
+        // @-decorator form is gated to languages whose config declares an
+        // @-prefixed keyword (Python today). C# attribute-bracket form is gated
+        // to C#. See the module docs on extractMemberModifiers history.
+        if (supportsAtDecorators) {
+          regexes.push(new RegExp(`@${escapeRegex(keyword)}`, flags));
+        }
+        if (supportsCSharpAttributes) {
+          regexes.push(new RegExp(`\\[${escapeRegex(keyword)}\\]`, flags));
+        }
+      }
+      memberKeywords.push({ modifierKey, regexes });
+    }
+  }
+
+  return { visibility, memberKeywords };
+}
+
+/** Precompiled patterns per config, built once at module load. */
+const compiledPatternConfigs = new Map<ModifierPatternConfig, CompiledPatternConfig>(
+  allPatternConfigs.map((config): [ModifierPatternConfig, CompiledPatternConfig] => [
+    config,
+    compilePatternConfig(config),
+  ])
+);
+
+/**
  * Extracts modifiers from a symbol by reading the source line where the symbol is defined.
  *
  * @param symbol - The document symbol to extract modifiers from
@@ -181,6 +271,12 @@ export function extractSymbolModifiers(
     return modifiers;
   }
 
+  const compiled = compiledPatternConfigs.get(patternConfig);
+  if (compiled === undefined) {
+    // Defensive: every config in allPatternConfigs is precompiled at module load.
+    return modifiers;
+  }
+
   // For Python, use naming conventions to detect visibility
   // (Python doesn't have visibility keywords, only naming conventions)
   if (languageId === "python") {
@@ -191,44 +287,65 @@ export function extractSymbolModifiers(
   // Read lines that are part of this symbol's declaration only
   const rawText = getSymbolDeclarationText(symbol, document, patternConfig);
 
-  // Strip comments to prevent false keyword matches (e.g., "private" appearing in
-  // an XML doc comment like "/// Retrieve the private field..." would otherwise be
-  // detected as a visibility modifier instead of the actual "public" keyword).
-  const text = stripComments(rawText);
+  // Sanitize the declaration text before keyword scanning. This strips:
+  //  - comments (so "private" in a doc comment is not read as visibility),
+  //  - string literals (so keywords inside `"..."`/`'...'`/`` `...` `` are ignored),
+  //  - parameter lists (so a TS parameter property `constructor(private foo)` does
+  //    not leak `private`/`readonly` onto the enclosing symbol).
+  const text = sanitizeDeclarationText(rawText);
 
-  // Extract visibility (for languages with keywords)
-  if (languageId !== "python") {
-    modifiers.visibility = extractVisibility(text, patternConfig, languageId);
+  // Extract visibility.
+  if (languageId === "cpp") {
+    // C++ access control is section state (`public:`/`private:`/`protected:`
+    // labels govern every following member), not a per-declaration keyword, so
+    // it needs a dedicated scan rather than the shared keyword matcher.
+    modifiers.visibility = extractCppSectionVisibility(symbol, document);
+  } else if (languageId !== "python") {
+    modifiers.visibility = extractVisibility(text, compiled, languageId);
   }
 
   // Extract member modifiers
-  extractMemberModifiers(text, patternConfig, modifiers.memberModifiers, languageId);
+  extractMemberModifiers(text, compiled, modifiers.memberModifiers);
 
   return modifiers;
 }
 
 /**
  * Extract visibility modifier from text.
+ *
+ * Plan 2.2(i): the winning keyword is chosen by EARLIEST POSITION in the text,
+ * not by keyword length. Length-based selection wrongly reported
+ * `public int X { get; private set; }` as private, because "private" (7 chars)
+ * outranked "public" (6 chars) even though it appears later. Ties at the same
+ * index prefer the LONGER keyword, so a combined modifier like
+ * "protected internal" still beats the bare "protected" that starts at the same
+ * position.
  */
 function extractVisibility(
   text: string,
-  config: ModifierPatternConfig,
+  compiled: CompiledPatternConfig,
   languageId: string
 ): VisibilityModifier {
-  // Check for combined modifiers first (e.g., "protected internal")
-  const sortedKeywords = Object.keys(config.visibilityKeywords).sort(
-    (a, b) => b.length - a.length
-  );
+  let best: { visibility: VisibilityModifier; index: number; length: number } | undefined;
 
-  for (const keyword of sortedKeywords) {
-    // Use word boundary to match whole keyword only
-    const regex = new RegExp(`\\b${escapeRegex(keyword)}\\b`, "i");
-    if (regex.test(text)) {
-      const visibility = config.visibilityKeywords[keyword];
-      if (visibility !== undefined) {
-        return visibility;
-      }
+  for (const candidate of compiled.visibility) {
+    const index = text.search(candidate.regex);
+    if (index === -1) continue;
+    if (
+      best === undefined ||
+      index < best.index ||
+      (index === best.index && candidate.keywordLength > best.length)
+    ) {
+      best = {
+        visibility: candidate.visibility,
+        index,
+        length: candidate.keywordLength,
+      };
     }
+  }
+
+  if (best !== undefined) {
+    return best.visibility;
   }
 
   // Handle language-specific defaults when no visibility keyword is present
@@ -258,39 +375,14 @@ function extractVisibility(
  */
 function extractMemberModifiers(
   text: string,
-  config: ModifierPatternConfig,
-  memberModifiers: MemberModifiers,
-  languageId: string
+  compiled: CompiledPatternConfig,
+  memberModifiers: MemberModifiers
 ): void {
-  const supportsCSharpAttributes = languageId === "csharp";
-  const supportsAtDecorators = configHasAtPrefixedMemberKeyword(config);
-
-  for (const [modifierKey, keywords] of Object.entries(config.memberKeywords)) {
-    // Skip if no keywords defined for this modifier
-    if (keywords.length === 0) continue;
-    for (const keyword of keywords) {
-      let patterns: RegExp[];
-
-      if (keyword.startsWith("@")) {
-        // Decorator keyword (e.g., @staticmethod, @abstractmethod) — match as-is.
-        // Cannot use \b word-boundary because @ is not a word character,
-        // and must not prepend another @ (would produce @@staticmethod).
-        patterns = [new RegExp(escapeRegex(keyword), "i")];
-      } else {
-        patterns = [new RegExp(`\\b${escapeRegex(keyword)}\\b`, "i")];
-        if (supportsAtDecorators) {
-          patterns.push(new RegExp(`@${escapeRegex(keyword)}`, "i"));
-        }
-        if (supportsCSharpAttributes) {
-          patterns.push(new RegExp(`\\[${escapeRegex(keyword)}\\]`, "i"));
-        }
-      }
-
-      for (const pattern of patterns) {
-        if (pattern.test(text)) {
-          setMemberModifier(memberModifiers, modifierKey);
-          break;
-        }
+  for (const entry of compiled.memberKeywords) {
+    for (const pattern of entry.regexes) {
+      if (pattern.test(text)) {
+        setMemberModifier(memberModifiers, entry.modifierKey);
+        break;
       }
     }
   }
@@ -373,6 +465,119 @@ function stripComments(text: string): string {
   // so it won't corrupt # inside string literals on code lines.
   result = result.replace(/^\s*#.*$/gm, "");
   return result;
+}
+
+/**
+ * Sanitize declaration text prior to keyword scanning by removing regions that
+ * can carry false keyword matches: comments, string literals, and parameter
+ * lists. All helpers here use regex *literals* (not `new RegExp`), so this stays
+ * off the precompiled hot path but does not construct cacheable patterns per
+ * call in the O(keywords) sense that Plan 4.2 targets.
+ */
+function sanitizeDeclarationText(text: string): string {
+  let result = stripComments(text);
+  result = stripStringLiterals(result);
+  result = stripParameterLists(result);
+  return result;
+}
+
+/**
+ * Remove the contents of string/char/template literals so keywords appearing
+ * inside them (e.g. `[Obsolete("Use the private API")]`) are not mistaken for
+ * modifiers. Plan 2.2(ii). Handles escaped quotes; leaves the surrounding
+ * structure intact by replacing each literal with an empty pair of delimiters.
+ */
+function stripStringLiterals(text: string): string {
+  let result = text.replace(/"(?:[^"\\]|\\.)*"/g, '""');
+  result = result.replace(/'(?:[^'\\]|\\.)*'/g, "''");
+  result = result.replace(/`(?:[^`\\]|\\.)*`/g, "``");
+  return result;
+}
+
+/**
+ * Collapse parenthesized parameter lists to `()`.
+ *
+ * Plan 2.2(iii): a symbol's own modifiers always precede its parameter list, so
+ * anything inside the parentheses belongs to parameters — not the symbol. This
+ * prevents TypeScript parameter properties like `constructor(private readonly x)`
+ * from leaking `private`/`readonly` onto the constructor, while leaving genuine
+ * modifiers (which sit before `(`, or after `)` like C++ trailing `const`
+ * /`override`) untouched. Repeatedly collapses the innermost parens to also
+ * handle nesting.
+ */
+function stripParameterLists(text: string): string {
+  let result = text;
+  let previous: string;
+  do {
+    previous = result;
+    result = result.replace(/\([^()]*\)/g, "()");
+  } while (result !== previous);
+  return result;
+}
+
+/** Matches a C++ access-specifier label line, e.g. `  public:` or `private :`. */
+const CPP_ACCESS_LABEL_PATTERN = /^\s*(public|private|protected)\s*:/;
+
+/**
+ * Determine a C++ member's visibility from its enclosing access-specifier
+ * section.
+ *
+ * Plan 2.9: access control in C++ is stateful — a `public:` / `private:` /
+ * `protected:` label governs every following member until the next label — so
+ * the shared per-declaration keyword matcher (and the 3-line backward scan)
+ * could only ever color the FIRST member after a label. This walks upward from
+ * the member to the nearest preceding access label at the member's own brace
+ * depth, skipping over nested method bodies via brace balancing, and stopping
+ * once we ascend past the opening brace of the enclosing class/struct.
+ *
+ * Known limitations (documented, acceptable for a heuristic outline decorator):
+ *  - `struct`/`union` members default to public and `class` members to private
+ *    when no explicit label precedes them; we return "default" in that case
+ *    rather than guessing the container kind.
+ *  - Deeply nested classes with their own access labels are handled only to the
+ *    extent brace balancing keeps us in the member's section.
+ */
+function extractCppSectionVisibility(
+  symbol: vscode.DocumentSymbol,
+  document: vscode.TextDocument
+): VisibilityModifier {
+  const symbolLine = symbol.selectionRange.start.line;
+  const lineCount = document.lineCount;
+  if (lineCount === 0 || symbolLine >= lineCount) {
+    return "default";
+  }
+
+  let braceBalance = 0;
+  for (let line = symbolLine - 1; line >= 0; line--) {
+    // Strip comments and strings so `//` text and `'{'`/`'}'` char literals do
+    // not disturb label detection or brace counting.
+    const clean = stripStringLiterals(stripComments(document.lineAt(line).text));
+
+    if (braceBalance === 0) {
+      const match = CPP_ACCESS_LABEL_PATTERN.exec(clean);
+      if (match !== null) {
+        // match[1] is exactly "public" | "private" | "protected".
+        return match[1] as VisibilityModifier;
+      }
+    }
+
+    for (const ch of clean) {
+      if (ch === "}") {
+        // Ascending into a nested block that closed above the member.
+        braceBalance++;
+      } else if (ch === "{") {
+        braceBalance--;
+      }
+    }
+
+    if (braceBalance < 0) {
+      // We passed the opening brace of the enclosing class/struct — the member's
+      // section has no access label above it.
+      break;
+    }
+  }
+
+  return "default";
 }
 
 /**

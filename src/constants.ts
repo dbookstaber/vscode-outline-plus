@@ -40,7 +40,6 @@ export const CMD_FULL_OUTLINE_VIEW_START_AUTO_HIGHLIGHT = "outlinePlus.fullOutli
 export const CMD_FULL_OUTLINE_VIEW_EXPAND_ALL = "outlinePlus.fullOutlineView.expandAll";
 export const CMD_FULL_OUTLINE_VIEW_REFRESH = "outlinePlus.fullOutlineView.refresh";
 
-export const CMD_GO_TO_REGION_TREE_ITEM = "outlinePlus.goToRegionTreeItem";
 export const CMD_GO_TO_FULL_TREE_ITEM = "outlinePlus.goToFullTreeItem";
 
 export const CMD_SHOW_DEBUG_LOG = "outlinePlus.showDebugLog";
@@ -68,6 +67,21 @@ export const STATE_KEY_FULL_OUTLINE_COLLAPSIBLE = "fullOutlineViewCollapsibleSta
  * These are the expensive operations that scan the full document.
  */
 export const DEBOUNCE_DOCUMENT_PARSE_MS = 250;
+
+/**
+ * Debounce delay for FullOutlineStore's pairing refresh (plan 4.3).
+ *
+ * FullOutlineStore merges region data (from RegionStore) and symbol data (from
+ * DocumentSymbolStore). Both of those inputs already arrive *pre-debounced* by
+ * {@link DEBOUNCE_DOCUMENT_PARSE_MS}, so this stage does NOT need a second full
+ * parse-length debounce — it only needs a short window to coalesce the two
+ * near-simultaneous upstream events (region-changed + symbols-changed) into a
+ * single outline rebuild. Using the full 250 ms here stacked serially on top of
+ * the upstream 250 ms, adding ~250 ms of pure latency to every keystroke→tree
+ * update. A short pairing delay removes that stacked cost while still collapsing
+ * the paired events.
+ */
+export const DEBOUNCE_FULL_OUTLINE_PAIRING_MS = 50;
 
 /**
  * Debounce delay for cursor-tracking operations (active region/item detection).

@@ -10,9 +10,17 @@ const testConfig: Configuration = {
   target: "node",
   mode: "none",
 
+  // Flatten every test file to a single output directory (dist-tests/<name>.js)
+  // using the basename as the bundle name. `path.basename` is separator-
+  // agnostic, so this is deterministic on Windows and POSIX alike — unlike the
+  // previous `testFilePath.replace("src/test/", "")`, which was a no-op on
+  // Windows (glob returns backslash-separated paths there) and let bundles land
+  // at unpredictable depths under dist-tests. A flat, single-depth layout lets
+  // openSampleDocument resolve samples with one direct `path.join`.
+  // (Test basenames are unique across the suite, so flattening is collision-free.)
   entry: Object.fromEntries(
     testFilePaths.map((testFilePath) => [
-      testFilePath.replace("src/test/", "").replace(".ts", ""),
+      path.basename(testFilePath, ".ts"),
       path.resolve(__dirname, testFilePath),
     ])
   ),

@@ -3,6 +3,7 @@ dist
 dist-tests
 node_modules
 .vscode-test/
+.vscode-test-web/
 *.vsix
 .aider*
 .claude/

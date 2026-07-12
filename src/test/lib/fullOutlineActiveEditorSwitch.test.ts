@@ -104,55 +104,64 @@ suite("Full Outline Active Editor Switch", function() {
     const itemsFromDoc1 = regionHelperAPI.getTopLevelFullOutlineItems();
     assert.ok(itemsFromDoc1.length > 0, "Should have full outline items from first document");
 
-    // Open second document (different file)
+    // Open second document (different file). validSample.cs has a "FirstRegion"
+    // that sampleRegionsDocument.ts does not.
     const doc2 = await openSampleDocument("validSamples", "validSample.cs");
     await vscode.window.showTextDocument(doc2);
-    
-    // Wait for outline to update - use delay since we can't easily detect when items change
-    // when both files have items
-    await delay(500);
-    
-    // Just verify we still have items and the system is responsive
-    const itemsFromDoc2 = regionHelperAPI.getTopLevelFullOutlineItems();
-    assert.ok(Array.isArray(itemsFromDoc2), "Should have full outline items array from second document");
+
+    // Wait until the outline reflects doc2 (proving the switch updated the tree,
+    // not merely that some array still exists).
+    await waitForOutlineContaining("FirstRegion");
+
+    const itemsFromDoc2 = flattenOutlineItems();
+    assert.ok(
+      itemsFromDoc2.some((i) => i.name === "FirstRegion"),
+      "Outline should contain doc2's 'FirstRegion' after switching"
+    );
+    assert.ok(
+      !itemsFromDoc2.some((i) => i.name === "Imports"),
+      "Outline should no longer contain doc1's 'Imports' region after switching"
+    );
   });
 
   test("should update full outline items when switching back to previous file", async () => {
     // Open first document
     const doc1 = await openSampleDocument("sampleRegionsDocument.ts");
     await vscode.window.showTextDocument(doc1);
-    await waitForFullOutlineItems();
+    await waitForOutlineContaining("Imports");
 
     const itemsFromDoc1FirstTime = regionHelperAPI.getTopLevelFullOutlineItems();
     assert.ok(itemsFromDoc1FirstTime.length > 0, "Should have items from doc1");
 
-    // Open second document
+    // Open second document and wait until the outline actually reflects it.
     const doc2 = await openSampleDocument("validSamples", "validSample.cs");
     await vscode.window.showTextDocument(doc2);
-    
-    // Wait for the switch to process
-    await delay(500);
+    await waitForOutlineContaining("FirstRegion");
 
     // Switch back to first document
     await vscode.window.showTextDocument(doc1);
-    
-    // Wait for items to be available again
-    await waitForFullOutlineItems();
 
-    const itemsFromDoc1SecondTime = regionHelperAPI.getTopLevelFullOutlineItems();
+    // Wait until the outline reflects doc1 again (not merely that some array
+    // exists — retained stale doc2 state would satisfy `length > 0`).
+    await waitForOutlineContaining("Imports");
 
-    // Verify we have items after switching back
+    const finalItems = flattenOutlineItems();
     assert.ok(
-      itemsFromDoc1SecondTime.length > 0,
-      "Should have items when switching back to first document"
+      finalItems.some((i) => i.name === "Imports"),
+      "Outline should contain doc1's 'Imports' region after switching back"
+    );
+    assert.ok(
+      !finalItems.some((i) => i.name === "FirstRegion"),
+      "Outline should no longer contain doc2's 'FirstRegion' after switching back"
     );
   });
 
   test("should fire onDidChangeFullOutlineItems when switching between files", async () => {
-    // Open first document
+    // Open the first document and let its outline fully settle (wait for a
+    // region unique to it) so no in-flight refresh spills into the count below.
     const doc1 = await openSampleDocument("sampleRegionsDocument.ts");
     await vscode.window.showTextDocument(doc1);
-    await waitForFullOutlineItems();
+    await waitForOutlineContaining("Imports");
 
     // Set up event listener BEFORE switching
     let eventFiredCount = 0;
@@ -161,19 +170,16 @@ suite("Full Outline Active Editor Switch", function() {
     });
 
     try {
-      // Open second document
+      // Switch to a different file whose outline ("FirstRegion") differs from
+      // doc1's, so the change event must fire at least once.
       const doc2 = await openSampleDocument("validSamples", "validSample.cs");
       await vscode.window.showTextDocument(doc2);
-      
-      // Give time for the event to fire
-      await delay(500);
 
-      // The event should fire at least once when switching files
-      // (though it may fire 0 times if the outline items happen to be identical)
-      // We just verify the system handles the switch without errors
+      await waitForCondition(() => eventFiredCount >= 1, 6000, 50);
+
       assert.ok(
-        eventFiredCount >= 0,
-        "System should handle file switching"
+        eventFiredCount >= 1,
+        "onDidChangeFullOutlineItems should fire when switching to a file with a different outline"
       );
     } finally {
       disposable.dispose();
@@ -265,19 +271,23 @@ suite("Full Outline Active Editor Switch", function() {
     await delay(150);
 
     await vscode.window.showTextDocument(doc3);
-    
-    // Wait for outline to stabilize
-    await waitForFullOutlineItems();
 
-    // Verify we ended up with the correct document's outline
-    const finalItems = regionHelperAPI.getTopLevelFullOutlineItems();
-    
-    // The outline should match doc3, not doc1 or doc2
-    // We can't easily verify this without knowing the structure, but we can verify
-    // that items exist and the API is responsive
+    // The outline should converge to doc3 (readmeSample.ts has "Project
+    // Overview") and not retain doc1's or doc2's regions.
+    await waitForOutlineContaining("Project Overview");
+
+    const finalItems = flattenOutlineItems();
     assert.ok(
-      Array.isArray(finalItems),
-      "Should have outline items array after rapid switching"
+      finalItems.some((i) => i.name === "Project Overview"),
+      "Outline should reflect doc3 (readmeSample.ts) after rapid switching"
+    );
+    assert.ok(
+      !finalItems.some((i) => i.name === "Imports"),
+      "Outline should not retain doc1's 'Imports' region"
+    );
+    assert.ok(
+      !finalItems.some((i) => i.name === "FirstRegion"),
+      "Outline should not retain doc2's 'FirstRegion' region"
     );
   });
 

@@ -4,7 +4,7 @@
 vscode-outline-plus/
 ├── src/
 │   ├── extension.ts          # Extension entry point
-│   ├── api/                   # Public API
+│   ├── api/                   # Test-gated internal API (undefined in production)
 │   ├── commands/              # Command implementations
 │   ├── config/                # Configuration management
 │   ├── diagnostics/           # Region validation diagnostics

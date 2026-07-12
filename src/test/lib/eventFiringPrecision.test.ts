@@ -46,8 +46,10 @@ suite("Event Firing Precision", function() {
   });
 
   teardown(async () => {
-    // Close the document without saving to avoid pollution
-    await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
+    // Plan 5.9: REVERT then close so this test's edits to the shared sample
+    // document cannot bleed into the next test via an in-flight debounced
+    // refresh or a reopened-but-still-dirty buffer. See fullOutlineDocumentEditing.
+    await vscode.commands.executeCommand("workbench.action.revertAndCloseActiveEditor");
   });
 
   // #region Helper Functions

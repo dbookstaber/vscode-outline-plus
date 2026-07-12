@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { scrollLineIntoView } from "./scrollUtils";
+import { scrollLineIntoView } from "./editorNav";
 
 let decorationType: vscode.TextEditorDecorationType | undefined;
 

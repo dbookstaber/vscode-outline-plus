@@ -6,6 +6,54 @@ This changelog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ---
 
+## [1.2.0] - 2026-07-11
+
+### Added
+- **Web extension support.** Outline++ now ships a browser bundle and runs on vscode.dev / github.dev. (Modifier icons and all region features work in the web host; there are no Node dependencies left in the runtime.)
+- **PowerShell and LaTeX** join the default region-pattern map (`#region`/`#endregion` and `% #region` respectively). `bat`/`ini` were evaluated and skipped — neither has a standard region idiom.
+- **Unclosed regions are now visible.** A `#region` with no matching end used to be silently dropped (its closed children promoted). It now appears in the trees and folds, extending to its last closed child's end (or end-of-file if it has none), and is still flagged with an invalid-marker diagnostic.
+- **Large-file indicator.** When a file exceeds the 100,000-line parsing limit, a status-bar item now says so — an empty Regions view on a huge file is no longer indistinguishable from "no regions".
+- **Command feedback.** Region commands that have nothing to do (no editor, no regions, cursor outside every region) now show a transient status-bar message naming the reason.
+- **Screen-reader labels.** Tree items carry `accessibilityInformation` with modifiers spelled out ("private static method Foo") and no emoji, so announcements and type-ahead work; the visible badge labels are unchanged.
+- **Light-theme icon variants.** The 15 modifier overlay icons now ship light and dark versions (the old single set used Dark+ colors everywhere; light themes got low-contrast icons).
+- **Continuous integration:** GitHub Actions workflow running the full suite on push/PR (first validation occurs on first push).
+- **Restricted Mode support:** the extension now declares limited untrusted-workspace capabilities instead of being silently dead; custom region patterns (the one workspace-injectable regex surface) require trust.
+
+### Changed
+- **Default keybindings unified** into the single `Ctrl+Alt+<letter>` family (macOS: `Cmd+Alt+<letter>`), with macOS variants for all five commands (previously 1 of 5). Changed: Go to Region Boundary `Alt+M` → `Ctrl+Alt+M`; Select Current Region `Alt+Shift+M` → `Ctrl+Alt+S`. Unchanged: Go to Region… `Ctrl+Alt+R`; Go to Next Region `Ctrl+Alt+N`; Go to Previous Region `Ctrl+Alt+P`. Note that `Ctrl+Alt+<letter>` can collide with AltGr layouts and other extensions' defaults (e.g. Code Runner's `Ctrl+Alt+N`) — remap in the Keyboard Shortcuts editor if affected.
+- **Command palette entries** now use a proper command category ("Outline++: …") instead of baked-in title prefixes; the two stale Start/Stop auto-highlight variants no longer both appear (their visibility conditions were in a manifest field VS Code ignores).
+- **Tree-item identity is now scoped per document**, fixing collapse/expand state bleeding between files that contain same-named symbols or regions. One-time effect: the Outline++ view's persisted collapse state resets once after upgrading (the Regions view's state is preserved).
+- **Marketplace categories** are now Programming Languages + Visualization (was Other).
+- Escape in the Go to Region picker restores the exact pre-open viewport instead of recentering on the cursor; opening the picker with the cursor outside every region no longer scrolls the editor to the first region.
+- The internal extension API (`extension.exports`) now returns `undefined` in production — it was already undocumented as of 1.1.0; it is now genuinely test-only.
+
+### Fixed
+- **Auto-highlight no longer dies after outline-neutral edits.** Editing inside a line (no structural change) left the outline's version gate permanently stale, silently disabling cursor tracking until the next structural edit — the strongest suspect for the May 2026 report. Three adjacent race conditions (highlight-vs-tree-refresh ordering, dropped-selection re-assert, keystroke cancellation without re-trigger) were fixed in the same pass.
+- **Modifier extraction corrected on everyday code:** `public int X { get; private set; }` no longer shows a private padlock (earliest declaration keyword wins, not longest); keywords inside string literals are ignored; `constructor(private foo)` no longer marks the constructor private; `Static`/`Override`/`Async` identifiers are no longer matched case-insensitively as modifiers; C++ visibility now correctly tracks `public:`/`private:`/`protected:` section labels for all members (previously only the first member after a label); plain C files no longer get spurious modifier coloring.
+- **Region diagnostics race:** rapid editor switching could land one document's invalid-region markers on another document's URI; stale line numbers could throw; closed documents kept their diagnostics forever. Markers are now captured with their document identity, applied only if still current, clamped, and cleared on close.
+- **Anchored end-region patterns:** a line like `# endregions handled below` no longer closes a region in the 14 hash-comment languages (patterns now anchored like the C-family ones).
+- **Configuration writes respect the effective scope:** the view-title auto-highlight toggles used to always write Global settings — a silent no-op whenever a workspace setting shadowed the value.
+- **`modifierDisplay` / `useDistinctModifierColors` take effect immediately** instead of waiting for the next structural edit.
+- **Invalid custom region patterns now warn** (once, naming the language, with a Show Log button) instead of silently disabling the language.
+- **The Refresh buttons actually refresh:** the symbol path now retries while a language server is still warming up, and a manual refresh always redraws the tree even when the recomputed outline is identical (recovery from a stuck view is the button's purpose).
+- **Collapse state survives folder renames/deletes** (handlers only matched exact file URIs, so folder-level events silently orphaned state); persisted state is now also capped (LRU, 200 documents) instead of growing forever.
+- Filtering the Go to Region picker to zero matches no longer leaves a stale region highlight in the editor.
+
+### Performance
+- Keystroke-to-tree latency cut by ~200 ms: the outline's second 250 ms debounce (whose inputs arrive pre-debounced) is now a 50 ms pairing window.
+- Folding no longer triggers a second, undebounced full parse per edit burst (cache serves same-document requests; folding ranges converge via `onDidChangeFoldingRanges`), and the folding provider only registers for languages with region patterns instead of every file on disk.
+- Modifier extraction no longer compiles 20–40 fresh regular expressions per symbol per keystroke — all patterns are precompiled.
+- Files with no symbol provider (.txt, .log, .csv…) no longer trigger ~10 overlapping cross-host symbol queries per edit pause; exhaustion is tracked per file until something changes.
+- A→B→A tab switches reuse a cached parse (LRU, evicted on document close); unchanged documents skip the recursive symbol sort; `output:`-scheme documents are ignored; transient editor-focus loss (e.g. clicking a webview) no longer clears and rebuilds the outline.
+
+### Security
+- Workspace-provided region regexes are gated behind workspace trust, and region markers on lines longer than 500 characters are ignored as ReDoS defense-in-depth.
+
+### Removed
+- ~600 lines of dead or duplicated code: unused exports, dead re-entrancy guards, an orphaned benchmark script, the command-registration union machinery, the three-file conditional-type config layer, a duplicate navigation command, and the two tree providers' ~90% duplicated implementation (now a shared base class).
+
+---
+
 ## [1.1.0] - 2026-06-23
 
 ### Removed

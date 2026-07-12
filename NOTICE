@@ -1,0 +1,20 @@
+Outline++ (Regions & Colors) — a Visual Studio Code extension.
+
+Copyright (C) 2025-2026 David Bookstaber
+Copyright (C) 2025-2026 Aly Thobani (upstream "Region Helper")
+
+This program is a modified version of "Region Helper" by Aly Thobani
+(https://github.com/alythobani/vscode-region-helper). It was forked on
+2025-11-30 and has been modified since that date by David Bookstaber. In
+accordance with section 5 of the GNU General Public License, this notice
+records that the program has been changed and the date of those changes.
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License, version 3, as published
+by the Free Software Foundation. This program is distributed in the hope
+that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+LICENSE file for the full license text.
+
+Third-party assets bundled with this program (the Lucide view icons) are
+covered by their own licenses; see THIRD_PARTY_NOTICES.md.

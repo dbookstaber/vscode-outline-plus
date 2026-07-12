@@ -7,20 +7,29 @@ import { waitForCondition } from "../utils/waitForEvent";
 /**
  * Integration tests for modifier extraction in the Full Outline tree view.
  *
- * These tests open real sample files, wait for the extension to parse them fully,
- * and then assert that the FullTreeItem objects expose the correct modifiers.
- * This validates the entire pipeline end-to-end: language server → DocumentSymbolStore
- * → extractSymbolModifiers → FullTreeItem.modifiers.
+ * These tests open a real TypeScript sample file, wait for the extension to
+ * parse it fully, and assert that the FullTreeItem objects expose the correct
+ * modifiers. This validates the whole pipeline end-to-end: language server →
+ * DocumentSymbolStore → extractSymbolModifiers → FullTreeItem.modifiers.
+ *
+ * We deliberately target TypeScript (not C#): the TypeScript language server
+ * is guaranteed to be present in the isolated test host, whereas no C# symbol
+ * provider is installed (see `.vscode-test.mjs`). An earlier version of this
+ * suite opened a `.cs` file, found no C# symbols, and silently `return`ed —
+ * so it "passed" without ever asserting anything (and only reached its symbol
+ * gate at all via stale symbol items left over from prior suites).
+ *
+ * Every assertion below is keyed to a symbol whose name is unique to
+ * `modifierSample.ts`, so a passing assertion proves the symbol came from the
+ * sample document itself, not from stale state. If the TypeScript server fails
+ * to produce symbols at all, the test `this.skip()`s rather than passing
+ * vacuously.
  *
  * Uses the extension's internal `_test_getInternalFullOutlineItems` hook because
  * `modifiers` is intentionally stripped at the `OutlineInternalAPI` boundary by
  * the `OutlineItem` converter. We cannot reach the runtime `FullOutlineStore`
  * instance directly from tests: the test webpack bundle ships its own module
  * copy of the class.
- *
- * IMPORTANT: These tests depend on the C# language extension being available in the
- * test host. If no C# language grammar is installed, the language server won't provide
- * DocumentSymbol data and these tests will be skipped.
  */
 type InternalHandle = {
   _test_getInternalFullOutlineItems(): FullTreeItem[];
@@ -59,148 +68,154 @@ suite("Modifier Extraction Integration", function () {
   }
 
   /**
-   * Find a symbol item in the flat list by display name.
+   * Find a symbol item in the full tree by display name.
    */
-  function findSymbol(allItems: FullTreeItem[], name: string): FullTreeItem | undefined {
-    return allItems.find((i) => i.itemType === "symbol" && i.displayName === name);
+  function findSymbol(name: string): FullTreeItem | undefined {
+    const all = flattenItems(internalHandle._test_getInternalFullOutlineItems());
+    return all.find((i) => i.itemType === "symbol" && i.displayName === name);
   }
 
-  test("C# sample: modifiers extracted correctly despite misleading comments", async () => {
-    const doc = await openSampleDocument("modifierSample.cs");
+  /**
+   * True if the full tree contains any item (region or symbol) with the given
+   * display name — used to prove the singleton store has actually converged onto
+   * a specific document rather than passing on stale items from a prior test.
+   */
+  function outlineHasName(name: string): boolean {
+    return flattenItems(internalHandle._test_getInternalFullOutlineItems()).some(
+      (i) => i.displayName === name
+    );
+  }
+
+  /**
+   * Open the sample and wait until the outline contains the given symbol,
+   * proving the TypeScript server responded for THIS document. Returns the
+   * symbol; if it never appears, signals a genuine environmental skip so the
+   * caller can `this.skip()`.
+   *
+   * Freshness guard (D-4): Wave-3's retain-on-undefined policy leaves the prior
+   * test's modifierSample outline resident in the singleton store after
+   * `closeAllEditors` teardown, so a bare wait for the anchor could be satisfied
+   * INSTANTLY by stale items (never validating a fresh parse). We first open a
+   * DIFFERENT document (sampleRegionsDocument.ts) and wait until the store has
+   * demonstrably converged away from modifierSample — the anchor is gone AND a
+   * name unique to the other document is present — so a subsequent anchor hit is
+   * provably from a fresh parse of modifierSample.ts.
+   */
+  async function openSampleAndWaitForSymbol(name: string): Promise<FullTreeItem | undefined> {
+    const otherDoc = await openSampleDocument("sampleRegionsDocument.ts");
+    await vscode.window.showTextDocument(otherDoc);
+    try {
+      await waitForCondition(
+        () => findSymbol(name) === undefined && outlineHasName("MainClass"),
+        10000,
+        100
+      );
+    } catch {
+      // The other document never converged (e.g. TS server silent) — treat as a
+      // genuine environmental skip rather than validating against stale state.
+      return undefined;
+    }
+
+    const doc = await openSampleDocument("modifierSample.ts");
     await vscode.window.showTextDocument(doc);
+    try {
+      await waitForCondition(() => findSymbol(name) !== undefined, 10000, 100);
+    } catch {
+      return undefined;
+    }
+    return findSymbol(name);
+  }
 
-    // Wait for outline items to be populated with both regions and symbols
-    await waitForCondition(
-      () => {
-        const items = internalHandle._test_getInternalFullOutlineItems();
-        const flat = flattenItems(items);
-        // Require at least one symbol-type item (meaning the language server responded)
-        return flat.some((i) => i.itemType === "symbol");
-      },
-      10000,
-      100
+  test("TS sample: modifiers extracted correctly despite misleading comments", async function () {
+    const anchor = await openSampleAndWaitForSymbol("publicAfterPrivateComment");
+    if (anchor === undefined) {
+      // TypeScript symbol provider did not respond — a genuine environmental
+      // skip, not a passing test.
+      this.skip();
+    }
+
+    // --- Visibility: misleading comments must not override the declaration ---
+
+    const publicAfterPrivateComment = findSymbol("publicAfterPrivateComment");
+    assert.ok(publicAfterPrivateComment, "publicAfterPrivateComment symbol should exist");
+    assert.strictEqual(
+      publicAfterPrivateComment.modifiers.visibility,
+      "public",
+      "JSDoc containing 'private' must not override the 'public' declaration"
+    );
+    assert.strictEqual(
+      publicAfterPrivateComment.modifiers.memberModifiers.isStatic,
+      true,
+      "publicAfterPrivateComment is declared static"
     );
 
-    const allItems = flattenItems(internalHandle._test_getInternalFullOutlineItems());
-    const symbols = allItems.filter((i) => i.itemType === "symbol");
-
-    // If no real C# symbols were produced (language server unavailable),
-    // skip this test. Without a C# language server, VS Code may still
-    // produce generic symbols (e.g. "var0_0") that don't represent real
-    // C# declarations, so we check for our expected names, not just count.
-    const expectedNames = [
-      "PublicAfterPrivateComment",
-      "PublicAfterPrivateLineComment",
-      "PublicAfterBlockComment",
-      "ProtectedMethod",
-      "PrivateMethod",
-      "InternalMethod",
-      "StaticMethod",
-    ];
-    const foundCount = expectedNames.filter((n) => findSymbol(allItems, n) !== undefined).length;
-    if (foundCount === 0) {
-      // No C# language server; nothing to assert.
-      return;
-    }
-
-    // --- Visibility assertions ---
-
-    const publicAfterPrivateComment = findSymbol(allItems, "PublicAfterPrivateComment");
-    if (publicAfterPrivateComment) {
-      assert.strictEqual(
-        publicAfterPrivateComment.modifiers.visibility,
-        "public",
-        "PublicAfterPrivateComment: XML doc with 'private' must not override public"
-      );
-      assert.strictEqual(publicAfterPrivateComment.modifiers.memberModifiers.isStatic, true);
-    }
-
-    const publicAfterPrivateLineComment = findSymbol(allItems, "PublicAfterPrivateLineComment");
-    if (publicAfterPrivateLineComment) {
-      assert.strictEqual(
-        publicAfterPrivateLineComment.modifiers.visibility,
-        "public",
-        "PublicAfterPrivateLineComment: line comment with 'private' must not override public"
-      );
-      assert.strictEqual(publicAfterPrivateLineComment.modifiers.memberModifiers.isStatic, true);
-    }
-
-    const publicAfterBlockComment = findSymbol(allItems, "PublicAfterBlockComment");
-    if (publicAfterBlockComment) {
-      assert.strictEqual(
-        publicAfterBlockComment.modifiers.visibility,
-        "public",
-        "PublicAfterBlockComment: block comment with 'private' must not override public"
-      );
-    }
-
-    const protectedMethod = findSymbol(allItems, "ProtectedMethod");
-    if (protectedMethod) {
-      assert.strictEqual(protectedMethod.modifiers.visibility, "protected");
-    }
-
-    const privateMethod = findSymbol(allItems, "PrivateMethod");
-    if (privateMethod) {
-      assert.strictEqual(privateMethod.modifiers.visibility, "private");
-    }
-
-    const internalMethod = findSymbol(allItems, "InternalMethod");
-    if (internalMethod) {
-      assert.strictEqual(internalMethod.modifiers.visibility, "internal");
-    }
-
-    // --- Member modifier assertions ---
-
-    const staticMethod = findSymbol(allItems, "StaticMethod");
-    if (staticMethod) {
-      assert.strictEqual(staticMethod.modifiers.memberModifiers.isStatic, true);
-      assert.strictEqual(staticMethod.modifiers.visibility, "public");
-    }
-
-    // Sanity check: at least 3 of our expected names should be present
-    assert.ok(
-      foundCount >= 3,
-      `Expected at least 3 symbols to be found for assertions, got ${foundCount}. ` +
-      `Available symbols: ${symbols.map((s) => s.displayName).join(", ")}`
+    const publicAfterPrivateLineComment = findSymbol("publicAfterPrivateLineComment");
+    assert.ok(publicAfterPrivateLineComment, "publicAfterPrivateLineComment symbol should exist");
+    assert.strictEqual(
+      publicAfterPrivateLineComment.modifiers.visibility,
+      "public",
+      "A line comment containing 'private' must not override 'public'"
     );
+    assert.strictEqual(publicAfterPrivateLineComment.modifiers.memberModifiers.isStatic, true);
+
+    const publicAfterBlockComment = findSymbol("publicAfterBlockComment");
+    assert.ok(publicAfterBlockComment, "publicAfterBlockComment symbol should exist");
+    assert.strictEqual(
+      publicAfterBlockComment.modifiers.visibility,
+      "public",
+      "A block comment containing 'private' must not override 'public'"
+    );
+
+    const protectedMethod = findSymbol("protectedMethod");
+    assert.ok(protectedMethod, "protectedMethod symbol should exist");
+    assert.strictEqual(protectedMethod.modifiers.visibility, "protected");
+
+    const privateMethod = findSymbol("privateMethod");
+    assert.ok(privateMethod, "privateMethod symbol should exist");
+    assert.strictEqual(privateMethod.modifiers.visibility, "private");
+
+    // --- Member modifiers ---
+
+    const staticMethod = findSymbol("staticMethod");
+    assert.ok(staticMethod, "staticMethod symbol should exist");
+    assert.strictEqual(staticMethod.modifiers.memberModifiers.isStatic, true);
+    assert.strictEqual(staticMethod.modifiers.visibility, "public");
+
+    const readOnlyField = findSymbol("readOnlyField");
+    assert.ok(readOnlyField, "readOnlyField symbol should exist");
+    assert.strictEqual(readOnlyField.modifiers.memberModifiers.isReadonly, true);
+    assert.strictEqual(readOnlyField.modifiers.visibility, "public");
+
+    const asyncMethod = findSymbol("asyncMethod");
+    assert.ok(asyncMethod, "asyncMethod symbol should exist");
+    assert.strictEqual(asyncMethod.modifiers.memberModifiers.isAsync, true);
+    assert.strictEqual(asyncMethod.modifiers.visibility, "public");
   });
 
-  test("C# sample: #region directives do not pollute modifier extraction", async () => {
-    // The modifierSample.cs file has #region directives with visibility keywords
-    // (e.g., "#region Private Helpers"). These must not affect the symbols inside.
-    const doc = await openSampleDocument("modifierSample.cs");
-    await vscode.window.showTextDocument(doc);
-
-    await waitForCondition(
-      () => {
-        const items = internalHandle._test_getInternalFullOutlineItems();
-        const flat = flattenItems(items);
-        return flat.some((i) => i.itemType === "symbol");
-      },
-      10000,
-      100
-    );
+  test("TS sample: #region directives do not pollute modifier extraction", async function () {
+    // modifierSample.ts wraps members in `// #region Private Helpers` and
+    // `// #region Static Members`. Those directives must not leak visibility
+    // keywords into the symbols inside them.
+    const anchor = await openSampleAndWaitForSymbol("publicAfterPrivateComment");
+    if (anchor === undefined) {
+      this.skip();
+    }
 
     const allItems = flattenItems(internalHandle._test_getInternalFullOutlineItems());
-
-    // If no real C# symbols are available, skip this test.
-    if (!findSymbol(allItems, "PublicAfterPrivateComment")) {
-      return;
-    }
-
     const regions = allItems.filter((i) => i.itemType === "region");
+    assert.ok(regions.length > 0, "Should have region items from the #region directives");
+    assert.ok(
+      regions.some((r) => r.displayName === "Private Helpers"),
+      "The 'Private Helpers' region should be present"
+    );
 
-    // Verify regions were found (the file has #region directives)
-    assert.ok(regions.length > 0, "Should have region items from #region directives");
-
-    // Verify symbols inside regions have correct modifiers
-    const publicAfterPrivateComment = findSymbol(allItems, "PublicAfterPrivateComment");
-    if (publicAfterPrivateComment) {
-      assert.strictEqual(
-        publicAfterPrivateComment.modifiers.visibility,
-        "public",
-        "Symbol inside '#region Private Helpers' must still be detected as public"
-      );
-    }
+    // A symbol inside '#region Private Helpers' must still read as public.
+    const publicAfterPrivateComment = findSymbol("publicAfterPrivateComment");
+    assert.ok(publicAfterPrivateComment, "publicAfterPrivateComment symbol should exist");
+    assert.strictEqual(
+      publicAfterPrivateComment.modifiers.visibility,
+      "public",
+      "Symbol inside '#region Private Helpers' must still be detected as public"
+    );
   });
 });

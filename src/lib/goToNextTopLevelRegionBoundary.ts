@@ -1,6 +1,6 @@
 import type * as vscode from "vscode";
 import { type Region } from "../models/Region";
-import { moveCursorToFirstNonWhitespaceCharOfLine } from "../utils/moveCursorToFirstNonWhitespaceOfLine";
+import { moveCursorToFirstNonWhitespaceCharOfLine } from "../utils/editorNav";
 
 /**
  * Moves the cursor to the start boundary of the first region past the cursor.

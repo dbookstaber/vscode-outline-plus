@@ -24,12 +24,12 @@ A Visual Studio Code extension for navigating, visualizing, and managing code re
 | Action | Windows / Linux | macOS |
 |--------|-----------------|-------|
 | Go to Region… (quick pick) | `Ctrl + Alt + R` | `Cmd + Alt + R` |
-| Go to Region Boundary | `Alt + M` | `Alt + M` |
-| Go to Next Region | `Ctrl + Alt + N` | `Ctrl + Alt + N` |
-| Go to Previous Region | `Ctrl + Alt + P` | `Ctrl + Alt + P` |
-| Select Current Region | `Alt + Shift + M` | `Alt + Shift + M` |
+| Go to Region Boundary | `Ctrl + Alt + M` | `Cmd + Alt + M` |
+| Go to Next Region | `Ctrl + Alt + N` | `Cmd + Alt + N` |
+| Go to Previous Region | `Ctrl + Alt + P` | `Cmd + Alt + P` |
+| Select Current Region | `Ctrl + Alt + S` | `Cmd + Alt + S` |
 
-> All shortcuts are active when the editor has focus, and can be remapped in VS Code's **Keyboard Shortcuts** editor.
+> All shortcuts are active when the editor has focus, and can be remapped in VS Code's **Keyboard Shortcuts** editor. Note that `Ctrl + Alt + <letter>` can conflict with AltGr keyboard layouts and with other extensions' defaults (e.g. Code Runner also uses `Ctrl + Alt + N`); remap as needed.
 
 ## Table of Contents
 
@@ -98,7 +98,7 @@ Additional modifier icons:
 | **Java** | `public`, `private`, `protected` | `static`, `final`, `abstract`, `volatile`, `sealed` |
 | **Kotlin** | `public`, `private`, `protected`, `internal` | `const`, `val`, `abstract`, `override`, `sealed` |
 | **TypeScript/JS** | `public`, `private`, `protected` | `static`, `readonly`, `const`, `abstract`, `async`, `override` |
-| **C/C++** | `public`, `private`, `protected` | `static`, `const`, `constexpr`, `virtual`, `override`, `volatile`, `extern` |
+| **C++** | `public`, `private`, `protected` | `static`, `const`, `constexpr`, `virtual`, `override`, `volatile`, `extern` |
 | **Python** | (via naming conventions: `_name` = protected, `__name` = private) | `@staticmethod`, `@classmethod`, `@abstractmethod`, `async` |
 
 #### Display Modes
@@ -133,19 +133,19 @@ Controlled by `outlinePlus.fullOutlineView.modifierDisplay`:
 - Like VS Code’s built-in **"Go to Bracket"**, but for regions:
   - Jumps between matching start and end region boundaries.
   - Jumps to the next region if the cursor is not already inside a region.
-- **Default Keybinding**: `Alt + M`
+- **Default Keybinding**: `Ctrl + Alt + M` (Mac: `Cmd + Alt + M`)
 
 <a id="go-to-next-previous-region"></a>
 ### Go to Next / Previous Region
 
 - Jumps to the next or previous region in the file. **Default Keybindings**:
-  - **Next Region**: `Ctrl + Alt + N`
-  - **Previous Region**: `Ctrl + Alt + P`
+  - **Next Region**: `Ctrl + Alt + N` (Mac: `Cmd + Alt + N`)
+  - **Previous Region**: `Ctrl + Alt + P` (Mac: `Cmd + Alt + P`)
 
 ### Select Current Region
 
 - Selects the active region containing the cursor.
-- **Default Keybinding**: `Alt + Shift + M`
+- **Default Keybinding**: `Ctrl + Alt + S` (Mac: `Cmd + Alt + S`)
 
 <a id="settings"></a>
 ## Settings
@@ -208,4 +208,6 @@ See [detailed limitations](./docs/LIMITATIONS.md) in docs.  Some salient limitat
 
 ## Acknowledgements
 
-Outline++ builds on [vscode-region-helper](https://github.com/alythobani/vscode-region-helper) (GPL-3.0), forked 2025-11-30. The region-navigation features and tree views originated there.
+Outline++ builds on [vscode-region-helper](https://github.com/alythobani/vscode-region-helper) (GPL-3.0) by Aly Thobani, forked 2025-11-30. The region-navigation features and tree views originated there. As a modified version, Outline++ is released under the same GPL-3.0 license; see [`NOTICE`](./NOTICE) for the copyright and modification notice and [`LICENSE`](./LICENSE) for the license text.
+
+The two view icons are from the [Lucide](https://lucide.dev) icon set (ISC License). Bundled third-party assets and their licenses are listed in [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md).

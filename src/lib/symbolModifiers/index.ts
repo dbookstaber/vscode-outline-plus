@@ -17,6 +17,6 @@ export {
 } from "./extractSymbolModifiers";
 
 export {
-    createModifierAwareIcon, createModifierDescription, createModifierLabelPrefix, createModifierTooltip, getCustomModifierIconPath, getDefaultModifierIconConfig, getStaticIndicator, getVisibilityIndicator, getVisibilityLevel, type ModifierIconConfig
+    createModifierAwareIcon, createModifierDescription, createModifierLabelPrefix, createModifierTooltip, getCustomModifierIconPath, type ModifierIconConfig
 } from "./modifierIcons";
 

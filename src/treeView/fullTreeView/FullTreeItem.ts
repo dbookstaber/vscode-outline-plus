@@ -1,11 +1,12 @@
 import * as vscode from "vscode";
+import { CMD_GO_TO_FULL_TREE_ITEM } from "../../constants";
 import { getRangeText } from "../../lib/getRegionDisplayInfo";
 import {
     type SymbolModifiers,
     createModifierTooltip,
     getDefaultModifiers,
+    getModifierDescription,
 } from "../../lib/symbolModifiers";
-import { makeGoToFullTreeItemCommand } from "./goToFullTreeItem";
 
 export type FullTreeItemType = "region" | "symbol";
 
@@ -20,6 +21,8 @@ export class FullTreeItem extends vscode.TreeItem {
   displayName: string;
   itemType: FullTreeItemType;
   range: vscode.Range;
+  /** For symbols, the name's range (preferred nav target). Undefined for regions. */
+  selectionRange: vscode.Range | undefined;
   parent: FullTreeItem | undefined;
   children: FullTreeItem[];
   modifiers: SymbolModifiers;
@@ -36,6 +39,7 @@ export class FullTreeItem extends vscode.TreeItem {
     modifiers,
     modifierLabelPrefix,
     modifierDescription,
+    accessibilityRole,
   }: {
     id: string;
     displayName: string;
@@ -50,6 +54,13 @@ export class FullTreeItem extends vscode.TreeItem {
     /** Badge prefix to prepend to label (e.g., "🔒ˢ ") */
     modifierLabelPrefix?: string | undefined;
     modifierDescription?: string | undefined;
+    /**
+     * Human-readable role/kind for the screen-reader label (e.g. "method",
+     * "region"). Combined with the modifiers and clean display name so the
+     * a11y announcement reads "private static method Foo" instead of the visual
+     * badge "🔒ˢ Foo".
+     */
+    accessibilityRole?: string | undefined;
   }) {
     // Apply label prefix if provided (non-empty string)
     const label =
@@ -63,11 +74,29 @@ export class FullTreeItem extends vscode.TreeItem {
     this.displayName = displayName;
     this.itemType = itemType;
     this.modifiers = modifiers ?? getDefaultModifiers();
-    this.command = makeGoToFullTreeItemCommand(itemType, range, selectionRange);
+    // Resolve the navigation target at click time (looking the item up by id in
+    // the live store) rather than baking (line, character) here, so a click on a
+    // momentarily-stale tree row still lands on the item's current position
+    // (FUTURE_WORK July: "FullTreeItem.command arguments baked at construction").
+    this.command = {
+      command: CMD_GO_TO_FULL_TREE_ITEM,
+      title: "Go to Item",
+      arguments: [id],
+    };
     this.parent = parent;
     this.children = children;
     this.range = range;
+    this.selectionRange = selectionRange;
     if (icon !== undefined) this.iconPath = icon;
+
+    // Accessibility (plan 6.8): screen readers announce (and type-ahead matches)
+    // the visible `label`, which leads with the emoji modifier badge (e.g.
+    // "🔒ˢ Foo"). Give assistive tech a clean, semantic label instead — the
+    // modifiers spelled out, the symbol role, then the unprefixed name — while
+    // the visible badge stays exactly as-is.
+    this.accessibilityInformation = {
+      label: buildAccessibilityLabel(displayName, this.modifiers, accessibilityRole),
+    };
 
     // Description appears to the right of the label
     if (modifierDescription !== undefined && modifierDescription !== "") {
@@ -95,4 +124,19 @@ export class FullTreeItem extends vscode.TreeItem {
       },
     });
   }
+}
+
+/**
+ * Builds the clean, emoji-free screen-reader label for a Full Outline item:
+ * the spelled-out modifiers, an optional role/kind, then the unprefixed display
+ * name — e.g. "private static method Foo" or "region Imports". Falls back to the
+ * bare display name when no modifiers or role are present. Exported for testing.
+ */
+export function buildAccessibilityLabel(
+  displayName: string,
+  modifiers: SymbolModifiers,
+  role: string | undefined
+): string {
+  const modifierText = getModifierDescription(modifiers);
+  return [modifierText, role, displayName].filter((part) => part !== undefined && part !== "").join(" ");
 }

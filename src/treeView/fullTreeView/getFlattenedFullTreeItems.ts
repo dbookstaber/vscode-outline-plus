@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
-import { getExtensionPath } from "../../config/extensionContext";
-import { getGlobalFullOutlineViewConfigValue } from "../../config/fullOutlineViewConfig";
+import { getExtensionUri } from "../../config/extensionContext";
+import { getGlobalFullOutlineViewConfigValue } from "../../config/config";
 import { getRegionDisplayName } from "../../lib/getRegionDisplayInfo";
+import { scopeTreeItemIdToDocument } from "../../lib/getVersionedDocumentId";
 import {
     createModifierAwareIcon,
     createModifierDescription,
@@ -22,7 +23,10 @@ import { FullTreeItem, type FullTreeItemType, type TreeItemIcon } from "./FullTr
  * we'll manually add those later when generating the full tree. Gives a unique ID to each item, for
  * the sake of persistent collapsed/selected state (see {@link vscode.TreeItem.id}).
  */
-export function getFlattenedRegionFullTreeItems(flattenedRegions: Region[]): FullTreeItem[] {
+export function getFlattenedRegionFullTreeItems(
+  flattenedRegions: Region[],
+  documentId: string | undefined
+): FullTreeItem[] {
   const itemCountByPartialId = new Map<string, number>();
   return flattenedRegions.map((region) => {
     const displayName = getRegionDisplayName(region);
@@ -30,7 +34,10 @@ export function getFlattenedRegionFullTreeItems(flattenedRegions: Region[]): Ful
     const partialId = getPartialTreeItemId({ displayName, itemKindId: itemType });
     const newItemCount = (itemCountByPartialId.get(partialId) ?? 0) + 1;
     itemCountByPartialId.set(partialId, newItemCount);
-    const id = getUniqueTreeItemId({ partialId, itemCount: newItemCount });
+    const id = scopeTreeItemIdToDocument(
+      documentId,
+      getUniqueTreeItemId({ partialId, itemCount: newItemCount })
+    );
     return getFlattenedFullTreeItem({
       id,
       displayName,
@@ -39,6 +46,7 @@ export function getFlattenedRegionFullTreeItems(flattenedRegions: Region[]): Ful
       icon: new vscode.ThemeIcon("symbol-namespace"),
       modifiers: getDefaultModifiers(),
       modifierDescription: undefined,
+      accessibilityRole: "region",
     });
   });
 }
@@ -54,7 +62,8 @@ export function getFlattenedRegionFullTreeItems(flattenedRegions: Region[]): Ful
  */
 export function getFlattenedSymbolFullTreeItems(
   flattenedDocumentSymbols: vscode.DocumentSymbol[],
-  document: vscode.TextDocument | undefined
+  document: vscode.TextDocument | undefined,
+  documentId: string | undefined
 ): FullTreeItem[] {
   const itemCountByPartialId = new Map<string, number>();
   const modifierConfig = getModifierIconConfig();
@@ -65,7 +74,10 @@ export function getFlattenedSymbolFullTreeItems(
     const partialId = getPartialTreeItemId({ displayName, itemKindId: symbolThemeIconId });
     const newItemCount = (itemCountByPartialId.get(partialId) ?? 0) + 1;
     itemCountByPartialId.set(partialId, newItemCount);
-    const id = getUniqueTreeItemId({ partialId, itemCount: newItemCount });
+    const id = scopeTreeItemIdToDocument(
+      documentId,
+      getUniqueTreeItemId({ partialId, itemCount: newItemCount })
+    );
 
     // Extract modifiers if enabled and document is available
     const modifiers =
@@ -77,11 +89,11 @@ export function getFlattenedSymbolFullTreeItems(
     let icon: TreeItemIcon;
     
     // Try custom SVG icon first if svgOverlay mode is enabled
-    if (modifierConfig.badgePosition === "svgOverlay" && modifierConfig.extensionPath !== undefined) {
+    if (modifierConfig.badgePosition === "svgOverlay" && modifierConfig.extensionUri !== undefined) {
       const customIconPath = getCustomModifierIconPath(
         symbolThemeIconId,
         modifiers,
-        modifierConfig.extensionPath
+        modifierConfig.extensionUri
       );
       if (customIconPath !== undefined) {
         icon = customIconPath;
@@ -113,6 +125,8 @@ export function getFlattenedSymbolFullTreeItems(
       modifiers,
       modifierLabelPrefix,
       modifierDescription,
+      // Human-readable SymbolKind (e.g. "method", "field") for the a11y label.
+      accessibilityRole: vscode.SymbolKind[symbol.kind].toLowerCase(),
     });
   });
 }
@@ -142,7 +156,7 @@ function getModifierIconConfig(): ModifierIconConfig {
     useDistinctColors,
     badgePosition,
     showStaticIndicator,
-    extensionPath: getExtensionPath(),
+    extensionUri: getExtensionUri(),
   };
 }
 
@@ -184,6 +198,7 @@ function getFlattenedFullTreeItem({
   modifiers,
   modifierLabelPrefix,
   modifierDescription,
+  accessibilityRole,
 }: {
   id: string;
   itemType: FullTreeItemType;
@@ -194,6 +209,7 @@ function getFlattenedFullTreeItem({
   modifiers: SymbolModifiers;
   modifierLabelPrefix?: string | undefined;
   modifierDescription: string | undefined;
+  accessibilityRole?: string | undefined;
 }): FullTreeItem {
   const parent = undefined;
   const children: FullTreeItem[] = [];
@@ -209,5 +225,6 @@ function getFlattenedFullTreeItem({
     modifiers,
     modifierLabelPrefix,
     modifierDescription,
+    accessibilityRole,
   });
 }

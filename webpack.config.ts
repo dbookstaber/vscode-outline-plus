@@ -1,46 +1,76 @@
 import path from "path";
 import type { Configuration } from "webpack";
 
-const extensionConfig = (_env: unknown, argv: { mode?: Configuration["mode"] }): Configuration => {
-  const mode: Configuration["mode"] = argv.mode ?? "none";
-  return {
-    name: "extension",
-    target: "node", // VS Code extensions run in a Node.js-context 📖 -> https://webpack.js.org/configuration/node/
-    mode,
+type Mode = Exclude<Configuration["mode"], undefined>;
 
-    entry: "./src/extension.ts", // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
-    output: {
-      // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
-      path: path.resolve(__dirname, "dist"),
-      filename: "extension.js",
-      libraryTarget: "commonjs2",
-    },
-    externals: {
-      vscode: "commonjs vscode", // the vscode-module is created on-the-fly and must be excluded. Add other modules that cannot be webpack'ed, 📖 -> https://webpack.js.org/configuration/externals/
-      // modules added here also need to be added in the .vscodeignore file
-    },
-    resolve: {
-      // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
-      extensions: [".ts", ".js"],
-    },
-    module: {
-      rules: [
-        {
-          test: /\.ts$/,
-          exclude: /node_modules/,
-          use: [
-            {
-              loader: "ts-loader",
-            },
-          ],
-        },
-      ],
-    },
-    devtool: "nosources-source-map",
-    infrastructureLogging: {
-      level: "log", // enables logging required for problem matchers
-    },
-  };
+const tsRule = {
+  test: /\.ts$/,
+  exclude: /node_modules/,
+  use: [{ loader: "ts-loader" }],
 };
 
-export default extensionConfig;
+/**
+ * Desktop (Node.js) extension host bundle. VS Code extensions run in a Node.js
+ * context on the desktop. 📖 https://webpack.js.org/configuration/node/
+ */
+const nodeConfig = (mode: Mode): Configuration => ({
+  name: "extension",
+  target: "node",
+  mode,
+  entry: "./src/extension.ts",
+  output: {
+    // 'main' in package.json points here.
+    path: path.resolve(__dirname, "dist"),
+    filename: "extension.js",
+    libraryTarget: "commonjs2",
+  },
+  externals: {
+    vscode: "commonjs vscode", // created on-the-fly by the host; must stay external.
+    // modules added here also need to be added in the .vscodeignore file
+  },
+  resolve: {
+    extensions: [".ts", ".js"],
+  },
+  module: { rules: [tsRule] },
+  devtool: "nosources-source-map",
+  infrastructureLogging: { level: "log" },
+});
+
+/**
+ * Web (Web Worker) extension host bundle for vscode.dev / github.dev (plan D-3).
+ * `target: "webworker"` provides no Node builtins, so if any Node-only API (fs,
+ * path, Buffer, …) leaks into the runtime graph webpack fails to resolve it here
+ * — that build error IS the validation that the extension is web-safe. 'browser'
+ * in package.json points at this bundle.
+ */
+const webConfig = (mode: Mode): Configuration => ({
+  name: "web",
+  target: "webworker",
+  mode,
+  entry: "./src/extension.ts",
+  output: {
+    path: path.resolve(__dirname, "dist", "web"),
+    filename: "extension.js",
+    libraryTarget: "commonjs2",
+  },
+  externals: {
+    vscode: "commonjs vscode",
+  },
+  resolve: {
+    mainFields: ["browser", "module", "main"],
+    extensions: [".ts", ".js"],
+    // No Node core shims: the runtime is intentionally free of Node builtins.
+    // Leaving fallback empty means an accidental Node import fails the build.
+    fallback: {},
+  },
+  module: { rules: [tsRule] },
+  devtool: "nosources-source-map",
+  infrastructureLogging: { level: "log" },
+});
+
+const config = (_env: unknown, argv: { mode?: Configuration["mode"] }): Configuration[] => {
+  const mode: Mode = argv.mode ?? "none";
+  return [nodeConfig(mode), webConfig(mode)];
+};
+
+export default config;

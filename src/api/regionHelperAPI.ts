@@ -53,6 +53,13 @@ export type OutlineInternalAPI = {
   onDidChangeFullOutlineItems: vscode.Event<void>;
   onDidChangeActiveFullOutlineItem: vscode.Event<void>;
   // #endregion
+  /**
+   * Test-only hook returning the live {@link FullTreeItem} instances (with the
+   * UI-only properties `OutlineItem` strips — icon, modifiers, command). Declared
+   * here rather than smuggled onto the exports via spread. Only present when the
+   * extension runs outside `ExtensionMode.Production` (see `activate`).
+   */
+  _test_getInternalFullOutlineItems(): FullTreeItem[];
 };
 
 /**

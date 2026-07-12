@@ -25,5 +25,10 @@ suite("flattenRegions", () => {
     ]);
     const flatIndices = flattenedRegions.map((region) => region.flatRegionIdx);
     assert.deepStrictEqual(flatIndices, [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    // Nesting depth (plan 4.6): 0 for top-level, +1 per nesting level. Mirrors
+    // the ancestor count (getRegionParents length) the quick-pick used to derive
+    // by re-walking each region's parent chain.
+    const depths = flattenedRegions.map((region) => region.depth);
+    assert.deepStrictEqual(depths, [0, 0, 1, 1, 2, 1, 2, 0, 0]);
   });
 });

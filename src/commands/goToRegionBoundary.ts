@@ -1,28 +1,29 @@
 import * as vscode from "vscode";
-import { CMD_GO_TO_REGION_BOUNDARY } from "../constants";
 import { goToNextTopLevelRegionBoundary } from "../lib/goToNextTopLevelRegionBoundary";
 import { type Region } from "../models/Region";
-import { moveCursorToFirstNonWhitespaceCharOfLine } from "../utils/moveCursorToFirstNonWhitespaceOfLine";
-import {
-    type OutlinePlusClosuredCommand,
-    type OutlinePlusClosuredParams,
-} from "./registerCommand";
+import { moveCursorToFirstNonWhitespaceCharOfLine } from "../utils/editorNav";
+import { showRegionCommandNoOp } from "./regionCommandFeedback";
+import { type OutlinePlusClosuredParams } from "./registerCommand";
 
-export const goToRegionBoundaryCommand: OutlinePlusClosuredCommand = {
-  id: CMD_GO_TO_REGION_BOUNDARY,
-  callback: goToRegionBoundary,
-  needsRegionHelperParams: true,
-};
-
-function goToRegionBoundary({ regionStore }: OutlinePlusClosuredParams): void {
+export function goToRegionBoundary({ regionStore }: OutlinePlusClosuredParams): void {
   const { activeTextEditor } = vscode.window;
   if (!activeTextEditor) {
+    showRegionCommandNoOp("noEditor");
     return;
   }
   const cursorLine = activeTextEditor.selection.active.line;
   const { topLevelRegions, activeRegion } = regionStore;
   if (!activeRegion) {
-    // If there is a next region to jump to, it will be a top-level region.
+    // With no enclosing region, the command jumps to the next top-level region
+    // boundary below the cursor. Detect the no-op cases up front so we can name
+    // why nothing happened instead of silently doing nothing (plan 6.7).
+    const hasBoundaryBelowCursor = topLevelRegions.some(
+      (region) => region.range.start.line > cursorLine
+    );
+    if (!hasBoundaryBelowCursor) {
+      showRegionCommandNoOp(topLevelRegions.length === 0 ? "noRegions" : "cursorOutsideRegion");
+      return;
+    }
     goToNextTopLevelRegionBoundary({
       activeTextEditor,
       topLevelRegions,

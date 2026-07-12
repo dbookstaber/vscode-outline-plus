@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { DEBOUNCE_DOCUMENT_PARSE_MS } from "../constants";
+import { isIgnoredDocumentScheme } from "../lib/documentScheme";
 import { fetchDocumentSymbols, fetchDocumentSymbolsAfterDelay } from "../lib/fetchDocumentSymbols";
 import { flattenDocumentSymbols } from "../lib/flattenDocumentSymbols";
 import { extractDocumentIdFromVersioned, getVersionedDocumentId } from "../lib/getVersionedDocumentId";
@@ -72,11 +73,60 @@ export class DocumentSymbolStore implements vscode.Disposable {
    */
   private _refreshGeneration = 0;
 
+  /**
+   * Tracks retry ladders that have already run to exhaustion (all
+   * {@link MAX_NUM_DOCUMENT_SYMBOLS_FETCH_ATTEMPTS} attempts returned
+   * `undefined`) per document, keyed by URI → the `languageId` that exhausted
+   * (plan 4.4).
+   *
+   * Without this, a provider-less file-scheme document (.txt/.log/.csv, a
+   * language with no symbol provider) re-spawns the full ~10-attempt / ~20 s
+   * ladder on *every* 250 ms edit-pause — ~10 pointless cross-host
+   * `executeDocumentSymbolProvider` queries per pause, with overlapping chains.
+   * Once a ladder exhausts we do a single probe per subsequent refresh instead.
+   *
+   * Reset (a fresh full ladder is allowed again) when:
+   *  - the document's `languageId` changes (its provider set may now differ),
+   *  - the user forces a refresh (Refresh button), or
+   *  - a probe finally returns symbols (a provider registered).
+   *
+   * VS Code fires no "provider registered" event, so these cheap heuristics
+   * stand in for one.
+   */
+  private _exhaustedSymbolLadders = new Map<string, string>();
+
   private debouncedRefreshDocumentSymbols: DebouncedFunction<
     (document: vscode.TextDocument | undefined) => void
   > = debounce(this.refreshDocumentSymbols.bind(this), DEBOUNCE_DOCUMENT_PARSE_MS);
 
-  constructor(subscriptions: vscode.Disposable[]) {
+  /**
+   * Maps a retry attempt index to its backoff delay. Defaults to the production
+   * stepped ladder ({@link getRetryDelayMs}); overridable via the constructor so
+   * tests can exercise the full ladder without waiting the real ~15 s.
+   */
+  private readonly retryDelayMsForAttempt: (attemptIdx: number) => number;
+
+  /**
+   * Symbol-fetch functions, defaulting to the real ones (each dispatches exactly
+   * one `vscode.executeDocumentSymbolProvider`). Injectable so a test can count
+   * *this store's* provider dispatches precisely, unpolluted by the always-on
+   * extension singleton's own store (plan 4.4 mechanism test).
+   */
+  private readonly _fetchDocumentSymbols: typeof fetchDocumentSymbols;
+  private readonly _fetchDocumentSymbolsAfterDelay: typeof fetchDocumentSymbolsAfterDelay;
+
+  constructor(
+    subscriptions: vscode.Disposable[],
+    options?: {
+      retryDelayMsForAttempt?: (attemptIdx: number) => number;
+      fetchDocumentSymbols?: typeof fetchDocumentSymbols;
+      fetchDocumentSymbolsAfterDelay?: typeof fetchDocumentSymbolsAfterDelay;
+    }
+  ) {
+    this.retryDelayMsForAttempt = options?.retryDelayMsForAttempt ?? getRetryDelayMs;
+    this._fetchDocumentSymbols = options?.fetchDocumentSymbols ?? fetchDocumentSymbols;
+    this._fetchDocumentSymbolsAfterDelay =
+      options?.fetchDocumentSymbolsAfterDelay ?? fetchDocumentSymbolsAfterDelay;
     this.registerListeners(subscriptions);
     if (vscode.window.activeTextEditor?.document) {
       this.debouncedRefreshDocumentSymbols(vscode.window.activeTextEditor.document);
@@ -94,6 +144,12 @@ export class DocumentSymbolStore implements vscode.Disposable {
    */
   forceRefresh(): void {
     const document = vscode.window.activeTextEditor?.document;
+    // Plan 4.4: an explicit Refresh is the user asking us to try again, so drop
+    // any recorded ladder-exhaustion for this document and let the forced path
+    // run a full ladder from scratch.
+    if (document) {
+      this._exhaustedSymbolLadders.delete(document.uri.toString());
+    }
     this.debouncedRefreshDocumentSymbols.cancel();
     void this.refreshDocumentSymbolsForced(document);
   }
@@ -107,6 +163,12 @@ export class DocumentSymbolStore implements vscode.Disposable {
       this._documentSymbols = [];
       this._flattenedDocumentSymbols = [];
       this._onDidChangeDocumentSymbols.fire();
+      return;
+    }
+    // Plan 4.7b: never treat an ignored-scheme document (e.g. the Output panel)
+    // as a source document — retain last-known symbols rather than clearing or
+    // querying a provider that will never resolve.
+    if (isIgnoredDocumentScheme(document)) {
       return;
     }
     // Eagerly advance versionedDocumentId on URI change so a missing/slow
@@ -124,12 +186,20 @@ export class DocumentSymbolStore implements vscode.Disposable {
       this._onDidChangeDocumentSymbols.fire();
     }
     try {
-      const fetchResult = await fetchDocumentSymbols(document);
+      const fetchResult = await this._fetchDocumentSymbols(document);
       if (generation !== this._refreshGeneration) {
         return;
       }
       const { documentSymbols, versionedDocumentId } = fetchResult;
       if (documentSymbols === undefined) {
+        // Language server not ready yet (e.g. a forced refresh — the Refresh
+        // button — fired while the server is still warming up). The normal
+        // refresh path retries via the stepped-backoff ladder; the forced path
+        // must too (plan 2.6), otherwise a forced refresh during warmup silently
+        // no-ops and the outline stays empty until an unrelated edit. Fall into
+        // the ladder at attempt 1, threading this refresh's generation so a
+        // superseding refresh cancels the chain.
+        void this.refreshDocumentSymbols(document, 1, generation);
         return;
       }
       sortSymbolsRecursivelyByStart(documentSymbols);
@@ -179,13 +249,20 @@ export class DocumentSymbolStore implements vscode.Disposable {
       attemptIdx === 0 ? ++this._refreshGeneration : (originGeneration ?? this._refreshGeneration);
 
     if (!document) {
-      this._versionedDocumentId = undefined;
-      const oldDocumentSymbols = this._documentSymbols;
-      this._documentSymbols = [];
-      this._flattenedDocumentSymbols = [];
-      if (oldDocumentSymbols.length > 0) {
-        this._onDidChangeDocumentSymbols.fire();
-      }
+      // Plan 4.7a: activeTextEditor becomes undefined on a *transient* focus
+      // loss (focusing a webview/Output panel, a tab switch in progress), not
+      // only when the last editor closes. Clearing + firing here made the Full
+      // Outline flash empty and then refetch symbols on every editor↔webview
+      // round trip (visible as tree flicker; "symbols changed" refetch at an
+      // unchanged version). Retain last-known symbols instead — a switch to a
+      // *different* real editor (document defined) still replaces them below.
+      return;
+    }
+
+    // Plan 4.7b: ignored-scheme docs (e.g. the Output panel) are never source
+    // documents; retain state rather than clearing or launching the retry
+    // ladder against a document that can never gain a symbol provider.
+    if (isIgnoredDocumentScheme(document)) {
       return;
     }
 
@@ -203,6 +280,13 @@ export class DocumentSymbolStore implements vscode.Disposable {
     // doc". A subsequent successful fetch will replace the empty symbols
     // and fire another change event.
     if (attemptIdx === 0) {
+      // Plan 4.4: if this URI's recorded ladder-exhaustion was earned under a
+      // different languageId, the language changed and its provider set may now
+      // differ — drop the record so a fresh full ladder is allowed.
+      const exhaustedLang = this._exhaustedSymbolLadders.get(document.uri.toString());
+      if (exhaustedLang !== undefined && exhaustedLang !== document.languageId) {
+        this._exhaustedSymbolLadders.delete(document.uri.toString());
+      }
       const newDocId = document.uri.toString();
       const oldDocId =
         this._versionedDocumentId !== undefined
@@ -221,6 +305,10 @@ export class DocumentSymbolStore implements vscode.Disposable {
     }
 
     if (attemptIdx >= MAX_NUM_DOCUMENT_SYMBOLS_FETCH_ATTEMPTS) {
+      // Plan 4.4: the whole ladder ran without ever resolving symbols. Record
+      // exhaustion so subsequent refreshes probe once instead of re-spawning
+      // the full ~20 s chain on every edit-pause.
+      this._exhaustedSymbolLadders.set(document.uri.toString(), document.languageId);
       return;
     }
     // Before sleeping for a retry, bail out if a newer top-level refresh has
@@ -234,11 +322,11 @@ export class DocumentSymbolStore implements vscode.Disposable {
       return;
     }
     try {
-      const retryDelayMs = getRetryDelayMs(attemptIdx);
+      const retryDelayMs = this.retryDelayMsForAttempt(attemptIdx);
       const fetchResult =
         attemptIdx === 0
-          ? await fetchDocumentSymbols(document)
-          : await fetchDocumentSymbolsAfterDelay(document, retryDelayMs);
+          ? await this._fetchDocumentSymbols(document)
+          : await this._fetchDocumentSymbolsAfterDelay(document, retryDelayMs);
 
       // Discard result if a newer refresh was initiated while we were fetching.
       // This prevents a slow fetch for editor A from overwriting results after
@@ -254,13 +342,26 @@ export class DocumentSymbolStore implements vscode.Disposable {
       }
       const { documentSymbols, versionedDocumentId } = fetchResult;
       if (documentSymbols === undefined) {
+        // Plan 4.4: if a full ladder already exhausted for this URI+language,
+        // this attempt-0 fetch was the single allowed probe per refresh — do
+        // NOT re-spawn the ~20 s chain. (The record is cleared on a language
+        // change, a forced refresh, or a successful fetch, so a genuinely
+        // slow-but-present provider is not permanently starved.)
+        if (
+          attemptIdx === 0 &&
+          this._exhaustedSymbolLadders.get(document.uri.toString()) === document.languageId
+        ) {
+          return;
+        }
         // Language server not ready yet - schedule next retry with stepped backoff.
         // Thread the original generation so the next retry's pre-await check
         // can detect a superseding top-level refresh.
         void this.refreshDocumentSymbols(document, attemptIdx + 1, generation);
         return;
       }
-      sortSymbolsRecursivelyByStart(documentSymbols); // By default, `executeDocumentSymbolProvider` returns symbols ordered by name
+      // Plan 4.4: a provider resolved — clear any recorded exhaustion so we keep
+      // serving it, and a future provider loss re-earns a fresh full ladder.
+      this._exhaustedSymbolLadders.delete(document.uri.toString());
 
       // Short-circuit: if we already have symbols stored for this exact
       // versioned id, the new fetch is guaranteed identical. Skip the
@@ -271,6 +372,11 @@ export class DocumentSymbolStore implements vscode.Disposable {
       if (this._versionedDocumentId === versionedDocumentId && this._documentSymbols.length > 0) {
         return;
       }
+      // Plan 4.6a: sort only once we've committed to keeping these symbols. The
+      // recursive sort previously ran *above* the short-circuit, so every
+      // identical-version refresh (each edit-pause on an unchanged doc) paid for
+      // a full recursive sort whose result was then immediately discarded.
+      sortSymbolsRecursivelyByStart(documentSymbols); // executeDocumentSymbolProvider returns symbols ordered by name
 
       const oldDocumentSymbols = this._documentSymbols;
       this._versionedDocumentId = versionedDocumentId;

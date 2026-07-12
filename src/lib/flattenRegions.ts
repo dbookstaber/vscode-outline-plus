@@ -2,6 +2,13 @@ import { type Region } from "../models/Region";
 
 export type FlattenedRegion = Region & {
   flatRegionIdx: number;
+  /**
+   * Nesting depth: 0 for top-level regions, 1 for their children, and so on.
+   * Equal to the number of ancestor regions (see {@link getRegionParents}).
+   * Precomputed here during the single flatten traversal so consumers (e.g. the
+   * region quick-pick's indentation) don't re-walk each region's parent chain.
+   */
+  depth: number;
 };
 
 /**
@@ -22,19 +29,19 @@ export function flattenRegionsAndCountParents(regions: Region[]): {
   let flatRegionIdx = 0;
   const allParentIds = new Set<string>();
 
-  function traverse(region: Region): void {
-    const flattenedRegion: FlattenedRegion = { ...region, flatRegionIdx: flatRegionIdx++ };
+  function traverse(region: Region, depth: number): void {
+    const flattenedRegion: FlattenedRegion = { ...region, flatRegionIdx: flatRegionIdx++, depth };
     flattenedRegions.push(flattenedRegion);
     if (region.children.length > 0) {
       allParentIds.add(region.id);
     }
     for (const child of region.children) {
-      traverse(child);
+      traverse(child, depth + 1);
     }
   }
 
   for (const region of regions) {
-    traverse(region);
+    traverse(region, 0);
   }
 
   return { flattenedRegions, allParentIds };

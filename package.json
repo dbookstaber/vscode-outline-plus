@@ -22,12 +22,12 @@
   },
   "icon": "assets/icon.png",
   "license": "GPL-3.0-only",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "engines": {
     "vscode": "^1.94.0"
   },
   "categories": [
-    "Other",
+    "Programming Languages",
     "Visualization"
   ],
   "keywords": [
@@ -46,80 +46,101 @@
   "activationEvents": [
     "onStartupFinished"
   ],
+  "capabilities": {
+    "virtualWorkspaces": true,
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "restrictedConfigurations": [
+        "outlinePlus.regionBoundaryPatternByLanguageId"
+      ]
+    }
+  },
   "main": "./dist/extension.js",
+  "browser": "./dist/web/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "outlinePlus.goToRegionBoundary",
-        "title": "Outline++: Go to Region Boundary"
+        "title": "Go to Region Boundary",
+        "category": "Outline++"
       },
       {
         "command": "outlinePlus.selectCurrentRegion",
-        "title": "Outline++: Select Current Region"
+        "title": "Select Current Region",
+        "category": "Outline++"
       },
       {
         "command": "outlinePlus.goToRegionFromQuickPick",
-        "title": "Outline++: Go to Region..."
+        "title": "Go to Region...",
+        "category": "Outline++"
       },
       {
         "command": "outlinePlus.goToNextRegion",
-        "title": "Outline++: Go to Next Region"
+        "title": "Go to Next Region",
+        "category": "Outline++"
       },
       {
         "command": "outlinePlus.goToPreviousRegion",
-        "title": "Outline++: Go to Previous Region"
+        "title": "Go to Previous Region",
+        "category": "Outline++"
       },
       {
         "command": "outlinePlus.regionsView.stopAutoHighlightingActiveRegion",
-        "title": "Outline++: Regions View: Stop Auto-Highlighting Active Region",
-        "when": "config.outlinePlus.regionsView.shouldAutoHighlightActiveRegion",
+        "title": "Regions View: Stop Auto-Highlighting Active Region",
+        "category": "Outline++",
         "icon": "$(sync)"
       },
       {
         "command": "outlinePlus.regionsView.startAutoHighlightingActiveRegion",
-        "title": "Outline++: Regions View: Start Auto-Highlighting Active Region",
-        "when": "!config.outlinePlus.regionsView.shouldAutoHighlightActiveRegion",
+        "title": "Regions View: Start Auto-Highlighting Active Region",
+        "category": "Outline++",
         "icon": "$(sync-ignored)"
       },
       {
         "command": "outlinePlus.fullOutlineView.stopAutoHighlightingActiveItem",
-        "title": "Outline++: Full Outline View: Stop Auto-Highlighting Active Item",
-        "when": "config.outlinePlus.fullOutlineView.shouldAutoHighlightActiveItem",
+        "title": "Full Outline View: Stop Auto-Highlighting Active Item",
+        "category": "Outline++",
         "icon": "$(sync)"
       },
       {
         "command": "outlinePlus.fullOutlineView.startAutoHighlightingActiveItem",
-        "title": "Outline++: Full Outline View: Start Auto-Highlighting Active Item",
-        "when": "!config.outlinePlus.fullOutlineView.shouldAutoHighlightActiveItem",
+        "title": "Full Outline View: Start Auto-Highlighting Active Item",
+        "category": "Outline++",
         "icon": "$(sync-ignored)"
       },
       {
         "command": "outlinePlus.regionsView.expandAll",
-        "title": "Outline++: Regions View: Expand All",
+        "title": "Regions View: Expand All",
+        "category": "Outline++",
         "icon": "$(expand-all)"
       },
       {
         "command": "outlinePlus.fullOutlineView.expandAll",
-        "title": "Outline++: Full Outline View: Expand All",
+        "title": "Full Outline View: Expand All",
+        "category": "Outline++",
         "icon": "$(expand-all)"
       },
       {
         "command": "outlinePlus.regionsView.refresh",
-        "title": "Outline++: Refresh Regions View",
+        "title": "Regions View: Refresh",
+        "category": "Outline++",
         "icon": "$(refresh)"
       },
       {
         "command": "outlinePlus.fullOutlineView.refresh",
-        "title": "Outline++: Refresh Full Outline",
+        "title": "Full Outline View: Refresh",
+        "category": "Outline++",
         "icon": "$(refresh)"
       },
       {
         "command": "outlinePlus.showDebugLog",
-        "title": "Outline++: Show Debug Log"
+        "title": "Show Debug Log",
+        "category": "Outline++"
       },
       {
         "command": "outlinePlus.dumpDiagnosticState",
-        "title": "Outline++: Dump Diagnostic State"
+        "title": "Dump Diagnostic State",
+        "category": "Outline++"
       }
     ],
     "configuration": [
@@ -194,15 +215,15 @@
               },
               "dockercompose": {
                 "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
-                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?$"
               },
               "dockerfile": {
                 "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
-                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?$"
               },
               "elixir": {
                 "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
-                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?$"
               },
               "erlang": {
                 "startRegex": "^\\s*%+\\s*#region(?:\\s+(.*?)\\s*)?$",
@@ -224,7 +245,7 @@
               },
               "graphql": {
                 "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
-                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?$"
               },
               "haskell": {
                 "startRegex": "^\\s*--\\s+#region(?:\\s+(.*?)\\s*)?$",
@@ -268,7 +289,7 @@
               },
               "julia": {
                 "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
-                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?$"
               },
               "kotlin": {
                 "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
@@ -290,7 +311,7 @@
               },
               "makefile": {
                 "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
-                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?$"
               },
               "markdown": {
                 "startRegex": "^\\s*<!--\\s*#region(?:\\s+(.*?)\\s*)?-->",
@@ -322,7 +343,7 @@
               },
               "perl": {
                 "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
-                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?$"
               },
               "php": {
                 "startRegex": [
@@ -333,7 +354,7 @@
                 "endRegex": [
                   "^\\s*\\/\\*+\\s*#endregion(?:\\s.*)?\\*+\\/",
                   "^\\s*\\/\\/\\s*#endregion(?:\\s.*)?$",
-                  "^\\s*#\\s*endregion(?:\\s.*)?"
+                  "^\\s*#\\s*endregion(?:\\s.*)?$"
                 ]
               },
               "postcss": {
@@ -342,15 +363,15 @@
               },
               "python": {
                 "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
-                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?$"
               },
               "r": {
                 "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
-                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?$"
               },
               "ruby": {
                 "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
-                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?$"
               },
               "rust": {
                 "startRegex": "^\\s*\\/\\/\\s*#region(?:\\s+(.*?)\\s*)?$",
@@ -368,7 +389,7 @@
               },
               "shellscript": {
                 "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
-                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?$"
               },
               "sql": {
                 "startRegex": "^\\s*--\\s*#region(?:\\s+(.*?)\\s*)?$",
@@ -398,7 +419,7 @@
               },
               "toml": {
                 "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
-                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?$"
               },
               "typescript": {
                 "startRegex": [
@@ -438,11 +459,19 @@
               },
               "yaml": {
                 "startRegex": "^\\s*#\\s*region(?:\\s+(.*?)\\s*)?$",
-                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?"
+                "endRegex": "^\\s*#\\s*endregion(?:\\s.*)?$"
               },
               "vb": {
                 "startRegex": "^\\s*#Region(?:\\s+\"?(.*?)\"?\\s*)?$",
                 "endRegex": "^\\s*#End Region(?:\\s.*)?$"
+              },
+              "powershell": {
+                "startRegex": "^\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*#endregion(?:\\s.*)?$"
+              },
+              "latex": {
+                "startRegex": "^\\s*%+\\s*#region(?:\\s+(.*?)\\s*)?$",
+                "endRegex": "^\\s*%+\\s*#endregion(?:\\s.*)?$"
               }
             }
           }
@@ -508,33 +537,55 @@
     ],
     "keybindings": [
       {
-        "command": "outlinePlus.goToRegionBoundary",
-        "key": "alt+m",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "outlinePlus.selectCurrentRegion",
-        "key": "alt+shift+m",
-        "when": "editorTextFocus"
-      },
-      {
         "command": "outlinePlus.goToRegionFromQuickPick",
         "key": "ctrl+alt+r",
         "mac": "cmd+alt+r",
         "when": "editorTextFocus"
       },
       {
+        "command": "outlinePlus.goToRegionBoundary",
+        "key": "ctrl+alt+m",
+        "mac": "cmd+alt+m",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "outlinePlus.selectCurrentRegion",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s",
+        "when": "editorTextFocus"
+      },
+      {
         "command": "outlinePlus.goToNextRegion",
         "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n",
         "when": "editorTextFocus"
       },
       {
         "command": "outlinePlus.goToPreviousRegion",
         "key": "ctrl+alt+p",
+        "mac": "cmd+alt+p",
         "when": "editorTextFocus"
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "outlinePlus.regionsView.stopAutoHighlightingActiveRegion",
+          "when": "config.outlinePlus.regionsView.shouldAutoHighlightActiveRegion"
+        },
+        {
+          "command": "outlinePlus.regionsView.startAutoHighlightingActiveRegion",
+          "when": "!config.outlinePlus.regionsView.shouldAutoHighlightActiveRegion"
+        },
+        {
+          "command": "outlinePlus.fullOutlineView.stopAutoHighlightingActiveItem",
+          "when": "config.outlinePlus.fullOutlineView.shouldAutoHighlightActiveItem"
+        },
+        {
+          "command": "outlinePlus.fullOutlineView.startAutoHighlightingActiveItem",
+          "when": "!config.outlinePlus.fullOutlineView.shouldAutoHighlightActiveItem"
+        }
+      ],
       "view/title": [
         {
           "command": "outlinePlus.regionsView.refresh",
@@ -617,13 +668,15 @@
     "vsce:publish": "vsce publish",
     "pretest": "npm run compile && npm run compile-tests && npm run lint",
     "lint": "eslint src",
-    "test": "npx rimraf .vscode-test/user-data .vscode-test/extensions && node --disable-warning=DEP0190 ./node_modules/@vscode/test-cli/out/bin.mjs"
+    "test": "npx rimraf .vscode-test/user-data && node --disable-warning=DEP0190 ./node_modules/@vscode/test-cli/out/bin.mjs",
+    "test:clean": "npx rimraf .vscode-test/user-data .vscode-test/extensions && npm test",
+    "bench": "npm run pretest && node -e \"require('child_process').execFileSync(process.execPath,['--disable-warning=DEP0190','./node_modules/@vscode/test-cli/out/bin.mjs'],{stdio:'inherit',env:{...process.env,OUTLINE_PLUS_BENCH:'1'}})\""
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
     "@types/mocha": "^10.0.6",
-    "@types/node": "18.x",
-    "@types/vscode": "^1.94.0",
+    "@types/node": "^20",
+    "@types/vscode": "1.94.0",
     "@types/webpack": "^5.28.5",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
@@ -638,7 +691,8 @@
     "webpack": "^5.91.0",
     "webpack-cli": "^5.1.4"
   },
+  "//overrides": "glob is pinned to a single major (^13) purely to DEDUPE it across dev-only tooling (rimraf, mocha, c8, @vscode/vsce), which otherwise pull glob 10 and 13 side by side. glob 13 requires Node 20+, matching this repo's host reality (see @types/node ^20). Nothing in the extension's runtime bundle depends on glob; this affects the toolchain only. Widen/remove if a tool ever needs an older glob API.",
   "overrides": {
-    "glob": "13.0.0"
+    "glob": "^13.0.0"
   }
 }

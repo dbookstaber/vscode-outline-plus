@@ -22,7 +22,7 @@ This document catalogues the known limitations of the Outline++ extension, expla
    - [3.3 Failed Symbol Fetches Not Retried on Error](#33-failed-symbol-fetches-not-retried-on-error)
    - [3.4 Retry Delays and Attempt Counts Are Hardcoded](#34-retry-delays-and-attempt-counts-are-hardcoded)
 4. [Configuration](#4-configuration)
-   - [4.1 Region Patterns Require Restart After Change](#41-region-patterns-require-restart-after-change)
+   - [4.1 Region Pattern Changes May Not Reach Already-Parsed Background Editors Immediately](#41-region-pattern-changes-may-not-reach-already-parsed-background-editors-immediately)
    - [4.2 Invalid Custom Regex Patterns Fail Silently](#42-invalid-custom-regex-patterns-fail-silently)
    - [4.3 Modifier Display Settings Are Global, Not Per-Language](#43-modifier-display-settings-are-global-not-per-language)
 5. [Tree View & Display](#5-tree-view--display)
@@ -65,7 +65,7 @@ def my_method():
 
 ### 1.3 Six Supported Languages
 
-Full modifier extraction is implemented for: **C#, Java, Kotlin, TypeScript/JavaScript, C/C++, Python** (via naming conventions). Unsupported languages receive a `"default"` visibility with no member modifiers detected.
+Full modifier extraction is implemented for: **C#, Java, Kotlin, TypeScript/JavaScript, C++, Python** (via naming conventions). Plain C (`languageId` `c`) is not included — it receives a `"default"` visibility like any other unsupported language. Unsupported languages receive a `"default"` visibility with no member modifiers detected.
 
 **Why accepted:** Each language requires hand-authored keyword lists, visibility semantics, and boundary patterns. Adding a language is straightforward but must be done deliberately to avoid incorrect detection.
 
@@ -159,13 +159,15 @@ Symbol-fetch retry logic uses stepped delays (300ms → 1s → 3s → 5s) with a
 
 ## 4. Configuration
 
-### 4.1 Region Patterns Require Restart After Change
+### 4.1 Region Pattern Changes May Not Reach Already-Parsed Background Editors Immediately
 
-Custom region boundary patterns (`outlinePlus.regionBoundaryPatternByLanguageId`) are compiled into a `Map` at extension startup. Changing the setting at runtime has no effect until the extension is reloaded.
+Custom region boundary patterns (`outlinePlus.regionBoundaryPatternByLanguageId`) hot-reload at runtime — no extension restart is required. An `onDidChangeConfiguration` listener refreshes the compiled pattern map, force-refreshes the region store for the active document, and re-registers the folding provider against the newly-configured set of languages. Editing the setting takes effect on the active editor right away.
 
-**Why accepted:** Hot-reloading compiled regex patterns would require invalidating all cached parse results, resetting region stores, and re-parsing every open document — a non-trivial amount of plumbing for a setting that users change once during initial setup.
+The residual limitation is narrow: the region store tracks the **active** document, so a pattern change is re-applied to whatever editor is focused. A non-focused background editor is re-parsed when you switch back to it (its parse is keyed by document version and language, and the pattern change invalidates the previously-served result), so in practice you see updated regions on the next activation rather than instantaneously across every open tab.
 
-**Possible fix — Listen for `onDidChangeConfiguration`:** A reasonable enhancement. Deferred because the workaround (reload window) is simple and the setting rarely changes.
+**History:** Runtime hot-reload of pattern changes shipped in v1.0.4; the language-scoped folding-provider re-registration on config change was added in the v1.1.0 performance work.
+
+**Possible fix — Eagerly re-parse every open document on the change event:** Deliberately not done. Re-parsing only the active document (and lazily re-parsing others on activation) avoids a burst of synchronous parses across every open editor for a setting that changes rarely, with no user-visible downside.
 
 ### 4.2 Invalid Custom Regex Patterns Fail Silently
 

@@ -15,9 +15,11 @@ import { RegionFoldingProvider } from "./lib/RegionFoldingProvider";
 import { type FlattenedRegion } from "./lib/flattenRegions";
 import { type InvalidMarker } from "./lib/parseAllRegions";
 import { registerRegionBoundaryPatternConfigListener } from "./lib/regionBoundaryPatterns";
+import { registerFoldingProviderForConfiguredLanguages } from "./lib/registerFoldingProvider";
 import { type Region } from "./models/Region";
 import { CollapsibleStateManager } from "./state/CollapsibleStateManager";
 import { DocumentSymbolStore } from "./state/DocumentSymbolStore";
+import { LargeFileBailoutStatusBar } from "./state/LargeFileBailoutStatusBar";
 import { FullOutlineStore } from "./state/FullOutlineStore";
 import { RegionStore } from "./state/RegionStore";
 import { type FullTreeItem } from "./treeView/fullTreeView/FullTreeItem";
@@ -35,8 +37,8 @@ import { disposeHighlightDecorationType } from "./utils/highlightRegion";
  */
 const pendingDeactivateFlushes: (() => Promise<void>)[] = [];
 
-export function activate(context: vscode.ExtensionContext): OutlineInternalAPI {
-  const { subscriptions, workspaceState, extensionPath } = context;
+export function activate(context: vscode.ExtensionContext): OutlineInternalAPI | undefined {
+  const { subscriptions, workspaceState, extensionUri } = context;
 
   // Defensive reset: if the host activates twice without an intervening
   // deactivate (uncommon, but possible in extension-development hot reload),
@@ -44,8 +46,8 @@ export function activate(context: vscode.ExtensionContext): OutlineInternalAPI {
   // disposed managers.
   pendingDeactivateFlushes.length = 0;
 
-  // Store extension path for use by icon loading
-  initializeExtensionContext(extensionPath);
+  // Store extension root URI for use by icon loading (scheme-preserving on web)
+  initializeExtensionContext(extensionUri);
   initializeDebugLog(subscriptions);
   
   const regionCollapsibleStateManager = new CollapsibleStateManager(
@@ -100,20 +102,53 @@ export function activate(context: vscode.ExtensionContext): OutlineInternalAPI {
   const regionDiagnosticsManager = new RegionDiagnosticsManager(regionStore, subscriptions);
   subscriptions.push(regionDiagnosticsManager.diagnostics);
 
+  // Persistent-while-active status-bar signal for the large-file parse bail-out
+  // (plan 6.10): explains an empty Regions view on a huge file.
+  new LargeFileBailoutStatusBar(regionStore, subscriptions);
+
   registerAllCommands(subscriptions, { regionStore, fullOutlineStore, regionTreeViewProvider, fullTreeViewProvider });
 
-  // Register folding range provider for region markers
+  // Register folding range provider for region markers. The selector is scoped
+  // to the configured region languages (scheme-agnostic — see
+  // registerFoldingProviderForConfiguredLanguages) rather than a bare
+  // {scheme:"file"}, so unconfigured documents never route through a
+  // from-scratch parse (plan 4.5).
   const foldingProvider = new RegionFoldingProvider(regionStore);
-  subscriptions.push(
-    vscode.languages.registerFoldingRangeProvider({ scheme: "file" }, foldingProvider),
-    vscode.languages.registerFoldingRangeProvider({ scheme: "untitled" }, foldingProvider)
-  );
+  subscriptions.push(foldingProvider);
+  let foldingRegistration = registerFoldingProviderForConfiguredLanguages(foldingProvider);
+  // The captured `foldingRegistration` is reassigned on re-registration below;
+  // this wrapper always disposes whichever registration is current.
+  subscriptions.push({
+    dispose: () => {
+      foldingRegistration.dispose();
+    },
+  });
 
   // Re-parse when the user edits regionBoundaryPatternByLanguageId so changes take effect
-  // without requiring an extension reload.
+  // without requiring an extension reload. The pattern map is refreshed before this
+  // callback runs, so a changed language set is reflected when we re-register the
+  // folding provider against the new set of configured languages (plan 4.5).
   registerRegionBoundaryPatternConfigListener(subscriptions, () => {
     regionStore.forceRefresh();
+    foldingRegistration.dispose();
+    foldingRegistration = registerFoldingProviderForConfiguredLanguages(foldingProvider);
   });
+
+  // Full Outline modifier-display settings only affect item icons/labels, not the
+  // structural identity FullOutlineStore's change-detection compares. Without an
+  // explicit rebuild, edits to these settings have no visible effect until an
+  // unrelated structural edit. Force a rebuild when either changes.
+  const FULL_OUTLINE_DISPLAY_CONFIG_KEYS = [
+    "outlinePlus.fullOutlineView.modifierDisplay",
+    "outlinePlus.fullOutlineView.useDistinctModifierColors",
+  ];
+  subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (FULL_OUTLINE_DISPLAY_CONFIG_KEYS.some((key) => event.affectsConfiguration(key))) {
+        fullOutlineStore.rebuildItemsForDisplayConfigChange();
+      }
+    })
+  );
 
   // Register debug commands
   subscriptions.push(
@@ -136,20 +171,19 @@ export function activate(context: vscode.ExtensionContext): OutlineInternalAPI {
     })
   );
 
-  // Internal-only handle for integration tests that need access to runtime
-  // objects (e.g. FullTreeItem.modifiers) which `OutlineInternalAPI` strips at
-  // the boundary. Tests cannot reach the FullOutlineStore instance directly
-  // because the test webpack bundle ships its own module copy of the class.
-  const internalHandle = {
+  // The returned shape is NOT a public API: it exists only so the integration
+  // test suite can observe live stores across the test/extension bundle boundary
+  // (including `_test_getInternalFullOutlineItems`, whose FullTreeItem instances
+  // carry the UI-only properties `OutlineItem` strips). In marketplace-production
+  // this would be a live-mutable handle into extension internals for any
+  // third-party extension via `getExtension().exports`, so we expose nothing
+  // there — the test host runs outside ExtensionMode.Production (plan 3.10).
+  if (context.extensionMode === vscode.ExtensionMode.Production) {
+    return undefined;
+  }
+  return {
     _test_getInternalFullOutlineItems: (): FullTreeItem[] =>
       fullOutlineStore.topLevelFullOutlineItems,
-  };
-
-  // NOT a public API. This shape exists so the integration test suite can
-  // observe stores across the test/extension bundle boundary. External
-  // consumers should not depend on these methods — see regionHelperAPI.ts.
-  return {
-    ...internalHandle,
     getTopLevelRegions: (): Region[] => regionStore.topLevelRegions,
     getFlattenedRegions: (): FlattenedRegion[] => regionStore.flattenedRegions,
     getActiveRegion: (): Region | undefined => regionStore.activeRegion,

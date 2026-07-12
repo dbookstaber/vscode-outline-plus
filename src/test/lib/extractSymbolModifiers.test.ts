@@ -807,4 +807,227 @@ suite("Extract Symbol Modifiers", function () {
   });
 
   // #endregion
+
+  // #region Plan 2.2 — wrong visibility on everyday code
+
+  // (i) Earliest-position matching (not keyword length).
+  // Pre-fix: extractVisibility sorted keywords by descending length and returned
+  // the first match, so "private" (7) beat "public" (6) in the same declaration.
+  test("2.2(i): auto-property with 'private set' keeps the declared 'public' visibility", async () => {
+    const doc = await makeDocument(
+      ["public int X { get; private set; }"],
+      "csharp"
+    );
+    const symbol = createSymbol("X", 0, vscode.SymbolKind.Property);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.visibility, "public",
+      "Property declared 'public' with a 'private set' accessor must read as public (earliest keyword wins)");
+  });
+
+  test("2.2(i): earliest-position still prefers the longer combined modifier at the same index", async () => {
+    const doc = await makeDocument(
+      ["protected internal int Y { get; private set; }"],
+      "csharp"
+    );
+    const symbol = createSymbol("Y", 0, vscode.SymbolKind.Property);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.visibility, "protected-internal",
+      "Combined 'protected internal' at index 0 must win over 'protected' at index 0 and over later 'private'");
+  });
+
+  // (ii) String literals must be stripped before keyword scanning.
+  // The string keyword is placed BEFORE the real visibility keyword so that an
+  // earliest-position matcher alone would still pick the wrong one — this
+  // isolates the string-stripping fix.
+  test("2.2(ii): visibility keyword inside a string literal is ignored", async () => {
+    const doc = await makeDocument(
+      ['[Obsolete("Use the private API instead")] public void Foo() {}'],
+      "csharp"
+    );
+    const symbol = createSymbol("Foo", 0);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.visibility, "public",
+      "'private' inside a string literal must not override the real 'public' keyword");
+  });
+
+  test("2.2(ii): member-modifier keyword inside a string literal is ignored", async () => {
+    const doc = await makeDocument(
+      ['public string Sql = "static readonly rows";'],
+      "csharp"
+    );
+    const symbol = createSymbol("Sql", 0, vscode.SymbolKind.Field);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.memberModifiers.isStatic, false,
+      "'static' inside a string literal must not set isStatic");
+    assert.strictEqual(result.memberModifiers.isReadonly, false,
+      "'readonly' inside a string literal must not set isReadonly");
+  });
+
+  // (iii) Parameter-property modifiers must not leak onto the enclosing symbol.
+  test("2.2(iii): TypeScript constructor parameter property does NOT mark the constructor private", async () => {
+    const doc = await makeDocument(
+      ["  constructor(private readonly foo: Foo) {}"],
+      "typescript"
+    );
+    const symbol = createSymbol("constructor", 0, vscode.SymbolKind.Constructor);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.visibility, "default",
+      "A 'private' parameter property must not make the constructor itself private");
+    assert.strictEqual(result.memberModifiers.isReadonly, false,
+      "A 'readonly' parameter property must not set isReadonly on the constructor");
+  });
+
+  test("2.2(iii): a real modifier before the parameter list is still honored", async () => {
+    const doc = await makeDocument(
+      ["  private constructor(public bar: Bar) {}"],
+      "typescript"
+    );
+    const symbol = createSymbol("constructor", 0, vscode.SymbolKind.Constructor);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.visibility, "private",
+      "The 'private' before 'constructor' is a real modifier and must be honored (only the parameter list is stripped)");
+  });
+
+  // #endregion
+
+  // #region Plan 2.3 — case-sensitive keyword matching
+
+  // Pre-fix: regexes carried the `i` flag, so capitalized identifiers matched
+  // keywords in case-sensitive languages.
+  test("2.3: TypeScript identifier 'Static' is NOT treated as the static modifier", async () => {
+    const doc = await makeDocument(
+      ["function Static(): void {}"],
+      "typescript"
+    );
+    const symbol = createSymbol("Static", 0, vscode.SymbolKind.Function);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.memberModifiers.isStatic, false,
+      "Capitalized 'Static' identifier must not be matched case-insensitively as 'static'");
+  });
+
+  test("2.3: TypeScript identifier 'Override' is NOT treated as the override modifier", async () => {
+    const doc = await makeDocument(
+      ["function Override(): void {}"],
+      "typescript"
+    );
+    const symbol = createSymbol("Override", 0, vscode.SymbolKind.Function);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.memberModifiers.isOverride, false,
+      "Capitalized 'Override' identifier must not be matched case-insensitively as 'override'");
+  });
+
+  test("2.3: C# method named 'Public' does NOT read as public visibility", async () => {
+    const doc = await makeDocument(
+      ["void Public() {}"],
+      "csharp"
+    );
+    const symbol = createSymbol("Public", 0);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.visibility, "default",
+      "Capitalized identifier 'Public' must not match the 'public' visibility keyword");
+  });
+
+  // #endregion
+
+  // #region Plan 4.2 — no per-tick RegExp construction
+
+  // Precompiled patterns mean extraction must not call `new RegExp(...)` on the
+  // hot path. We count constructor invocations by wrapping the global RegExp.
+  // (Regex *literals* used by the sanitizers are not created via this
+  // constructor, so they are intentionally not counted.)
+  test("4.2: extraction constructs zero RegExp objects on the hot path", async () => {
+    const doc = await makeDocument(
+      ["public static readonly int Cache = 0;"],
+      "csharp"
+    );
+    const symbol = createSymbol("Cache", 0, vscode.SymbolKind.Field);
+
+    const OriginalRegExp = globalThis.RegExp;
+    let constructCount = 0;
+    const CountingRegExp = new Proxy(OriginalRegExp, {
+      construct(target, args): object {
+        constructCount++;
+        return Reflect.construct(target, args) as object;
+      },
+    });
+    try {
+      globalThis.RegExp = CountingRegExp;
+      const result = extractSymbolModifiers(symbol, doc);
+      // Sanity: the extraction still works.
+      assert.strictEqual(result.visibility, "public");
+      assert.strictEqual(result.memberModifiers.isStatic, true);
+      assert.strictEqual(result.memberModifiers.isReadonly, true);
+    } finally {
+      globalThis.RegExp = OriginalRegExp;
+    }
+
+    assert.strictEqual(constructCount, 0,
+      "extractSymbolModifiers must not compile new RegExp objects per call (patterns are precompiled)");
+  });
+
+  // #endregion
+
+  // #region Plan 2.9 — C++ access-specifier sections
+
+  // Pre-fix: only the FIRST member after an access label was colored, because
+  // the backward line scan stopped at the previous member's ';'.
+  test("2.9: C++ second field in a 'private:' section is still private", async () => {
+    const doc = await makeDocument([
+      "class Widget {",
+      "private:",
+      "    int firstField;",
+      "    int secondField;",
+      "};",
+    ], "cpp");
+    const symbol = createSymbol("secondField", 3, vscode.SymbolKind.Field);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.visibility, "private",
+      "The second member of a 'private:' section must also be private");
+  });
+
+  test("2.9: C++ member after a nested method body still tracks its access section", async () => {
+    const doc = await makeDocument([
+      "class Service {",
+      "public:",
+      "    void start() {",
+      "        run();",
+      "    }",
+      "    void stop();",
+      "};",
+    ], "cpp");
+    const symbol = createSymbol("stop", 5);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.visibility, "public",
+      "A member following a full method body must still see the enclosing 'public:' label");
+  });
+
+  test("2.9: C++ later 'protected:' section overrides an earlier 'public:' section", async () => {
+    const doc = await makeDocument([
+      "class Model {",
+      "public:",
+      "    int visible;",
+      "protected:",
+      "    int guarded;",
+      "};",
+    ], "cpp");
+    const symbol = createSymbol("guarded", 4, vscode.SymbolKind.Field);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.visibility, "protected",
+      "The nearest preceding access label ('protected:') governs the member");
+  });
+
+  // Removing plain "c" from cppPatterns: C files get no modifier config at all.
+  test("2.9: plain C ('c' languageId) yields default modifiers (no config)", async () => {
+    const doc = await makeDocument(
+      ["static void c_helper(void) {}"],
+      "c"
+    );
+    const symbol = createSymbol("c_helper", 0, vscode.SymbolKind.Function);
+    const result = extractSymbolModifiers(symbol, doc);
+    assert.strictEqual(result.memberModifiers.isStatic, false,
+      "Plain C is no longer a supported modifier language, so 'static' must not be detected");
+    assert.strictEqual(result.visibility, "default");
+  });
+
+  // #endregion
 });
