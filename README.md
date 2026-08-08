@@ -4,7 +4,7 @@
 
 [![VS Code Marketplace Version](https://vsmarketplacebadges.dev/version/DavidBookstaber.outline-regions-plus.svg)](https://marketplace.visualstudio.com/items?itemName=DavidBookstaber.outline-regions-plus)
 [![VS Code Marketplace Installs](https://vsmarketplacebadges.dev/installs/DavidBookstaber.outline-regions-plus.svg)](https://marketplace.visualstudio.com/items?itemName=DavidBookstaber.outline-regions-plus)
-[![VS Code Marketplace Rating](https://vsmarketplacebadges.dev/rating/DavidBookstaber.outline-regions-plus.svg)](https://marketplace.visualstudio.com/items?itemName=DavidBookstaber.outline-regions-plus)
+<!-- [![VS Code Marketplace Rating](https://vsmarketplacebadges.dev/rating/DavidBookstaber.outline-regions-plus.svg)](https://marketplace.visualstudio.com/items?itemName=DavidBookstaber.outline-regions-plus) -->
 
 A Visual Studio Code extension for navigating, visualizing, and managing code regions and document outlines. Forked from [Region Helper](https://github.com/alythobani/vscode-region-helper) (see [Acknowledgements](#acknowledgements)).
 
