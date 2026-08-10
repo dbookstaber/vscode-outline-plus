@@ -29,6 +29,7 @@ This document catalogues the known limitations of the Outline++ extension, expla
    - [5.1 Tree Views Always Highlight the Last Active Item](#51-tree-views-always-highlight-the-last-active-item)
    - [5.2 Custom SVG Icons Only for Three Symbol Types](#52-custom-svg-icons-only-for-three-symbol-types)
    - [5.3 Collapsed State Lost on Region Rename](#53-collapsed-state-lost-on-region-rename)
+   - [5.4 Views Are Empty on Classic Markdown Preview Tabs](#54-views-are-empty-on-classic-markdown-preview-tabs)
 6. [Navigation](#6-navigation)
    - [6.1 Go to Region Uses camelCase Matching Only](#61-go-to-region-uses-camelcase-matching-only)
 7. [Diagnostics](#7-diagnostics)
@@ -206,6 +207,14 @@ Custom SVG modifier icons (base icon + modifier badge overlay) are generated onl
 Tree item collapsed/expanded state is keyed by a stable ID derived from the region name. Renaming a region creates a new ID; the old ID's state is orphaned in storage and the tree resets to the default expanded state.
 
 **Why accepted:** Detecting renames would require heuristic matching (same line number, similar name) that could produce false positives. The orphaned storage entries are small (a few bytes each) and do not accumulate to a meaningful size.
+
+### 5.4 Views Are Empty on Classic Markdown Preview Tabs
+
+Both tree views go blank when the active tab is a **classic Markdown preview** (`markdown.showPreview`, Ctrl+Shift+V / Ctrl+K V), even though the source `.md` file is open in the workspace. The Markdown preview **editor** (the editor-title toggle whose tooltip is "Reopen as source file") is unaffected and outlines normally.
+
+**Cause:** The classic preview surfaces as a `TabInputWebview`, which exposes only a `viewType` string and no `uri`; `window.activeTextEditor` is `undefined` for webview-backed tabs; and for a full-tab preview the source document is frequently absent from `window.visibleTextEditors`. There is no supported path from the tab to the document it renders. Requested upstream as [vscode#319242](https://github.com/microsoft/vscode/issues/319242) and closed as by-design in 2026-06 — webviews are not resource-bound by design.
+
+**Why accepted:** A prototype resolved the document heuristically and did populate the Full Outline for preview tabs, but with nothing binding the webview to a resource the result was static: no cursor tracking, no viewport sync, no click-to-navigate. It was not merged. See [WEBVIEW_API_REQUEST.md](./WEBVIEW_API_REQUEST.md) for the full request, the maintainer's reasoning, and the one API reframe that might still succeed.
 
 ---
 
