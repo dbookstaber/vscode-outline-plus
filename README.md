@@ -17,7 +17,7 @@ A Visual Studio Code extension for navigating, visualizing, and managing code re
 -  **Diagnostics** – Detects unmatched region boundaries.
 -  **Refresh & Debug** – Manual refresh buttons and built-in debug logging for diagnosing issues.
 
-![Outline++ Demo](./assets/readme-gifs/OutlinePlus.gif)
+![Outline++ Demo](https://raw.githubusercontent.com/dbookstaber/vscode-outline-plus/main/assets/readme-gifs/OutlinePlus.gif)
 
 ## Keybindings (Hotkeys)
 

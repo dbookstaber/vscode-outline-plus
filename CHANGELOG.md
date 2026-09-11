@@ -6,6 +6,13 @@ This changelog adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ---
 
+## [1.2.1] - 2026-09-11
+
+- Updated dev dependencies
+- Robust image link for README
+
+---
+
 ## [1.2.0] - 2026-07-11
 
 ### Added
